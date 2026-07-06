@@ -83,10 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits" },
       { name: "description", content: "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada." },
       { name: "author", content: "Blessings Men's Boutique" },
-      { property: "og:title", content: "Blessings | Men's Boutique" },
-      { property: "og:description", content: "Bespoke elegance, handcrafted in Delhi. Delivered worldwide." },
+      { property: "og:title", content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits" },
+      { property: "og:description", content: "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits" },
+      { name: "twitter:description", content: "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/69f20048-92b7-4c53-9c7f-ce4aadf59be5/id-preview-cb34967b--e98bb2db-785c-41b4-a98c-693aad61a867.lovable.app-1783324084941.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/69f20048-92b7-4c53-9c7f-ce4aadf59be5/id-preview-cb34967b--e98bb2db-785c-41b4-a98c-693aad61a867.lovable.app-1783324084941.png" },
     ],
     links: [
       {
