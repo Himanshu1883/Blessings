@@ -47,19 +47,19 @@ function ShopCategory() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative h-[50vh] min-h-[360px] overflow-hidden">
+      <section className="reveal-ignore relative h-[45vh] sm:h-[50vh] min-h-[280px] sm:min-h-[360px] overflow-hidden">
         <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-[color:var(--charcoal)]/50" />
-        <div className="relative h-full flex flex-col items-center justify-center text-center text-[color:var(--ivory)] px-6">
-          <p className="eyebrow text-[color:var(--gold-soft)] mb-4">The Collection</p>
-          <h1 className="font-serif italic text-5xl md:text-7xl">{cat.name}</h1>
-          <p className="mt-6 max-w-lg text-[color:var(--ivory)]/80">{cat.tagline}</p>
+        <div className="relative h-full flex flex-col items-center justify-center text-center text-[color:var(--ivory)] px-4 sm:px-6">
+          <p className="eyebrow text-[color:var(--gold-soft)] mb-3 sm:mb-4">The Collection</p>
+          <h1 className="font-serif italic text-3xl sm:text-5xl md:text-7xl text-balance">{cat.name}</h1>
+          <p className="mt-4 sm:mt-6 max-w-lg text-sm sm:text-base text-[color:var(--ivory)]/80 px-2">{cat.tagline}</p>
         </div>
       </section>
 
       {/* Category strip */}
       <div className="border-b border-foreground/10 overflow-x-auto">
-        <div className="max-w-[1600px] mx-auto px-6 md:px-8 flex items-center gap-8 py-5">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 flex items-center gap-6 sm:gap-8 py-4 sm:py-5">
           {CATEGORIES.map((c) => (
             <Link
               key={c.slug}
@@ -74,7 +74,7 @@ function ShopCategory() {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-14 grid grid-cols-12 gap-8">
+      <div data-reveal-section data-reveal-direction="alternate" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-10 sm:py-14 grid grid-cols-12 gap-6 sm:gap-8">
         {/* Filters */}
         <aside className={`col-span-12 md:col-span-3 lg:col-span-2 ${openFilters ? "block" : "hidden md:block"}`}>
           <div className="sticky top-32 space-y-8">
@@ -88,16 +88,16 @@ function ShopCategory() {
 
         {/* Products */}
         <div className="col-span-12 md:col-span-9 lg:col-span-10">
-          <div className="flex items-center justify-between mb-8">
-            <button onClick={() => setOpenFilters((o) => !o)} className="md:hidden inline-flex items-center gap-2 eyebrow text-[10px]">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <button onClick={() => setOpenFilters((o) => !o)} className="md:hidden inline-flex items-center gap-2 eyebrow text-[10px] min-h-11">
               <SlidersHorizontal className="size-3.5" /> Filter
             </button>
-            <p className="eyebrow text-[10px] text-foreground/50">{sorted.length} pieces</p>
-            <div className="relative">
+            <p className="eyebrow text-[10px] text-foreground/50 order-first sm:order-none">{sorted.length} pieces</p>
+            <div className="relative w-full sm:w-auto">
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as any)}
-                className="appearance-none bg-transparent border border-foreground/20 pl-4 pr-9 py-2 eyebrow text-[10px] cursor-pointer"
+                className="appearance-none bg-transparent border border-foreground/20 pl-4 pr-9 py-2.5 eyebrow text-[10px] cursor-pointer w-full sm:w-auto"
               >
                 <option value="new">Newest</option>
                 <option value="price-asc">Price — Low to High</option>
@@ -106,7 +106,7 @@ function ShopCategory() {
               <ChevronDown className="size-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8 min-w-0">
             {sorted.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         </div>

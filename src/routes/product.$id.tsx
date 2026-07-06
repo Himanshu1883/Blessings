@@ -1,9 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { getProduct, PRODUCTS } from "@/lib/catalog";
 import { useCurrency } from "@/lib/currency";
+import { useShop } from "@/lib/shop-store";
 import { useState } from "react";
 import { Heart, Ruler, Scissors, Truck, Shield, ChevronDown, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 import { ProductCard } from "./index";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ params }) => {
@@ -36,23 +39,25 @@ export const Route = createFileRoute("/product/$id")({
 function ProductPage() {
   const { product } = Route.useLoaderData();
   const { format } = useCurrency();
+  const { addToCart, toggleWishlist, isInWishlist } = useShop();
   const [size, setSize] = useState("M");
+  const saved = isInWishlist(product.id);
   const complete = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
 
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="max-w-[1600px] mx-auto px-6 md:px-8 pt-8">
-        <nav className="eyebrow text-[10px] text-foreground/50 flex items-center gap-2">
-          <Link to="/" className="hover:text-foreground">Home</Link>
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 pt-6 sm:pt-8">
+        <nav className="eyebrow text-[10px] text-foreground/50 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1">
+          <Link to="/" className="hover:text-foreground shrink-0">Home</Link>
           <span>/</span>
-          <Link to="/shop/$category" params={{ category: product.categorySlug }} className="hover:text-foreground capitalize">{product.categorySlug.replace("-", " ")}</Link>
+          <Link to="/shop/$category" params={{ category: product.categorySlug }} className="hover:text-foreground capitalize shrink-0">{product.categorySlug.replace("-", " ")}</Link>
           <span>/</span>
-          <span className="text-foreground/70">{product.name}</span>
+          <span className="text-foreground/70 truncate">{product.name}</span>
         </nav>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-10 grid grid-cols-12 gap-8 lg:gap-16">
+      <div data-reveal-section data-reveal-direction="split" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10 grid grid-cols-12 gap-6 sm:gap-8 lg:gap-16">
         {/* Gallery */}
         <div className="col-span-12 lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-3">
           <img src={product.image} alt={product.name} className="w-full aspect-[3/4] object-cover md:col-span-2" />
@@ -65,7 +70,7 @@ function ProductPage() {
           <div className="lg:sticky lg:top-32 space-y-8">
             <div>
               <p className="eyebrow text-[color:var(--gold)] mb-3">The {product.categorySlug.replace("-", " ")}</p>
-              <h1 className="font-serif italic text-4xl md:text-5xl leading-tight">{product.name}</h1>
+              <h1 className="font-serif italic text-3xl sm:text-4xl md:text-5xl leading-tight text-balance">{product.name}</h1>
               <p className="mt-4 eyebrow text-[10px] text-foreground/60">{product.fabric}</p>
               <p className="mt-6 text-2xl font-serif text-[color:var(--maroon)] tabular-nums">{format(product.price)}</p>
               <p className="mt-2 text-[11px] text-foreground/50">Inclusive of all duties. Complimentary worldwide shipping.</p>
@@ -79,7 +84,7 @@ function ProductPage() {
                 <span className="eyebrow text-[10px]">Size</span>
                 <button className="eyebrow text-[10px] text-foreground/60 border-b border-foreground/20 pb-0.5 hover:text-[color:var(--maroon)]">Size Guide</button>
               </div>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {["XS", "S", "M", "L", "XL", "XXL"].map((s) => (
                   <button
                     key={s}
@@ -92,14 +97,32 @@ function ProductPage() {
 
             {/* CTAs */}
             <div className="space-y-3">
-              <button className="w-full bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)] text-[color:var(--ivory)] py-4 eyebrow text-[10.5px] transition-colors flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  addToCart(product.id, size);
+                  toast.success(`${product.name} added to your bag.`);
+                }}
+                className="w-full bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)] text-[color:var(--ivory)] py-4 eyebrow text-[10.5px] transition-colors flex items-center justify-center gap-3"
+              >
                 Add to Cart
               </button>
-              <button className="w-full border border-[color:var(--maroon)] text-[color:var(--maroon)] hover:bg-[color:var(--maroon)] hover:text-[color:var(--ivory)] py-4 eyebrow text-[10.5px] transition-colors">
+              <Link
+                to="/contact"
+                className="w-full border border-[color:var(--maroon)] text-[color:var(--maroon)] hover:bg-[color:var(--maroon)] hover:text-[color:var(--ivory)] py-4 eyebrow text-[10.5px] transition-colors flex items-center justify-center"
+              >
                 Book a Custom Fitting
-              </button>
-              <button className="w-full inline-flex items-center justify-center gap-2 eyebrow text-[10px] text-foreground/60 py-2">
-                <Heart className="size-3.5" /> Add to Wishlist
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  toggleWishlist(product.id);
+                  toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
+                }}
+                className="w-full inline-flex items-center justify-center gap-2 eyebrow text-[10px] text-foreground/60 py-2 hover:text-[color:var(--maroon)] transition-colors"
+              >
+                <Heart className={cn("size-3.5", saved && "fill-[color:var(--maroon)] text-[color:var(--maroon)]")} />
+                {saved ? "Saved to Wishlist" : "Add to Wishlist"}
               </button>
             </div>
 
@@ -125,17 +148,17 @@ function ProductPage() {
       </div>
 
       {/* Complete the look */}
-      <section className="max-w-[1600px] mx-auto px-6 md:px-8 py-24 border-t border-foreground/10">
-        <div className="flex items-end justify-between mb-12">
+      <section data-reveal-direction="alternate" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 border-t border-foreground/10">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-12">
           <div>
             <p className="eyebrow text-[color:var(--gold)] mb-3">Complete the Look</p>
-            <h2 className="font-serif italic text-3xl md:text-4xl">You may also love</h2>
+            <h2 className="font-serif italic text-2xl sm:text-3xl md:text-4xl">You may also love</h2>
           </div>
           <Link to="/shop/$category" params={{ category: product.categorySlug }} className="eyebrow text-[10px] border-b border-foreground/20 pb-1 hover:text-[color:var(--maroon)]">
             View all →
           </Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 md:gap-8 min-w-0">
           {complete.map((p) => <ProductCard key={p.id} product={p} />)}
         </div>
       </section>

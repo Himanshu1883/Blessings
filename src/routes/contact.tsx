@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { WhatsAppLink } from "@/components/site/whatsapp-link";
+import { WHATSAPP_DISPLAY, WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -14,10 +16,10 @@ export const Route = createFileRoute("/contact")({
 
 function Contact() {
   return (
-    <div className="max-w-[1200px] mx-auto px-6 md:px-8 py-24 md:py-32">
-      <p className="eyebrow text-[color:var(--gold)] mb-6">Get in Touch</p>
-      <h1 className="font-serif italic text-5xl md:text-6xl">Come see us in Delhi.</h1>
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-10">
+    <div data-reveal-section className="max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-32">
+      <p className="eyebrow text-[color:var(--gold)] mb-4 sm:mb-6">Get in Touch</p>
+      <h1 className="font-serif italic text-3xl sm:text-5xl md:text-6xl text-balance">Come see us in Delhi.</h1>
+      <div className="mt-10 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10">
         <div>
           <h3 className="eyebrow text-[10px] mb-4">Flagship Boutique</h3>
           <p className="text-sm text-foreground/70 leading-relaxed">
@@ -30,7 +32,10 @@ function Contact() {
         <div>
           <h3 className="eyebrow text-[10px] mb-4">Concierge</h3>
           <p className="text-sm text-foreground/70 leading-relaxed">
-            WhatsApp: +91 98100 00000<br />
+            <WhatsAppLink message={WHATSAPP_MESSAGES.general} className="hover:text-[#25D366] text-foreground/70">
+              WhatsApp: {WHATSAPP_DISPLAY}
+            </WhatsAppLink>
+            <br />
             hello@blessings.house
           </p>
         </div>
@@ -39,7 +44,12 @@ function Contact() {
           <p className="text-sm text-foreground/70 leading-relaxed mb-4">
             For our international clientele, we host virtual fittings over Zoom or WhatsApp video.
           </p>
-          <a href="#" className="inline-block eyebrow text-[10px] border-b border-[color:var(--maroon)] text-[color:var(--maroon)] pb-1">Book Now →</a>
+          <WhatsAppLink
+            message={WHATSAPP_MESSAGES.book}
+            className="inline-flex eyebrow text-[10px] border-b border-[#25D366] text-[#25D366] pb-1 hover:opacity-80"
+          >
+            Book on WhatsApp →
+          </WhatsAppLink>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -13,7 +14,14 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
+import { PreFooterBanner } from "@/components/site/pre-footer-banner";
 import { CurrencyProvider } from "@/lib/currency";
+import { ShopProvider } from "@/lib/shop-store";
+import { Toaster } from "@/components/ui/sonner";
+import { ShopPanels } from "@/components/site/shop-panels";
+import { MobileBottomNav } from "@/components/site/mobile-bottom-nav";
+import { FloatingWhatsApp } from "@/components/site/floating-whatsapp";
+import { ScrollExperienceProvider } from "@/components/site/scroll-experience";
 
 function NotFoundComponent() {
   return (
@@ -89,8 +97,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits" },
       { name: "twitter:description", content: "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/69f20048-92b7-4c53-9c7f-ce4aadf59be5/id-preview-cb34967b--e98bb2db-785c-41b4-a98c-693aad61a867.lovable.app-1783324084941.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/69f20048-92b7-4c53-9c7f-ce4aadf59be5/id-preview-cb34967b--e98bb2db-785c-41b4-a98c-693aad61a867.lovable.app-1783324084941.png" },
+      { property: "og:image", content: "/banners/banner-1.jpeg" },
+      { name: "twitter:image", content: "/banners/banner-1.jpeg" },
     ],
     links: [
       {
@@ -128,17 +136,32 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const isHome = useRouterState({ select: (s) => s.location.pathname === "/" });
 
   return (
     <QueryClientProvider client={queryClient}>
       <CurrencyProvider>
-        <div className="flex min-h-screen flex-col bg-background text-foreground">
-          <SiteHeader />
-          <main className="flex-1">
-            <Outlet />
-          </main>
-          <SiteFooter />
-        </div>
+        <ShopProvider>
+          <ScrollExperienceProvider>
+          <div className="flex min-h-screen flex-col bg-background text-foreground w-full max-w-[100vw]">
+            <SiteHeader />
+            <main className="flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0">
+              <Outlet />
+            </main>
+            {isHome ? (
+              <SiteFooter />
+            ) : (
+              <PreFooterBanner>
+                <SiteFooter />
+              </PreFooterBanner>
+            )}
+          </div>
+          <ShopPanels />
+          <MobileBottomNav />
+          <FloatingWhatsApp />
+          <Toaster position="bottom-right" />
+          </ScrollExperienceProvider>
+        </ShopProvider>
       </CurrencyProvider>
     </QueryClientProvider>
   );

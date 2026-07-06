@@ -18,22 +18,22 @@ export const Route = createFileRoute("/bespoke")({
 function Bespoke() {
   return (
     <div>
-      <section className="relative h-[70vh] overflow-hidden">
+      <section className="reveal-ignore relative h-[min(70vh,600px)] min-h-[320px] sm:min-h-[400px] overflow-hidden">
         <img src={bespokeImg} alt="Bespoke fitting" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-[color:var(--charcoal)]/55" />
-        <div className="relative h-full flex items-center justify-center text-center text-[color:var(--ivory)] px-6">
+        <div className="relative h-full flex items-center justify-center text-center text-[color:var(--ivory)] px-4 sm:px-6">
           <div className="max-w-2xl">
-            <p className="eyebrow text-[color:var(--gold-soft)] mb-6">Made to Measure</p>
-            <h1 className="font-serif italic text-5xl md:text-7xl leading-[1.05]">The Bespoke Experience</h1>
-            <p className="mt-8 text-[color:var(--ivory)]/80">A garment made in your name, in your measurements, by hands that have spent a lifetime on the craft.</p>
+            <p className="eyebrow text-[color:var(--gold-soft)] mb-4 sm:mb-6">Made to Measure</p>
+            <h1 className="font-serif italic text-3xl sm:text-5xl md:text-7xl leading-[1.05] text-balance">The Bespoke Experience</h1>
+            <p className="mt-6 sm:mt-8 text-sm sm:text-base text-[color:var(--ivory)]/80">A garment made in your name, in your measurements, by hands that have spent a lifetime on the craft.</p>
           </div>
         </div>
       </section>
-      <section className="max-w-[1200px] mx-auto px-6 md:px-8 py-24 md:py-32 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+      <section data-reveal-direction="split" className="max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-32 grid grid-cols-1 md:grid-cols-2 gap-10 sm:gap-16 items-center">
         <img src={craftImg} alt="Craftsmanship" className="w-full aspect-[4/5] object-cover" />
         <div>
           <p className="eyebrow text-[color:var(--gold)] mb-4">The Journey</p>
-          <h2 className="font-serif italic text-4xl md:text-5xl leading-tight">From Delhi, to your doorstep.</h2>
+          <h2 className="font-serif italic text-3xl sm:text-4xl md:text-5xl leading-tight text-balance">From Delhi, to your doorstep.</h2>
           <div className="mt-10 space-y-6">
             {[
               ["01", "Consultation", "Book a private in-person or virtual consultation with a house stylist."],
@@ -50,7 +50,7 @@ function Bespoke() {
               </div>
             ))}
           </div>
-          <a href="#" className="mt-10 inline-flex items-center gap-3 bg-[color:var(--maroon)] hover:bg-[color:var(--charcoal)] text-[color:var(--ivory)] px-10 py-4 eyebrow text-[10.5px] transition-colors">
+          <a href="#" className="mt-8 sm:mt-10 inline-flex items-center justify-center gap-3 bg-[color:var(--maroon)] hover:bg-[color:var(--charcoal)] text-[color:var(--ivory)] px-6 sm:px-10 py-3.5 sm:py-4 eyebrow text-[10px] sm:text-[10.5px] transition-colors w-full sm:w-auto">
             Book an appointment <ArrowRight className="size-3.5" />
           </a>
         </div>

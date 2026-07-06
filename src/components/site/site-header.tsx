@@ -1,8 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Search, Heart, User, ShoppingBag, Menu, X, ChevronDown } from "lucide-react";
+import { WhatsAppLink } from "@/components/site/whatsapp-link";
+import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { useEffect, useState } from "react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CURRENCIES, useCurrency, type CurrencyCode } from "@/lib/currency";
+import { useShop } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 
 const ANNOUNCEMENTS = [
@@ -17,6 +20,7 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { openPanel, cartCount, wishlistCount } = useShop();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -38,8 +42,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50">
       {/* Announcement bar */}
-      <div className="bg-[color:var(--charcoal)] text-[color:var(--ivory)]/90 h-9 overflow-hidden flex items-center justify-center px-6">
-        <span className="eyebrow text-[10px] text-[color:var(--gold-soft)] transition-opacity duration-500">
+      <div className="bg-[color:var(--charcoal)] text-[color:var(--ivory)]/90 h-9 overflow-hidden flex items-center justify-center px-4 sm:px-6">
+        <span className="eyebrow text-[9px] sm:text-[10px] text-[color:var(--gold-soft)] transition-opacity duration-500 text-center truncate max-w-full px-2">
           {ANNOUNCEMENTS[announcementIdx]}
         </span>
       </div>
@@ -47,23 +51,55 @@ export function SiteHeader() {
       {/* Main bar */}
       <div
         className={cn(
-          "border-b border-foreground/5 backdrop-blur-md transition-colors",
-          scrolled ? "bg-background/95" : "bg-background/85",
+          "relative border-b border-foreground/5 backdrop-blur-md transition-colors",
+          scrolled ? "bg-background/95 shadow-[0_1px_0_rgba(0,0,0,0.04)]" : "bg-background/88",
         )}
         onMouseLeave={() => setOpenMega(null)}
       >
-        <nav className="max-w-[1600px] mx-auto px-4 md:px-8 h-20 grid grid-cols-[auto_1fr_auto] items-center gap-4">
-          {/* Left: nav or mobile trigger */}
-          <div className="flex items-center">
+        <nav className="relative max-w-[1600px] mx-auto px-3 sm:px-4 md:px-8 h-[72px] md:h-20">
+          {/* Mobile — balanced 3-column grid */}
+          <div className="lg:hidden grid grid-cols-[44px_1fr_auto] items-center h-full w-full gap-2">
             <button
-              className="lg:hidden p-2 -ml-2"
+              className="justify-self-start min-h-11 min-w-11 flex items-center justify-center hover:text-[color:var(--maroon)] transition-colors"
               onClick={() => setMobileOpen((o) => !o)}
               aria-label="Menu"
             >
               {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
-            <div className="hidden lg:flex items-center gap-8 eyebrow">
-              {CATEGORIES.slice(0, 4).map((cat) => (
+
+            <Link to="/" className="justify-self-center text-center min-w-0 max-w-full group">
+              <span className="block font-serif text-[19px] sm:text-[22px] tracking-[0.06em] leading-none text-foreground group-hover:text-[color:var(--maroon)] transition-colors duration-300 truncate">
+                Blessings
+              </span>
+              <span className="block eyebrow text-[6px] sm:text-[7px] mt-1 sm:mt-1.5 tracking-[0.28em] sm:tracking-[0.36em] text-foreground/45 group-hover:text-[color:var(--gold)] transition-colors duration-300 truncate">
+                Men&apos;s Boutique — Delhi
+              </span>
+            </Link>
+
+            <div className="justify-self-end flex items-center gap-0.5 shrink-0">
+              <CurrencyDropdown compact />
+              <button
+                type="button"
+                onClick={() => openPanel("cart")}
+                className="relative min-h-11 min-w-11 flex items-center justify-center hover:text-[color:var(--maroon)] transition-colors"
+                aria-label="Cart"
+              >
+                <ShoppingBag className="size-[17px]" strokeWidth={1.4} />
+                {cartCount > 0 && (
+                  <span className="absolute top-1 right-1 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden lg:flex items-center h-full relative w-full">
+          {/* Left — nav */}
+          <div className="flex flex-1 items-center gap-5 lg:gap-8 min-w-0 pr-[140px]">
+            <div className="flex items-center gap-7 xl:gap-8 eyebrow">
+              {CATEGORIES.slice(0, 3).map((cat) => (
                 <div
                   key={cat.slug}
                   className="relative py-6"
@@ -72,47 +108,93 @@ export function SiteHeader() {
                   <Link
                     to="/shop/$category"
                     params={{ category: cat.slug }}
-                    className="gold-underline text-[10.5px] hover:text-[color:var(--maroon)] transition-colors"
+                    className="gold-underline text-[10px] tracking-[0.28em] hover:text-[color:var(--maroon)] transition-colors"
                   >
                     {cat.name}
                   </Link>
                 </div>
               ))}
-              <Link to="/bespoke" className="gold-underline text-[10.5px]">
-                Bespoke
-              </Link>
-              <Link to="/journal" className="gold-underline text-[10.5px]">
-                Journal
-              </Link>
+              <div className="relative py-6" onMouseEnter={() => setOpenMega("indo-western")}>
+                <Link
+                  to="/shop/$category"
+                  params={{ category: "indo-western" }}
+                  className="gold-underline text-[10px] tracking-[0.28em] hover:text-[color:var(--maroon)] transition-colors"
+                >
+                  Indo-Western
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* Center: logo */}
-          <Link to="/" className="text-center block">
-            <h1 className="font-serif text-2xl md:text-[28px] font-medium tracking-tight leading-none">
+          {/* Center — logo (true viewport center) */}
+          <Link
+            to="/"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center group z-10"
+          >
+            <span className="block font-serif text-[22px] md:text-[30px] tracking-[0.06em] leading-none text-foreground group-hover:text-[color:var(--maroon)] transition-colors duration-300">
               Blessings
-            </h1>
-            <p className="eyebrow text-[8px] mt-1 text-foreground/60">Men's Boutique — Delhi</p>
+            </span>
+            <span className="block eyebrow text-[7.5px] md:text-[8.5px] mt-1.5 md:mt-2 tracking-[0.42em] text-foreground/45 group-hover:text-[color:var(--gold)] transition-colors duration-300">
+              Men&apos;s Boutique — Delhi
+            </span>
           </Link>
 
-          {/* Right: utilities */}
-          <div className="flex items-center justify-end gap-3 md:gap-5 text-foreground/80">
+          {/* Right — nav + utilities */}
+          <div className="flex flex-1 items-center justify-end gap-3 md:gap-5 min-w-0 pl-[140px] text-foreground/80">
+            <div className="flex items-center gap-7 xl:gap-8 eyebrow mr-1">
+              <Link to="/bespoke" className="gold-underline text-[10px] tracking-[0.28em] hover:text-[color:var(--maroon)] transition-colors">
+                Bespoke
+              </Link>
+              <Link to="/journal" className="gold-underline text-[10px] tracking-[0.28em] hover:text-[color:var(--maroon)] transition-colors">
+                Journal
+              </Link>
+            </div>
+            <span className="h-4 w-px bg-foreground/15" aria-hidden="true" />
             <CurrencyDropdown />
-            <button className="hidden sm:inline-flex p-1.5 hover:text-[color:var(--maroon)]" aria-label="Search">
-              <Search className="size-[18px]" strokeWidth={1.4} />
+            <button
+              type="button"
+              onClick={() => openPanel("search")}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[color:var(--maroon)] transition-colors"
+              aria-label="Search"
+              title="Search (Ctrl+K)"
+            >
+              <Search className="size-[17px]" strokeWidth={1.4} />
             </button>
-            <button className="hidden sm:inline-flex p-1.5 hover:text-[color:var(--maroon)]" aria-label="Wishlist">
-              <Heart className="size-[18px]" strokeWidth={1.4} />
+            <button
+              type="button"
+              onClick={() => openPanel("wishlist")}
+              className="inline-flex relative min-h-11 min-w-11 items-center justify-center hover:text-[color:var(--maroon)] transition-colors"
+              aria-label="Wishlist"
+            >
+              <Heart className={cn("size-[17px]", wishlistCount > 0 && "fill-[color:var(--maroon)] text-[color:var(--maroon)]")} strokeWidth={1.4} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
+                  {wishlistCount}
+                </span>
+              )}
             </button>
-            <button className="hidden sm:inline-flex p-1.5 hover:text-[color:var(--maroon)]" aria-label="Account">
-              <User className="size-[18px]" strokeWidth={1.4} />
+            <button
+              type="button"
+              onClick={() => openPanel("account")}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[color:var(--maroon)] transition-colors"
+              aria-label="Account"
+            >
+              <User className="size-[17px]" strokeWidth={1.4} />
             </button>
-            <button className="relative p-1.5 hover:text-[color:var(--maroon)]" aria-label="Cart">
-              <ShoppingBag className="size-[18px]" strokeWidth={1.4} />
-              <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
-                0
-              </span>
+            <button
+              type="button"
+              onClick={() => openPanel("cart")}
+              className="relative min-h-11 min-w-11 flex items-center justify-center hover:text-[color:var(--maroon)] transition-colors"
+              aria-label="Cart"
+            >
+              <ShoppingBag className="size-[17px]" strokeWidth={1.4} />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
+                  {cartCount}
+                </span>
+              )}
             </button>
+          </div>
           </div>
         </nav>
 
@@ -128,7 +210,7 @@ export function SiteHeader() {
   );
 }
 
-function CurrencyDropdown() {
+function CurrencyDropdown({ compact = false }: { compact?: boolean }) {
   const { currency, setCurrency, info } = useCurrency();
   const [open, setOpen] = useState(false);
   return (
@@ -136,11 +218,24 @@ function CurrencyDropdown() {
       <button
         onClick={() => setOpen((o) => !o)}
         onMouseEnter={() => setOpen(true)}
-        className="flex items-center gap-1 eyebrow text-[10px] hover:text-[color:var(--maroon)]"
+        className={cn(
+          "flex items-center justify-center min-h-11 hover:text-[color:var(--maroon)] transition-colors",
+          compact ? "gap-0.5 px-1 eyebrow text-[9px] sm:text-[10px]" : "gap-1 eyebrow text-[10px]",
+        )}
+        aria-label="Change currency"
       >
-        <span>{info.flag}</span>
-        <span>{currency}</span>
-        <ChevronDown className="size-3" strokeWidth={1.5} />
+        {compact ? (
+          <>
+            <span className="text-sm leading-none">{info.flag}</span>
+            <ChevronDown className="size-2.5 shrink-0" strokeWidth={1.5} />
+          </>
+        ) : (
+          <>
+            <span>{info.flag}</span>
+            <span>{currency}</span>
+            <ChevronDown className="size-3" strokeWidth={1.5} />
+          </>
+        )}
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-foreground/10 shadow-xl py-2 animate-reveal">
@@ -238,9 +333,43 @@ function MegaMenu({ categorySlug, onClose }: { categorySlug: string; onClose: ()
 }
 
 function MobileDrawer({ onClose }: { onClose: () => void }) {
+  const { openPanel, cartCount, wishlistCount } = useShop();
+
+  const open = (panel: "search" | "cart" | "wishlist" | "account") => {
+    onClose();
+    openPanel(panel);
+  };
+
   return (
-    <div className="lg:hidden fixed inset-0 top-[calc(2.25rem+5rem)] bg-background border-t border-foreground/10 overflow-y-auto animate-reveal">
+    <>
+      <button
+        type="button"
+        className="lg:hidden fixed inset-0 top-[calc(2.25rem+4.5rem)] z-40 bg-black/40"
+        onClick={onClose}
+        aria-label="Close menu"
+      />
+      <div className="lg:hidden fixed inset-x-0 top-[calc(2.25rem+4.5rem)] bottom-[calc(62px+env(safe-area-inset-bottom))] z-50 bg-background border-t border-foreground/10 overflow-y-auto animate-reveal" data-lenis-prevent>
       <div className="p-6 space-y-6">
+        <div className="grid grid-cols-2 gap-2 pb-4 border-b border-foreground/10">
+          <button type="button" onClick={() => open("search")} className="flex items-center justify-center gap-2 border border-foreground/15 py-3 eyebrow text-[10px]">
+            <Search className="size-4" /> Search
+          </button>
+          <button type="button" onClick={() => open("cart")} className="flex items-center justify-center gap-2 border border-foreground/15 py-3 eyebrow text-[10px]">
+            <ShoppingBag className="size-4" /> Bag ({cartCount})
+          </button>
+          <button type="button" onClick={() => open("wishlist")} className="flex items-center justify-center gap-2 border border-foreground/15 py-3 eyebrow text-[10px]">
+            <Heart className="size-4" /> Wishlist ({wishlistCount})
+          </button>
+          <button type="button" onClick={() => open("account")} className="flex items-center justify-center gap-2 border border-foreground/15 py-3 eyebrow text-[10px]">
+            <User className="size-4" /> Account
+          </button>
+          <WhatsAppLink
+            message={WHATSAPP_MESSAGES.general}
+            className="col-span-2 flex items-center justify-center gap-2 border border-[#25D366]/30 bg-[#25D366]/5 py-3 eyebrow text-[10px] text-[#25D366]"
+          >
+            WhatsApp Concierge
+          </WhatsAppLink>
+        </div>
         {CATEGORIES.map((cat) => (
           <details key={cat.slug} className="border-b border-foreground/10 pb-4">
             <summary className="flex justify-between items-center font-serif text-lg cursor-pointer">
@@ -267,5 +396,6 @@ function MobileDrawer({ onClose }: { onClose: () => void }) {
         <Link to="/journal" onClick={onClose} className="block font-serif text-lg">Journal</Link>
       </div>
     </div>
+    </>
   );
 }
