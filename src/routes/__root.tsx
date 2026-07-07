@@ -16,6 +16,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { PreFooterBanner } from "@/components/site/pre-footer-banner";
 import { CurrencyProvider } from "@/lib/currency";
+import { AuthProvider } from "@/lib/auth-context";
 import { ShopProvider } from "@/lib/shop-store";
 import { Toaster } from "@/components/ui/sonner";
 import { ShopPanels } from "@/components/site/shop-panels";
@@ -140,8 +141,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CurrencyProvider>
-        <ShopProvider>
+      <AuthProvider>
+        <CurrencyProvider>
+          <ShopProvider>
           <ScrollExperienceProvider>
           <div className="flex min-h-screen flex-col bg-background text-foreground w-full max-w-[100vw]">
             <SiteHeader />
@@ -161,8 +163,9 @@ function RootComponent() {
           <FloatingWhatsApp />
           <Toaster position="bottom-right" />
           </ScrollExperienceProvider>
-        </ShopProvider>
-      </CurrencyProvider>
+          </ShopProvider>
+        </CurrencyProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

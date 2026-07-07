@@ -40,15 +40,15 @@ export function WishlistSheet() {
           <ul className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
             {products.map((product) => (
               <li key={product.id} className="flex gap-4">
-                <Link to="/product/$id" params={{ id: product.id }} onClick={closePanel} className="shrink-0">
-                  <img src={product.image} alt={product.name} className="size-24 object-cover bg-[color:var(--muted)]" />
+                <Link to="/product/$id" params={{ id: product.slug }} onClick={closePanel} className="shrink-0">
+                  <img src={product.imageUrl ?? ""} alt={product.name} className="size-24 object-cover bg-[color:var(--muted)]" />
                 </Link>
                 <div className="flex-1 min-w-0 flex flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <Link
                         to="/product/$id"
-                        params={{ id: product.id }}
+                        params={{ id: product.slug }}
                         onClick={closePanel}
                         className="font-serif text-base leading-tight hover:text-[color:var(--maroon)] transition-colors line-clamp-2"
                       >

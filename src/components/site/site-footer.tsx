@@ -115,9 +115,15 @@ export function SiteFooter() {
             <ul className="space-y-2 text-xs lg:text-sm">
               {CARE_LINKS.map((label) => (
                 <li key={label}>
-                  <a href="#" className="hover:text-[color:var(--gold-soft)] transition-colors duration-300">
-                    {label}
-                  </a>
+                  {label === "Track Order" ? (
+                    <Link to="/orders" className="hover:text-[color:var(--gold-soft)] transition-colors duration-300">
+                      {label}
+                    </Link>
+                  ) : (
+                    <a href="#" className="hover:text-[color:var(--gold-soft)] transition-colors duration-300">
+                      {label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

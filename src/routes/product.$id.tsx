@@ -1,5 +1,4 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { getProduct, PRODUCTS } from "@/lib/catalog";
 import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 import { useState } from "react";
@@ -7,10 +6,11 @@ import { Heart, Ruler, Scissors, Truck, Shield, ChevronDown, ArrowRight } from "
 import { toast } from "sonner";
 import { ProductCard } from "./index";
 import { cn } from "@/lib/utils";
+import { fetchProduct, fetchProducts } from "@/lib/catalog-api";
 
 export const Route = createFileRoute("/product/$id")({
-  head: ({ params }) => {
-    const p = getProduct(params.id);
+  head: ({ loaderData }) => {
+    const p = loaderData?.product;
     const title = p ? `${p.name} — Blessings` : "Product — Blessings";
     const desc = p?.description ?? "";
     return {
@@ -19,14 +19,15 @@ export const Route = createFileRoute("/product/$id")({
         { name: "description", content: desc },
         { property: "og:title", content: title },
         { property: "og:description", content: desc },
-        ...(p ? [{ property: "og:image", content: p.image }] : []),
+        ...(p?.imageUrl ? [{ property: "og:image", content: p.imageUrl }] : []),
       ],
     };
   },
-  loader: ({ params }) => {
-    const p = getProduct(params.id);
-    if (!p) throw notFound();
-    return { product: p };
+  loader: async ({ params }) => {
+    const product = await fetchProduct(params.id);
+    if (!product) throw notFound();
+    const all = await fetchProducts();
+    return { product, related: all.filter((p) => p.id !== product.id).slice(0, 4) };
   },
   component: ProductPage,
   notFoundComponent: () => (
@@ -37,16 +38,14 @@ export const Route = createFileRoute("/product/$id")({
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
+  const { product, related } = Route.useLoaderData();
   const { format } = useCurrency();
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
-  const [size, setSize] = useState("M");
-  const saved = isInWishlist(product.id);
-  const complete = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
+  const [size, setSize] = useState(product.sizes[0] ?? "M");
+  const saved = isInWishlist(product.mongoId);
 
   return (
     <div>
-      {/* Breadcrumb */}
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 pt-6 sm:pt-8">
         <nav className="eyebrow text-[10px] text-foreground/50 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1">
           <Link to="/" className="hover:text-foreground shrink-0">Home</Link>
@@ -58,14 +57,12 @@ function ProductPage() {
       </div>
 
       <div data-reveal-section data-reveal-direction="split" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10 grid grid-cols-12 gap-6 sm:gap-8 lg:gap-16">
-        {/* Gallery */}
         <div className="col-span-12 lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <img src={product.image} alt={product.name} className="w-full aspect-[3/4] object-cover md:col-span-2" />
-          <img src={product.image} alt="" className="w-full aspect-square object-cover" />
-          <img src={product.image} alt="" className="w-full aspect-square object-cover" />
+          <img src={product.imageUrl} alt={product.name} className="w-full aspect-[3/4] object-cover md:col-span-2" />
+          <img src={product.imageUrl} alt="" className="w-full aspect-square object-cover" />
+          <img src={product.imageUrl} alt="" className="w-full aspect-square object-cover" />
         </div>
 
-        {/* Sticky info */}
         <div className="col-span-12 lg:col-span-5">
           <div className="lg:sticky lg:top-32 space-y-8">
             <div>
@@ -78,90 +75,81 @@ function ProductPage() {
 
             <p className="text-sm leading-relaxed text-foreground/70">{product.description}</p>
 
-            {/* Sizes */}
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="eyebrow text-[10px]">Size</span>
-                <button className="eyebrow text-[10px] text-foreground/60 border-b border-foreground/20 pb-0.5 hover:text-[color:var(--maroon)]">Size Guide</button>
-              </div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {["XS", "S", "M", "L", "XL", "XXL"].map((s) => (
+              <p className="eyebrow text-[10px] mb-3">Select size</p>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map((s) => (
                   <button
                     key={s}
+                    type="button"
                     onClick={() => setSize(s)}
-                    className={`h-11 border text-xs transition-colors ${size === s ? "border-[color:var(--maroon)] bg-[color:var(--maroon)] text-[color:var(--ivory)]" : "border-foreground/20 hover:border-foreground/60"}`}
-                  >{s}</button>
+                    className={cn(
+                      "min-w-12 px-4 py-2 border eyebrow text-[10px] transition-colors",
+                      size === s
+                        ? "border-[color:var(--charcoal)] bg-[color:var(--charcoal)] text-[color:var(--ivory)]"
+                        : "border-foreground/15 hover:border-foreground/40",
+                    )}
+                  >
+                    {s}
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* CTAs */}
-            <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={() => {
-                  addToCart(product.id, size);
-                  toast.success(`${product.name} added to your bag.`);
+                  addToCart(product.mongoId, size);
+                  toast.success("Added to your bag.");
                 }}
-                className="w-full bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)] text-[color:var(--ivory)] py-4 eyebrow text-[10.5px] transition-colors flex items-center justify-center gap-3"
+                className="flex-1 bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)] text-[color:var(--ivory)] py-4 eyebrow text-[10px] tracking-[0.2em] transition-colors"
               >
-                Add to Cart
+                Add to bag
               </button>
-              <Link
-                to="/contact"
-                className="w-full border border-[color:var(--maroon)] text-[color:var(--maroon)] hover:bg-[color:var(--maroon)] hover:text-[color:var(--ivory)] py-4 eyebrow text-[10.5px] transition-colors flex items-center justify-center"
-              >
-                Book a Custom Fitting
-              </Link>
               <button
                 type="button"
                 onClick={() => {
-                  toggleWishlist(product.id);
+                  toggleWishlist(product.mongoId);
                   toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
                 }}
-                className="w-full inline-flex items-center justify-center gap-2 eyebrow text-[10px] text-foreground/60 py-2 hover:text-[color:var(--maroon)] transition-colors"
+                className="px-6 py-4 border border-foreground/15 hover:border-[color:var(--maroon)] transition-colors flex items-center justify-center gap-2 eyebrow text-[10px]"
               >
-                <Heart className={cn("size-3.5", saved && "fill-[color:var(--maroon)] text-[color:var(--maroon)]")} />
-                {saved ? "Saved to Wishlist" : "Add to Wishlist"}
+                <Heart className={cn("size-4", saved && "fill-[color:var(--maroon)] text-[color:var(--maroon)]")} strokeWidth={1.5} />
+                {saved ? "Saved" : "Save"}
               </button>
             </div>
 
-            {/* Meta rows */}
-            <div className="space-y-1 border-t border-foreground/10 pt-2">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-foreground/10">
               {[
-                { icon: Scissors, t: "Fabric & Craftsmanship", body: "Hand-embroidered by our Delhi atelier over 30+ days. Fully canvassed construction, silk lining." },
-                { icon: Ruler, t: "Size & Fit", body: "Model is 6'1\" wearing size M. Slim, tailored silhouette. Made-to-measure available." },
-                { icon: Truck, t: "Shipping & Delivery", body: "Complimentary worldwide express shipping. Delivered in 10–15 business days." },
-                { icon: Shield, t: "Care", body: "Dry-clean only. Store on padded hanger with muslin cover." },
-              ].map((row) => (
-                <details key={row.t} className="border-b border-foreground/10 group">
-                  <summary className="flex items-center justify-between py-4 cursor-pointer list-none">
-                    <span className="flex items-center gap-3 eyebrow text-[10px]"><row.icon className="size-3.5" strokeWidth={1.4} /> {row.t}</span>
-                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
-                  </summary>
-                  <p className="pb-4 text-sm text-foreground/60 leading-relaxed">{row.body}</p>
-                </details>
+                [Truck, "Worldwide shipping"],
+                [Shield, "Secure checkout"],
+                [Ruler, "Complimentary alterations"],
+                [Scissors, "Made to order"],
+              ].map(([Icon, label]) => (
+                <div key={label as string} className="flex items-center gap-3 text-[11px] text-foreground/60">
+                  <Icon className="size-4 shrink-0" strokeWidth={1.3} />
+                  {label as string}
+                </div>
               ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Complete the look */}
-      <section data-reveal-direction="alternate" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 border-t border-foreground/10">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-12">
-          <div>
-            <p className="eyebrow text-[color:var(--gold)] mb-3">Complete the Look</p>
-            <h2 className="font-serif italic text-2xl sm:text-3xl md:text-4xl">You may also love</h2>
+      {related.length > 0 && (
+        <section data-reveal-section className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 border-t border-foreground/10">
+          <div className="flex items-end justify-between mb-10">
+            <h2 className="font-serif italic text-3xl">Complete the look</h2>
+            <Link to="/shop/$category" params={{ category: product.categorySlug }} className="eyebrow text-[10px] flex items-center gap-2 hover:text-[color:var(--maroon)]">
+              View all <ArrowRight className="size-3.5" />
+            </Link>
           </div>
-          <Link to="/shop/$category" params={{ category: product.categorySlug }} className="eyebrow text-[10px] border-b border-foreground/20 pb-1 hover:text-[color:var(--maroon)]">
-            View all →
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 md:gap-8 min-w-0">
-          {complete.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
-      </section>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {related.map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 .output
+.env
+server/.env
 .vinxi
 .tanstack/**
 .nitro
@@ -19,6 +21,9 @@ dist-ssr
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
+
+# Netlify build output
+.netlify/
 
 # Editor directories and files
 .vscode/*

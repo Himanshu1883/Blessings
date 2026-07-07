@@ -4,7 +4,8 @@ import { ArrowRight, ArrowLeft, Star, Truck, Scissors, Ruler, Shield, Heart, Sho
 import { useEffect, useRef, useState } from "react";
 import craftImg from "@/assets/craft.jpg";
 import bespokeImg from "@/assets/bespoke.jpg";
-import { CATEGORIES, PRODUCTS } from "@/lib/catalog";
+import type { StoreProduct, StoreCategory } from "@/lib/catalog-api";
+import { fetchCategories, fetchProducts } from "@/lib/catalog-api";
 import { useCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { ParallaxScroll } from "@/components/site/parallax-scroll";
@@ -18,6 +19,10 @@ import { useShop } from "@/lib/shop-store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
+  loader: async () => {
+    const [products, categories] = await Promise.all([fetchProducts(), fetchCategories()]);
+    return { products, categories };
+  },
   component: Index,
 });
 
@@ -186,7 +191,8 @@ function SectionHeader({ eyebrow, title, ctaHref, ctaLabel }: { eyebrow: string;
 }
 
 function CategoryEditorial() {
-  const cats = CATEGORIES;
+  const { categories } = Route.useLoaderData();
+  const cats = categories;
   return (
     <section data-reveal-direction="alternate" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-32">
       <SectionHeader
@@ -210,7 +216,7 @@ function CategoryEditorial() {
   );
 }
 
-function CategoryTile({ cat, className, size = "md" }: { cat: (typeof CATEGORIES)[number]; className?: string; size?: "md" | "lg" }) {
+function CategoryTile({ cat, className, size = "md" }: { cat: StoreCategory; className?: string; size?: "md" | "lg" }) {
   return (
     <Link
       to="/shop/$category"
@@ -218,7 +224,7 @@ function CategoryTile({ cat, className, size = "md" }: { cat: (typeof CATEGORIES
       className={cn("group relative block overflow-hidden bg-[color:var(--muted)]", className)}
     >
       <img
-        src={cat.image}
+        src={cat.imageUrl}
         alt={cat.name}
         loading="lazy"
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105"
@@ -236,6 +242,7 @@ function CategoryTile({ cat, className, size = "md" }: { cat: (typeof CATEGORIES
 }
 
 function NewArrivals() {
+  const { products } = Route.useLoaderData();
   const scroller = useRef<HTMLDivElement>(null);
   const scrollBy = (dx: number) => scroller.current?.scrollBy({ left: dx, behavior: "smooth" });
   return (
@@ -255,7 +262,7 @@ function NewArrivals() {
         </div>
       </div>
       <div ref={scroller} className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory px-4 sm:px-6 md:px-8 max-w-[1600px] mx-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2">
-        {PRODUCTS.map((p) => (
+        {products.map((p) => (
           <ProductCard key={p.id} product={p} dark layout="carousel" />
         ))}
       </div>
@@ -268,13 +275,13 @@ export function ProductCard({
   dark = false,
   layout = "grid",
 }: {
-  product: (typeof PRODUCTS)[number];
+  product: StoreProduct;
   dark?: boolean;
   layout?: "grid" | "carousel";
 }) {
   const { format } = useCurrency();
   const { toggleWishlist, isInWishlist, addToCart } = useShop();
-  const saved = isInWishlist(product.id);
+  const saved = isInWishlist(product.mongoId);
 
   return (
     <div
@@ -285,7 +292,7 @@ export function ProductCard({
     >
       <Link to="/product/$id" params={{ id: product.id }} className="block">
         <div className="relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]">
-          <img src={product.image} alt={product.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-105" />
+          <img src={product.imageUrl} alt={product.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-105" />
           {product.isNew && (
             <span className="absolute top-4 left-4 eyebrow text-[9px] bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-2.5 py-1">New</span>
           )}
@@ -296,7 +303,7 @@ export function ProductCard({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleWishlist(product.id);
+                toggleWishlist(product.mongoId);
                 toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
               }}
               className="size-10 bg-[color:var(--ivory)] text-[color:var(--charcoal)] flex items-center justify-center hover:bg-[color:var(--gold)]"
@@ -309,7 +316,7 @@ export function ProductCard({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                addToCart(product.id);
+                addToCart(product.mongoId);
                 toast.success("Added to your bag.");
               }}
               className="size-10 bg-[color:var(--ivory)] text-[color:var(--charcoal)] flex items-center justify-center hover:bg-[color:var(--gold)]"
@@ -375,7 +382,8 @@ function BespokeStory() {
 }
 
 function GroomsEdit() {
-  const groomProducts = PRODUCTS.filter((p) => p.bestSeller).slice(0, 4);
+  const { products } = Route.useLoaderData();
+  const groomProducts = products.filter((p) => p.bestSeller).slice(0, 4);
   return (
     <section data-reveal-direction="alternate" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-32">
       <SectionHeader eyebrow="(04) The Groom's Edit" title="Best sellers for the modern wedding." ctaHref="/shop/sherwanis" ctaLabel="View all →" />
@@ -419,9 +427,8 @@ function ParallaxCraftsmanship() {
 }
 
 function InstagramGrid() {
-  const imgs = [
-    ...CATEGORIES.map((c) => c.image),
-  ].slice(0, 6);
+  const { categories } = Route.useLoaderData();
+  const imgs = categories.map((c) => c.imageUrl).slice(0, 6);
   return (
     <section data-reveal-direction="alternate" className="py-16 sm:py-24 md:py-28 bg-background">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-6 mb-8 sm:mb-10">

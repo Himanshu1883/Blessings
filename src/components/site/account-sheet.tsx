@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet,
   SheetContent,
@@ -13,23 +14,66 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useShop } from "@/lib/shop-store";
+import { useAuth } from "@/lib/auth-context";
 
 export function AccountSheet() {
-  const { panel, closePanel, account, signIn, signOut, cartCount, wishlistCount } = useShop();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const { panel, closePanel, cartCount, wishlistCount } = useShop();
+  const { user, isAuthenticated, login, register, logout, googleLoginUrl } = useAuth();
   const open = panel === "account";
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const [loginId, setLoginId] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) {
-      toast.error("Please enter your name and email.");
+    setLoading(true);
+    try {
+      await login(loginId.trim(), loginPassword);
+      toast.success("Welcome back.");
+      setLoginId("");
+      setLoginPassword("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() && !phone.trim()) {
+      toast.error("Email or phone is required.");
       return;
     }
-    signIn({ name: name.trim(), email: email.trim() });
-    toast.success(`Welcome back, ${name.trim().split(" ")[0]}.`);
-    setName("");
-    setEmail("");
+    setLoading(true);
+    try {
+      await register({
+        name: name.trim(),
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        password: signupPassword,
+      });
+      toast.success(`Welcome, ${name.trim().split(" ")[0]}.`);
+      setName("");
+      setEmail("");
+      setPhone("");
+      setSignupPassword("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sign up failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    toast.success("Signed out.");
+    closePanel();
   };
 
   return (
@@ -38,92 +82,191 @@ export function AccountSheet() {
         <SheetHeader className="text-left">
           <SheetTitle className="font-serif text-2xl italic">My Account</SheetTitle>
           <SheetDescription className="eyebrow text-[10px]">
-            {account ? "Your Blessings profile" : "Sign in for a personalised experience"}
+            {isAuthenticated ? "Your Blessings profile" : "Sign in for a personalised experience"}
           </SheetDescription>
         </SheetHeader>
 
-        {account ? (
+        {isAuthenticated && user ? (
           <div className="mt-8 flex flex-1 flex-col">
             <div className="flex items-center gap-4 border border-foreground/10 p-5">
-              <div className="size-12 rounded-full bg-[color:var(--muted)] flex items-center justify-center">
-                <User className="size-5 text-foreground/50" />
+              <div className="size-12 rounded-full bg-[color:var(--muted)] flex items-center justify-center overflow-hidden">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                ) : (
+                  <User className="size-5 text-foreground/50" />
+                )}
               </div>
-              <div className="min-w-0">
-                <p className="font-serif text-lg truncate">{account.name}</p>
-                <p className="text-sm text-foreground/60 truncate">{account.email}</p>
+              <div>
+                <p className="font-serif text-lg">{user.name}</p>
+                <p className="text-xs text-foreground/50">{user.email ?? user.phone}</p>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               <div className="border border-foreground/10 p-4 text-center">
-                <p className="font-serif text-2xl">{cartCount}</p>
-                <p className="eyebrow text-[9px] mt-1 text-foreground/50">In bag</p>
+                <p className="font-serif text-2xl tabular-nums">{cartCount}</p>
+                <p className="eyebrow text-[9px] mt-1">In bag</p>
               </div>
               <div className="border border-foreground/10 p-4 text-center">
-                <p className="font-serif text-2xl">{wishlistCount}</p>
-                <p className="eyebrow text-[9px] mt-1 text-foreground/50">Wishlist</p>
+                <p className="font-serif text-2xl tabular-nums">{wishlistCount}</p>
+                <p className="eyebrow text-[9px] mt-1">Saved</p>
               </div>
             </div>
 
             <div className="mt-8 space-y-2">
-              <Button asChild variant="outline" className="w-full justify-start rounded-none h-11 gap-3">
-                <Link to="/contact" onClick={closePanel}>
-                  <Package className="size-4" />
-                  Book a consultation
+              <Link
+                to="/orders"
+                onClick={closePanel}
+                className="flex items-center gap-3 border border-foreground/10 px-4 py-3 text-sm hover:bg-[color:var(--muted)]/40 transition-colors"
+              >
+                <Package className="size-4" />
+                Order history
+              </Link>
+              <Link
+                to="/contact"
+                onClick={closePanel}
+                className="flex items-center gap-3 border border-foreground/10 px-4 py-3 text-sm hover:bg-[color:var(--muted)]/40 transition-colors"
+              >
+                Concierge
+              </Link>
+              {user.role === "admin" && (
+                <Link
+                  to="/admin"
+                  onClick={closePanel}
+                  className="flex items-center gap-3 border border-foreground/10 px-4 py-3 text-sm hover:bg-[color:var(--muted)]/40 transition-colors"
+                >
+                  Admin dashboard
                 </Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full justify-start rounded-none h-11 gap-3">
-                <Link to="/bespoke" onClick={closePanel}>
-                  Bespoke process
-                </Link>
-              </Button>
+              )}
             </div>
 
             <Button
-              variant="ghost"
-              className="mt-auto rounded-none eyebrow text-[10px] tracking-[0.2em] text-foreground/60 hover:text-[color:var(--maroon)] gap-2"
-              onClick={() => {
-                signOut();
-                toast.success("Signed out successfully.");
-              }}
+              variant="outline"
+              className="mt-auto rounded-none eyebrow text-[10px] tracking-[0.2em]"
+              onClick={handleLogout}
             >
-              <LogOut className="size-4" />
+              <LogOut className="size-3.5 mr-2" />
               Sign out
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSignIn} className="mt-8 flex flex-1 flex-col gap-5">
-            <div className="space-y-2">
-              <Label htmlFor="account-name" className="eyebrow text-[10px]">Full name</Label>
-              <Input
-                id="account-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Arjun Sharma"
-                className="rounded-none border-foreground/15"
-              />
+          <Tabs defaultValue="login" className="mt-6 flex flex-1 flex-col">
+            <TabsList className="grid w-full grid-cols-2 rounded-none">
+              <TabsTrigger value="login" className="rounded-none eyebrow text-[10px]">
+                Sign in
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-none eyebrow text-[10px]">
+                Create account
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login" className="flex-1">
+              <form onSubmit={handleLogin} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-id" className="eyebrow text-[10px]">
+                    Email or phone
+                  </Label>
+                  <Input
+                    id="login-id"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
+                    required
+                    className="rounded-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password" className="eyebrow text-[10px]">
+                    Password
+                  </Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                    className="rounded-none"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-none bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)] eyebrow text-[10px] tracking-[0.2em] h-11"
+                >
+                  Sign in
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup" className="flex-1">
+              <form onSubmit={handleSignup} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name" className="eyebrow text-[10px]">
+                    Full name
+                  </Label>
+                  <Input
+                    id="signup-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="rounded-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email" className="eyebrow text-[10px]">
+                    Email
+                  </Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="rounded-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-phone" className="eyebrow text-[10px]">
+                    Phone
+                  </Label>
+                  <Input
+                    id="signup-phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="rounded-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password" className="eyebrow text-[10px]">
+                    Password
+                  </Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    className="rounded-none"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-none bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)] eyebrow text-[10px] tracking-[0.2em] h-11"
+                >
+                  Create account
+                </Button>
+              </form>
+            </TabsContent>
+
+            <div className="mt-6 pt-4 border-t border-foreground/10">
+              <a
+                href={googleLoginUrl}
+                className="flex w-full items-center justify-center gap-2 border border-foreground/20 py-3 text-sm hover:bg-[color:var(--muted)]/40 transition-colors"
+              >
+                Continue with Google
+              </a>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="account-email" className="eyebrow text-[10px]">Email</Label>
-              <Input
-                id="account-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@email.com"
-                className="rounded-none border-foreground/15"
-              />
-            </div>
-            <Button
-              type="submit"
-              className="mt-2 rounded-none bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)] eyebrow text-[10px] tracking-[0.2em] h-11"
-            >
-              Sign in
-            </Button>
-            <p className="text-xs text-foreground/50 leading-relaxed">
-              By signing in you agree to receive order updates and exclusive invitations from Blessings Men&apos;s Boutique.
-            </p>
-          </form>
+          </Tabs>
         )}
       </SheetContent>
     </Sheet>

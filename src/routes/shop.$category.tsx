@@ -1,12 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { getCategory, productsByCategory, CATEGORIES, PRODUCTS } from "@/lib/catalog";
 import { ProductCard } from "./index";
 import { useState } from "react";
 import { SlidersHorizontal, ChevronDown } from "lucide-react";
+import { fetchCategory, fetchCategories, fetchProducts } from "@/lib/catalog-api";
+import type { StoreProduct } from "@/lib/catalog-api";
 
 export const Route = createFileRoute("/shop/$category")({
-  head: ({ params }) => {
-    const cat = getCategory(params.category);
+  head: ({ loaderData }) => {
+    const cat = loaderData?.cat;
     const title = cat ? `${cat.name} — Blessings Men's Boutique` : "Shop — Blessings";
     const desc = cat?.tagline ?? "Shop bespoke menswear at Blessings.";
     return {
@@ -18,10 +19,14 @@ export const Route = createFileRoute("/shop/$category")({
       ],
     };
   },
-  loader: ({ params }) => {
-    const cat = getCategory(params.category);
+  loader: async ({ params }) => {
+    const [cat, categories, products] = await Promise.all([
+      fetchCategory(params.category),
+      fetchCategories(),
+      fetchProducts(params.category),
+    ]);
     if (!cat) throw notFound();
-    return { cat };
+    return { cat, categories, products };
   },
   component: ShopCategory,
   notFoundComponent: () => (
@@ -32,13 +37,11 @@ export const Route = createFileRoute("/shop/$category")({
 });
 
 function ShopCategory() {
-  const { cat } = Route.useLoaderData();
-  const list = productsByCategory(cat.slug);
-  const items = list.length > 0 ? list : PRODUCTS;
+  const { cat, categories, products } = Route.useLoaderData();
   const [sort, setSort] = useState<"new" | "price-asc" | "price-desc">("new");
   const [openFilters, setOpenFilters] = useState(false);
 
-  const sorted = [...items].sort((a, b) => {
+  const sorted = [...products].sort((a: StoreProduct, b: StoreProduct) => {
     if (sort === "price-asc") return a.price - b.price;
     if (sort === "price-desc") return b.price - a.price;
     return Number(!!b.isNew) - Number(!!a.isNew);
@@ -46,9 +49,8 @@ function ShopCategory() {
 
   return (
     <div>
-      {/* Hero */}
       <section className="reveal-ignore relative h-[45vh] sm:h-[50vh] min-h-[280px] sm:min-h-[360px] overflow-hidden">
-        <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
+        <img src={cat.imageUrl} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-[color:var(--charcoal)]/50" />
         <div className="relative h-full flex flex-col items-center justify-center text-center text-[color:var(--ivory)] px-4 sm:px-6">
           <p className="eyebrow text-[color:var(--gold-soft)] mb-3 sm:mb-4">The Collection</p>
@@ -57,16 +59,15 @@ function ShopCategory() {
         </div>
       </section>
 
-      {/* Category strip */}
       <div className="border-b border-foreground/10 overflow-x-auto">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 flex items-center gap-6 sm:gap-8 py-4 sm:py-5">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <Link
               key={c.slug}
               to="/shop/$category"
               params={{ category: c.slug }}
               className="eyebrow text-[10px] whitespace-nowrap hover:text-[color:var(--maroon)] data-[active]:text-[color:var(--maroon)] data-[active]:border-b data-[active]:border-[color:var(--maroon)] pb-1"
-              activeProps={{ "data-active": "" } as any}
+              activeProps={{ "data-active": "" } as Record<string, string>}
             >
               {c.name}
             </Link>
@@ -75,7 +76,6 @@ function ShopCategory() {
       </div>
 
       <div data-reveal-section data-reveal-direction="alternate" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-10 sm:py-14 grid grid-cols-12 gap-6 sm:gap-8">
-        {/* Filters */}
         <aside className={`col-span-12 md:col-span-3 lg:col-span-2 ${openFilters ? "block" : "hidden md:block"}`}>
           <div className="sticky top-32 space-y-8">
             <FilterGroup title="Sub-Category" options={cat.subCategories} />
@@ -86,7 +86,6 @@ function ShopCategory() {
           </div>
         </aside>
 
-        {/* Products */}
         <div className="col-span-12 md:col-span-9 lg:col-span-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
             <button onClick={() => setOpenFilters((o) => !o)} className="md:hidden inline-flex items-center gap-2 eyebrow text-[10px] min-h-11">
@@ -96,7 +95,7 @@ function ShopCategory() {
             <div className="relative w-full sm:w-auto">
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as any)}
+                onChange={(e) => setSort(e.target.value as "new" | "price-asc" | "price-desc")}
                 className="appearance-none bg-transparent border border-foreground/20 pl-4 pr-9 py-2.5 eyebrow text-[10px] cursor-pointer w-full sm:w-auto"
               >
                 <option value="new">Newest</option>

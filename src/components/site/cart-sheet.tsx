@@ -13,10 +13,10 @@ import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 
 export function CartSheet() {
-  const { panel, closePanel, resolveCartLines, updateCartQuantity, removeFromCart, clearCart } = useShop();
+  const { panel, closePanel, resolveCartLines, updateCartQuantity, removeFromCart, clearCart, cartSubtotal, isAuthenticated } = useShop();
   const { format } = useCurrency();
   const lines = resolveCartLines();
-  const subtotal = lines.reduce((sum, { line, product }) => sum + product.price * line.quantity, 0);
+  const subtotal = cartSubtotal || lines.reduce((sum, { line, product }) => sum + product.price * line.quantity, 0);
   const open = panel === "cart";
 
   return (
@@ -45,18 +45,18 @@ export function CartSheet() {
                 <li key={`${product.id}-${line.size}`} className="flex gap-4">
                   <Link
                     to="/product/$id"
-                    params={{ id: product.id }}
+                    params={{ id: product.slug }}
                     onClick={closePanel}
                     className="shrink-0"
                   >
-                    <img src={product.image} alt={product.name} className="size-24 object-cover bg-[color:var(--muted)]" />
+                    <img src={product.imageUrl ?? ""} alt={product.name} className="size-24 object-cover bg-[color:var(--muted)]" />
                   </Link>
                   <div className="flex-1 min-w-0 flex flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <Link
                           to="/product/$id"
-                          params={{ id: product.id }}
+                          params={{ id: product.slug }}
                           onClick={closePanel}
                           className="font-serif text-base leading-tight hover:text-[color:var(--maroon)] transition-colors line-clamp-2"
                         >
@@ -106,14 +106,12 @@ export function CartSheet() {
               </div>
               <p className="text-[11px] text-foreground/50">Shipping & duties calculated at checkout.</p>
               <Button
+                asChild
                 className="w-full rounded-none bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)] eyebrow text-[10px] tracking-[0.2em] h-12"
-                onClick={() => {
-                  toast.success("Concierge will contact you to complete your order.");
-                  clearCart();
-                  closePanel();
-                }}
               >
-                Proceed to Checkout
+                <Link to="/checkout" onClick={closePanel}>
+                  Proceed to Checkout
+                </Link>
               </Button>
               <button
                 type="button"
