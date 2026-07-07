@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "sync-assets": "node scripts/sync-seed-assets.mjs",
+    "prebuild": "npm run sync-assets",
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "tsx scripts/seed.ts"
