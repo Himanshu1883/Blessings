@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { GridFSBucket, ObjectId } from "mongoose/node_modules/mongodb";
+import { GridFSBucket, ObjectId } from "mongodb";
 
 const BUCKET_NAME = "blessings_media";
 
@@ -9,7 +9,9 @@ export function getGridFsBucket(): GridFSBucket {
   if (!bucket) {
     const db = mongoose.connection.db;
     if (!db) throw new Error("MongoDB not connected");
-    bucket = new GridFSBucket(db, { bucketName: BUCKET_NAME });
+    bucket = new GridFSBucket(db as unknown as import("mongodb").Db, {
+      bucketName: BUCKET_NAME,
+    });
   }
   return bucket;
 }

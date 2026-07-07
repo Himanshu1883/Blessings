@@ -12,6 +12,11 @@
   "engines": {
     "node": ">=22"
   },
+  "overrides": {
+    "mongoose": {
+      "mongodb": "$mongodb"
+    }
+  },
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
@@ -23,7 +28,7 @@
     "google-auth-library": "^9.15.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^7.4.0",
+    "mongodb": "^6.20.0",
     "mongoose": "^8.14.0",
     "multer": "^1.4.5-lts.2",
     "razorpay": "^2.9.6",
