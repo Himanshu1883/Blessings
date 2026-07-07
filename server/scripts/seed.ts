@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import type { Types } from "mongoose";
 import bcrypt from "bcryptjs";
 import { connectDb, disconnectDb } from "../src/db/connect.js";
 import { uploadToGridFs } from "../src/db/gridfs.js";
@@ -12,21 +13,47 @@ import { SEED_CATEGORIES, SEED_PRODUCTS } from "./seed-data.js";
 import { env } from "../src/config/env.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ASSETS_DIR = path.resolve(__dirname, "../src/assets");
 
-async function uploadAsset(filename: string) {
+function resolveAssetsDir(): string {
+  if (process.env.SEED_ASSETS_DIR) {
+    return path.resolve(process.env.SEED_ASSETS_DIR);
+  }
+  const candidates = [
+    path.resolve(__dirname, "../../src/assets"),
+    path.resolve(__dirname, "../seed-assets"),
+    path.resolve(__dirname, "../public/images"),
+    path.resolve(__dirname, "../src/assets"),
+  ];
+  for (const dir of candidates) {
+    if (fs.existsSync(dir)) return dir;
+  }
+  return candidates[0];
+}
+
+const ASSETS_DIR = resolveAssetsDir();
+
+function mimeFor(filename: string): string {
+  if (filename.endsWith(".png")) return "image/png";
+  if (filename.endsWith(".webp")) return "image/webp";
+  return "image/jpeg";
+}
+
+async function uploadAsset(filename: string): Promise<Types.ObjectId | null> {
   const filePath = path.join(ASSETS_DIR, filename);
   if (!fs.existsSync(filePath)) {
-    console.warn(`Asset not found: ${filename}`);
+    console.warn(`Asset not found: ${filename} (in ${ASSETS_DIR})`);
     return null;
   }
+
+  const existing = await Media.findOne({ filename });
+  if (existing) return existing.gridFsId;
+
   const buffer = fs.readFileSync(filePath);
-  const mimeType = filename.endsWith(".png") ? "image/png" : "image/jpeg";
-  const gridFsId = await uploadToGridFs(buffer, filename, mimeType, { seed: true });
-  const media = await Media.create({
+  const gridFsId = await uploadToGridFs(buffer, filename, mimeFor(filename), { seed: true });
+  await Media.create({
     gridFsId,
     filename,
-    mimeType,
+    mimeType: mimeFor(filename),
     size: buffer.length,
     alt: filename,
   });
@@ -36,6 +63,7 @@ async function uploadAsset(filename: string) {
 async function seed() {
   await connectDb();
   console.log("Connected to MongoDB");
+  console.log(`Using seed assets: ${ASSETS_DIR}`);
 
   if (env.ADMIN_SEED_EMAIL && env.ADMIN_SEED_PASSWORD) {
     const existing = await User.findOne({ email: env.ADMIN_SEED_EMAIL });
@@ -57,16 +85,23 @@ async function seed() {
   const categoryMap = new Map<string, string>();
 
   for (const cat of SEED_CATEGORIES) {
-    let imageId = undefined;
+    let imageId: Types.ObjectId | undefined;
     if (cat.imageFile) {
       const id = await uploadAsset(cat.imageFile);
       if (id) imageId = id;
     }
+
     const existing = await Category.findOne({ slug: cat.slug });
     if (existing) {
       categoryMap.set(cat.slug, existing._id.toString());
+      if (!existing.imageId && imageId) {
+        existing.imageId = imageId;
+        await existing.save();
+        console.log(`Category image updated: ${cat.name}`);
+      }
       continue;
     }
+
     const created = await Category.create({
       slug: cat.slug,
       name: cat.name,
@@ -81,19 +116,26 @@ async function seed() {
   }
 
   for (const p of SEED_PRODUCTS) {
+    const imageIds: Types.ObjectId[] = [];
+    if (p.imageFile) {
+      const id = await uploadAsset(p.imageFile);
+      if (id) imageIds.push(id);
+    }
+
     const existing = await Product.findOne({ slug: p.slug });
-    if (existing) continue;
+    if (existing) {
+      if (existing.imageIds.length === 0 && imageIds.length > 0) {
+        existing.imageIds = imageIds;
+        await existing.save();
+        console.log(`Product images updated: ${p.name}`);
+      }
+      continue;
+    }
 
     const categoryId = categoryMap.get(p.categorySlug);
     if (!categoryId) {
       console.warn(`Category not found for ${p.slug}`);
       continue;
-    }
-
-    const imageIds = [];
-    if (p.imageFile) {
-      const id = await uploadAsset(p.imageFile);
-      if (id) imageIds.push(id);
     }
 
     const stock = new Map<string, number>();

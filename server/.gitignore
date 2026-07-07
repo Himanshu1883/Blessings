@@ -1,5 +1,6 @@
 node_modules
 dist
+seed-assets
 .env
 .env.local
 *.log

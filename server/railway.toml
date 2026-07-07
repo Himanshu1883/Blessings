@@ -1,5 +1,5 @@
 [build]
-buildCommand = "npm install && npm run build"
+buildCommand = "mkdir -p seed-assets && cp -r ../src/assets/. seed-assets/ && npm install && npm run build"
 
 [deploy]
 startCommand = "npm start"
