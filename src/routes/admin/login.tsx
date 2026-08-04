@@ -41,7 +41,7 @@ function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-svh flex items-center justify-center bg-gradient-to-br from-charcoal via-maroon to-charcoal p-4">
+    <div className="min-h-svh flex items-center justify-center bg-gradient-to-br from-charcoal via-black to-charcoal p-4">
       <div className="admin-card w-full max-w-md p-8">
         <div className="text-center mb-8">
           <p className="font-serif italic text-2xl text-foreground">Blessings</p>

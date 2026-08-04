@@ -163,7 +163,7 @@ export function AdminShell({
 
       <aside
         className={cn(
-          "admin-sidebar fixed lg:sticky top-0 z-50 h-svh flex flex-col bg-gradient-to-b from-charcoal to-maroon text-[color:var(--ivory)] transition-all duration-300",
+          "admin-sidebar fixed lg:sticky top-0 z-50 h-svh flex flex-col bg-gradient-to-b from-charcoal to-black text-[color:var(--ivory)] transition-all duration-300",
           collapsed ? "w-16" : "w-64",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
