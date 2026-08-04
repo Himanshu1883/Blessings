@@ -141,25 +141,38 @@ export async function createProduct(data: {
   const cat = await Category.findById(data.categoryId);
   if (!cat) throw new AppError(400, "Invalid category");
 
-  const product = await Product.create({
-    slug: data.slug.toLowerCase(),
-    sku: data.sku,
-    name: sanitizeText(data.name),
-    categoryId: data.categoryId,
-    fabric: data.fabric ? sanitizeText(data.fabric) : "",
-    price: data.price,
-    description: data.description ? sanitizeText(data.description) : "",
-    sizes: data.sizes ?? ["S", "M", "L", "XL"],
-    colors: data.colors ?? [],
-    showColorSelector: data.showColorSelector ?? true,
-    showSizeSelector: data.showSizeSelector ?? true,
-    stock: data.stock ?? {},
-    imageIds: data.imageIds ?? [],
-    videoId: data.videoId,
-    customFields: data.customFields ?? [],
-    isNewProduct: data.isNew ?? false,
-    bestSeller: data.bestSeller ?? false,
-  });
+  let product;
+  try {
+    product = await Product.create({
+      slug: data.slug.toLowerCase(),
+      sku: data.sku || undefined,
+      name: sanitizeText(data.name),
+      categoryId: data.categoryId,
+      fabric: data.fabric ? sanitizeText(data.fabric) : "",
+      price: data.price,
+      description: data.description ? sanitizeText(data.description) : "",
+      sizes: data.sizes ?? ["S", "M", "L", "XL"],
+      colors: data.colors ?? [],
+      showColorSelector: data.showColorSelector ?? true,
+      showSizeSelector: data.showSizeSelector ?? true,
+      stock: data.stock ?? {},
+      imageIds: data.imageIds ?? [],
+      videoId: data.videoId,
+      customFields: data.customFields ?? [],
+      isNewProduct: data.isNew ?? false,
+      bestSeller: data.bestSeller ?? false,
+    });
+  } catch (e: unknown) {
+    const err = e as { code?: number; name?: string; message?: string; keyValue?: Record<string, unknown> };
+    if (err?.code === 11000) {
+      const dupFields = err.keyValue ? Object.keys(err.keyValue).join(", ") : "field";
+      throw new AppError(409, `Duplicate value — ${dupFields} already exists on another product`);
+    }
+    if (err?.name === "ValidationError") {
+      throw new AppError(400, err.message ?? "Product validation failed");
+    }
+    throw e;
+  }
   const imageUrls = product.imageIds.map((id) => `/api/media/${id}`);
   return toPublicProduct(product, cat.slug, imageUrls);
 }
@@ -193,7 +206,7 @@ export async function updateProduct(id: string, data: Partial<{
   if (!product) throw new AppError(404, "Product not found");
 
   if (data.name) product.name = sanitizeText(data.name);
-  if (data.sku !== undefined) product.sku = data.sku;
+  if (data.sku !== undefined) product.sku = data.sku || undefined;
   if (data.categoryId) product.categoryId = data.categoryId as unknown as Types.ObjectId;
   if (data.fabric !== undefined) product.fabric = sanitizeText(data.fabric);
   if (data.price !== undefined) product.price = data.price;
@@ -212,7 +225,19 @@ export async function updateProduct(id: string, data: Partial<{
   if (data.bestSeller !== undefined) product.bestSeller = data.bestSeller;
   if (data.isActive !== undefined) product.isActive = data.isActive;
 
-  await product.save();
+  try {
+    await product.save();
+  } catch (e: unknown) {
+    const err = e as { code?: number; name?: string; message?: string; keyValue?: Record<string, unknown> };
+    if (err?.code === 11000) {
+      const dupFields = err.keyValue ? Object.keys(err.keyValue).join(", ") : "field";
+      throw new AppError(409, `Duplicate value — ${dupFields} already exists on another product`);
+    }
+    if (err?.name === "ValidationError") {
+      throw new AppError(400, err.message ?? "Product validation failed");
+    }
+    throw e;
+  }
   const cat = await Category.findById(product.categoryId);
   const imageUrls = product.imageIds.map((id) => `/api/media/${id}`);
   return toPublicProduct(product, cat?.slug, imageUrls);
@@ -261,7 +286,7 @@ export async function importProductsFromCsv(
       }
       await Product.create({
         slug,
-        sku: row.sku,
+        sku: row.sku || undefined,
         name: sanitizeText(row.name),
         categoryId: cat._id,
         fabric: row.fabric ? sanitizeText(row.fabric) : "",
