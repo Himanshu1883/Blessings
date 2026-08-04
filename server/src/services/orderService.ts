@@ -1,7 +1,9 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
-import { Order, toPublicOrder } from "../models/Order.js";
+import { Order, toPublicOrder, type OrderStatus } from "../models/Order.js";
 import { Product } from "../models/Product.js";
+import { User } from "../models/User.js";
+import { Return } from "../models/Return.js";
 import { getCartForOrder, clearCart } from "./cartService.js";
 import { AppError } from "../utils/apiResponse.js";
 import { generateOrderNumber, sanitizeText } from "../utils/sanitize.js";
@@ -170,7 +172,16 @@ export async function handleRazorpayWebhook(rawBody: Buffer, signature: string) 
 export async function listOrders(userId: string, isAdmin = false) {
   const filter = isAdmin ? {} : { userId };
   const orders = await Order.find(filter).sort({ createdAt: -1 });
-  return orders.map(toPublicOrder);
+  if (!isAdmin) return orders.map(toPublicOrder);
+
+  const userIds = [...new Set(orders.map((o) => o.userId.toString()))];
+  const users = await User.find({ _id: { $in: userIds } });
+  const userMap = new Map(users.map((u) => [u._id.toString(), u.name]));
+
+  return orders.map((o) => ({
+    ...toPublicOrder(o),
+    customerName: userMap.get(o.userId.toString()) ?? "Guest",
+  }));
 }
 
 export async function getOrder(orderId: string, userId: string, isAdmin = false) {
@@ -182,7 +193,7 @@ export async function getOrder(orderId: string, userId: string, isAdmin = false)
 
 export async function updateOrderStatus(
   orderId: string,
-  status: import("../models/Order.js").OrderStatus,
+  status: OrderStatus,
   note?: string,
 ) {
   const order = await Order.findById(orderId);
@@ -191,6 +202,140 @@ export async function updateOrderStatus(
   order.statusHistory.push({ status, note, at: new Date() });
   await order.save();
   return toPublicOrder(order);
+}
+
+export async function updateOrderAdmin(
+  orderId: string,
+  data: {
+    orderStatus?: OrderStatus;
+    trackingNumber?: string;
+    note?: string;
+    cancelAction?: "approve" | "reject";
+  },
+) {
+  const order = await Order.findById(orderId);
+  if (!order) throw new AppError(404, "Order not found");
+
+  if (data.trackingNumber !== undefined) {
+    order.trackingNumber = data.trackingNumber;
+  }
+
+  if (data.cancelAction === "approve" && order.orderStatus === "cancel_requested") {
+    order.orderStatus = "cancelled";
+    order.statusHistory.push({ status: "cancelled", note: "Cancel approved", at: new Date() });
+  } else if (data.cancelAction === "reject" && order.orderStatus === "cancel_requested") {
+    order.orderStatus = "confirmed";
+    order.statusHistory.push({ status: "confirmed", note: "Cancel rejected", at: new Date() });
+  } else if (data.orderStatus) {
+    order.orderStatus = data.orderStatus;
+    order.statusHistory.push({ status: data.orderStatus, note: data.note, at: new Date() });
+  }
+
+  await order.save();
+  return toPublicOrder(order);
+}
+
+export async function getDashboardMetrics() {
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  const weekStart = new Date(today);
+  weekStart.setDate(weekStart.getDate() - 7);
+  const lastWeekStart = new Date(weekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+  const [
+    ordersThisWeek,
+    ordersLastWeek,
+    productCount,
+    todaysSalesAgg,
+    revenueAgg,
+    recentOrdersRaw,
+    statusAgg,
+    lowStockProducts,
+    pendingOrders,
+    pendingReturns,
+    revenueByDay,
+  ] = await Promise.all([
+    Order.countDocuments({ createdAt: { $gte: weekStart } }),
+    Order.countDocuments({ createdAt: { $gte: lastWeekStart, $lt: weekStart } }),
+    Product.countDocuments({ isActive: true }),
+    Order.aggregate([
+      { $match: { createdAt: { $gte: today }, paymentStatus: "paid" } },
+      { $group: { _id: null, total: { $sum: "$total" } } },
+    ]),
+    Order.aggregate([
+      { $match: { paymentStatus: "paid" } },
+      { $group: { _id: null, total: { $sum: "$total" } } },
+    ]),
+    Order.find().sort({ createdAt: -1 }).limit(8),
+    Order.aggregate([{ $group: { _id: "$orderStatus", count: { $sum: 1 } } }]),
+    Product.find({ isActive: true }).limit(200),
+    Order.countDocuments({ orderStatus: { $in: ["placed", "confirmed", "processing"] } }),
+    Return.countDocuments({ status: "pending" }),
+    Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          paymentStatus: "paid",
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          revenue: { $sum: "$total" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+  ]);
+
+  const lowStockCount = lowStockProducts.filter((p) => {
+    for (const [, qty] of p.stock.entries()) {
+      if (qty < 3) return true;
+    }
+    return false;
+  }).length;
+
+  const statusBreakdown: Record<string, number> = {};
+  for (const row of statusAgg) {
+    statusBreakdown[row._id] = row.count;
+  }
+
+  const userIds = [...new Set(recentOrdersRaw.map((o) => o.userId.toString()))];
+  const users = await User.find({ _id: { $in: userIds } });
+  const userMap = new Map(users.map((u) => [u._id.toString(), u.name]));
+
+  const recentOrders = recentOrdersRaw.map((o) => ({
+    ...toPublicOrder(o),
+    customerName: userMap.get(o.userId.toString()) ?? "Guest",
+  }));
+
+  const weekChangePercent =
+    ordersLastWeek > 0
+      ? Math.round(((ordersThisWeek - ordersLastWeek) / ordersLastWeek) * 100)
+      : ordersThisWeek > 0
+        ? 100
+        : 0;
+
+  return {
+    totalRevenue: revenueAgg[0]?.total ?? 0,
+    ordersThisWeek,
+    ordersLastWeek,
+    weekChangePercent,
+    productCount,
+    todaysSales: todaysSalesAgg[0]?.total ?? 0,
+    statusBreakdown,
+    revenueByDay: revenueByDay.map((d: { _id: string; revenue: number }) => ({
+      date: d._id,
+      revenue: d.revenue,
+    })),
+    recentOrders,
+    lowStockCount,
+    pendingOrders,
+    pendingReturns,
+  };
 }
 
 export async function getAdminStats() {

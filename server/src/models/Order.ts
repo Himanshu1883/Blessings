@@ -8,8 +8,11 @@ export type OrderStatus =
   | "confirmed"
   | "processing"
   | "shipped"
+  | "in_transit"
   | "delivered"
-  | "cancelled";
+  | "cancel_requested"
+  | "cancelled"
+  | "returned";
 
 export interface IOrderItem {
   productId: Types.ObjectId;
@@ -41,6 +44,9 @@ export interface IOrder extends Document {
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   razorpaySignature?: string;
+  trackingNumber?: string;
+  cancelReason?: string;
+  cancelRequestedAt?: Date;
   statusHistory: IStatusHistory[];
   createdAt: Date;
   updatedAt: Date;
@@ -84,9 +90,22 @@ const orderSchema = new Schema<IOrder>(
     },
     orderStatus: {
       type: String,
-      enum: ["placed", "confirmed", "processing", "shipped", "delivered", "cancelled"],
+      enum: [
+        "placed",
+        "confirmed",
+        "processing",
+        "shipped",
+        "in_transit",
+        "delivered",
+        "cancel_requested",
+        "cancelled",
+        "returned",
+      ],
       default: "placed",
     },
+    trackingNumber: { type: String },
+    cancelReason: { type: String },
+    cancelRequestedAt: { type: Date },
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
     razorpaySignature: { type: String },
@@ -120,8 +139,14 @@ export function toPublicOrder(order: IOrder) {
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
     orderStatus: order.orderStatus,
-    statusHistory: order.statusHistory,
-    createdAt: order.createdAt,
-    updatedAt: order.updatedAt,
+    trackingNumber: order.trackingNumber ?? null,
+    cancelReason: order.cancelReason ?? null,
+    statusHistory: order.statusHistory.map((h) => ({
+      status: h.status,
+      note: h.note,
+      at: h.at instanceof Date ? h.at.toISOString() : h.at,
+    })),
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
   };
 }

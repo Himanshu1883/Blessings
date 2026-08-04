@@ -1,12 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Heart, Ruler, Scissors, Truck, Shield, ChevronDown, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { ProductCard } from "./index";
 import { cn } from "@/lib/utils";
 import { fetchProduct, fetchProducts } from "@/lib/catalog-api";
+import { addRecentlyViewed } from "@/lib/recently-viewed";
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ loaderData }) => {
@@ -43,6 +44,15 @@ function ProductPage() {
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
   const [size, setSize] = useState(product.sizes[0] ?? "M");
   const saved = isInWishlist(product.mongoId);
+
+  useEffect(() => {
+    addRecentlyViewed({
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
+    });
+  }, [product.slug, product.name, product.price, product.imageUrl]);
 
   return (
     <div>

@@ -6,6 +6,7 @@ import craftImg from "@/assets/craft.jpg";
 import bespokeImg from "@/assets/bespoke.jpg";
 import type { StoreProduct, StoreCategory } from "@/lib/catalog-api";
 import { fetchCategories, fetchProducts } from "@/lib/catalog-api";
+import { fetchHomepageContent } from "@/lib/homepage-api";
 import { useCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { ParallaxScroll } from "@/components/site/parallax-scroll";
@@ -20,22 +21,27 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [products, categories] = await Promise.all([fetchProducts(), fetchCategories()]);
-    return { products, categories };
+    const [products, categories, homepage] = await Promise.all([
+      fetchProducts(),
+      fetchCategories(),
+      fetchHomepageContent(),
+    ]);
+    return { products, categories, homepage };
   },
   component: Index,
 });
 
 function Index() {
+  const { homepage } = Route.useLoaderData();
   return (
     <>
-      <Hero />
+      <Hero cms={homepage.hero as Record<string, unknown> | undefined} sectionCopy={homepage.sectionCopy as Record<string, unknown> | undefined} />
       <CategoryEditorial />
       <NewArrivals />
       <BespokeStory />
       <GroomsEdit />
       <ParallaxCraftsmanship />
-      <Testimonials />
+      <Testimonials cms={homepage.reviews as Record<string, unknown> | undefined} />
       <TrustStrip />
       <PreFooterBanner>
         <Newsletter />
@@ -51,23 +57,40 @@ const HERO_BANNERS = [
   { src: "/banners/banner-4.jpeg", alt: "Blessings flame graphic statement shirt" },
 ] as const;
 
-function Hero() {
+type HeroSlide = { src: string; alt: string };
+
+function Hero({
+  cms,
+  sectionCopy,
+}: {
+  cms?: Record<string, unknown>;
+  sectionCopy?: Record<string, unknown>;
+}) {
+  const cmsSlides = Array.isArray(cms?.slides)
+    ? (cms.slides as HeroSlide[]).filter((s) => s?.src)
+    : null;
+  const banners: HeroSlide[] = cmsSlides?.length ? cmsSlides : [...HERO_BANNERS];
+  const overline = String(sectionCopy?.overline ?? cms?.overline ?? "Men's Boutique");
+  const title = String(sectionCopy?.title ?? cms?.title ?? "Crafted for the Modern Groom");
+  const subtitle = String(sectionCopy?.subtitle ?? cms?.subtitle ?? "");
+  const ctaText = String(sectionCopy?.ctaText ?? cms?.ctaText ?? "Explore Collection");
+
   const [active, setActive] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const goTo = (index: number) => {
-    setActive((index + HERO_BANNERS.length) % HERO_BANNERS.length);
+    setActive((index + banners.length) % banners.length);
   };
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
-      setActive((current) => (current + 1) % HERO_BANNERS.length);
+      setActive((current) => (current + 1) % banners.length);
     }, 6000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [banners.length]);
 
   const pause = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -76,7 +99,7 @@ function Hero() {
   const resume = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
-      setActive((current) => (current + 1) % HERO_BANNERS.length);
+      setActive((current) => (current + 1) % banners.length);
     }, 6000);
   };
 
@@ -88,9 +111,8 @@ function Hero() {
       aria-roledescription="carousel"
       aria-label="Featured collections"
     >
-      {/* Image stage — 16:9 on mobile shows full banner; tall crop on desktop */}
       <div className="relative w-full aspect-video md:aspect-auto md:h-[min(92vh,900px)] md:min-h-[640px]">
-        {HERO_BANNERS.map((banner, index) => (
+        {banners.map((banner, index) => (
           <img
             key={banner.src}
             src={banner.src}
@@ -110,7 +132,7 @@ function Hero() {
 
         {/* Carousel dots — on image */}
         <div className="absolute bottom-3 md:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
-          {HERO_BANNERS.map((banner, index) => (
+          {banners.map((banner, index) => (
             <button
               key={banner.src}
               type="button"
@@ -131,19 +153,21 @@ function Hero() {
       </div>
 
       <div className="relative md:absolute md:inset-0 z-10 flex flex-col items-center md:items-end justify-end text-center md:text-right text-[color:var(--ivory)] pb-8 pt-6 sm:pb-10 md:pb-32 px-4 sm:px-6 md:px-16 lg:px-24 bg-[color:var(--charcoal)] md:bg-transparent">
-        <p className="eyebrow text-[9px] sm:text-[10px] text-[color:var(--gold-soft)] mb-4 sm:mb-6 animate-reveal">The Wedding Season, 2026</p>
+        <p className="eyebrow text-[9px] sm:text-[10px] text-[color:var(--gold-soft)] mb-4 sm:mb-6 animate-reveal">{overline}</p>
         <h1 className="font-serif text-4xl sm:text-5xl md:text-7xl lg:text-[92px] leading-[0.95] max-w-5xl italic animate-reveal text-balance">
-          Tailored for <span className="text-[color:var(--gold-soft)]">Every&nbsp;Vow.</span>
+          {title}
         </h1>
-        <p className="mt-8 max-w-md text-sm md:text-base text-[color:var(--ivory)]/80 leading-relaxed animate-reveal md:ml-auto">
-          Bespoke elegance, handcrafted in Delhi. Delivered to grooms in London, New York, Dubai and Toronto.
-        </p>
+        {subtitle && (
+          <p className="mt-8 max-w-md text-sm md:text-base text-[color:var(--ivory)]/80 leading-relaxed animate-reveal md:ml-auto">
+            {subtitle}
+          </p>
+        )}
         <Link
           to="/shop/$category"
           params={{ category: "sherwanis" }}
           className="mt-8 sm:mt-10 inline-flex items-center gap-3 border border-[color:var(--ivory)]/60 hover:border-[color:var(--gold)] hover:text-[color:var(--gold-soft)] px-6 sm:px-10 py-3.5 sm:py-4 eyebrow text-[10px] sm:text-[10.5px] transition-colors md:ml-auto"
         >
-          Explore the Collection <ArrowRight className="size-3.5" />
+          {ctaText} <ArrowRight className="size-3.5" />
         </Link>
       </div>
       <div className="hidden md:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-4 z-10">
@@ -469,16 +493,23 @@ const TESTIMONIALS = [
   { quote: "Received my wedding suit in Toronto three weeks after ordering. Impeccable finish, and worth every penny.", author: "Karanveer J.", location: "Toronto, Canada" },
 ];
 
-function Testimonials() {
+function Testimonials({ cms }: { cms?: Record<string, unknown> }) {
+  const cmsReviews = Array.isArray(cms?.items)
+    ? (cms.items as Array<{ quote: string; author: string; location: string }>)
+    : null;
+  const reviews = cmsReviews?.length ? cmsReviews : TESTIMONIALS;
+  const eyebrow = String(cms?.eyebrow ?? "(07) Testimonials");
+  const title = String(cms?.title ?? "Trusted by grooms across four continents.");
+
   return (
     <section data-reveal-direction="alternate" className="bg-[color:var(--muted)]/40 py-16 sm:py-24 md:py-32">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <p className="eyebrow text-[color:var(--gold)] mb-4">(07) Testimonials</p>
-          <h2 className="font-serif italic text-3xl sm:text-4xl md:text-5xl text-balance">Trusted by grooms across four continents.</h2>
+          <p className="eyebrow text-[color:var(--gold)] mb-4">{eyebrow}</p>
+          <h2 className="font-serif italic text-3xl sm:text-4xl md:text-5xl text-balance">{title}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {TESTIMONIALS.map((t) => (
+          {reviews.map((t) => (
             <figure key={t.author} className="bg-background p-6 sm:p-8 md:p-10 border border-foreground/5">
               <div className="flex gap-0.5 text-[color:var(--gold)] mb-6">
                 {Array.from({ length: 5 }).map((_, i) => <Star key={i} className="size-3.5 fill-current" strokeWidth={0} />)}

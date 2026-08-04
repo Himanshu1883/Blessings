@@ -137,7 +137,23 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const isHome = useRouterState({ select: (s) => s.location.pathname === "/" });
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isHome = pathname === "/";
+  const isAdmin = pathname.startsWith("/admin");
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
+
+  if (isAdmin) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <CurrencyProvider>
+            <Outlet />
+            <Toaster position="bottom-right" />
+          </CurrencyProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -147,10 +163,16 @@ function RootComponent() {
           <ScrollExperienceProvider>
           <div className="flex min-h-screen flex-col bg-background text-foreground w-full max-w-[100vw]">
             <SiteHeader />
-            <main className="flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0">
+            <main
+              className={
+                isAuthPage
+                  ? "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0 overflow-x-hidden"
+                  : "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0"
+              }
+            >
               <Outlet />
             </main>
-            {isHome ? (
+            {isHome || isAuthPage ? (
               <SiteFooter />
             ) : (
               <PreFooterBanner>

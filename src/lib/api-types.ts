@@ -33,6 +33,7 @@ export type ApiCategory = {
 export type ApiProduct = {
   id: string;
   slug: string;
+  sku?: string | null;
   name: string;
   categoryId: string;
   categorySlug: string | null;
@@ -47,6 +48,17 @@ export type ApiProduct = {
   isNew: boolean;
   bestSeller: boolean;
   isActive: boolean;
+  colors?: string[];
+  showColorSelector?: boolean;
+  showSizeSelector?: boolean;
+  videoId?: string | null;
+  customFields?: Array<{
+    id: string;
+    label: string;
+    type: string;
+    value: unknown;
+    showOnProductPage: boolean;
+  }>;
 };
 
 export type ApiCartLine = {
@@ -80,6 +92,9 @@ export type ApiOrder = {
   paymentMethod: "razorpay" | "cod";
   paymentStatus: string;
   orderStatus: string;
+  trackingNumber?: string | null;
+  cancelReason?: string | null;
+  customerName?: string;
   statusHistory: Array<{ status: string; note?: string; at: string }>;
   createdAt: string;
   updatedAt: string;

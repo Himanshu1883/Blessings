@@ -14,6 +14,7 @@ import cartRoutes from "./routes/cart.js";
 import wishlistRoutes from "./routes/wishlist.js";
 import orderRoutes from "./routes/orders.js";
 import adminRoutes from "./routes/admin.js";
+import homepageRoutes from "./routes/homepage.js";
 import webhookRoutes from "./routes/webhooks.js";
 
 const app = express();
@@ -50,6 +51,7 @@ app.use("/api/media", mediaRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/homepage", homepageRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/webhooks", webhookRoutes);
 

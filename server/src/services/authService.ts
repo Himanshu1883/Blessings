@@ -220,3 +220,21 @@ export async function updateProfile(
   await user.save();
   return toPublicUser(user);
 }
+
+export async function changePassword(
+  userId: string,
+  data: { currentPassword: string; newPassword: string },
+) {
+  const user = await User.findById(userId).select("+passwordHash");
+  if (!user || !user.passwordHash) {
+    throw new AppError(400, "Password login not available for this account");
+  }
+  const valid = await bcrypt.compare(data.currentPassword, user.passwordHash);
+  if (!valid) throw new AppError(401, "Current password is incorrect");
+  if (data.newPassword.length < 8) {
+    throw new AppError(400, "New password must be at least 8 characters");
+  }
+  user.passwordHash = await bcrypt.hash(data.newPassword, BCRYPT_ROUNDS);
+  await user.save();
+  return { changed: true };
+}

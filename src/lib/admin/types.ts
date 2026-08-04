@@ -1,0 +1,120 @@
+import type { ApiCategory, ApiOrder, ApiProduct } from "@/lib/api-types";
+
+export type OrderStatus =
+  | "placed"
+  | "confirmed"
+  | "processing"
+  | "shipped"
+  | "in_transit"
+  | "delivered"
+  | "cancel_requested"
+  | "cancelled"
+  | "returned";
+
+export type ReturnStatus =
+  | "pending"
+  | "approved"
+  | "pickup_scheduled"
+  | "picked_up"
+  | "received"
+  | "refund_initiated"
+  | "refunded"
+  | "rejected";
+
+export type AdminCoupon = {
+  id: string;
+  code: string;
+  type: "percent" | "flat";
+  value: number;
+  minOrder: number;
+  maxUses: number;
+  usedCount: number;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type AdminReturn = {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  userId: string;
+  customerName: string;
+  productName: string;
+  reason: string;
+  status: ReturnStatus;
+  statusHistory: Array<{ status: ReturnStatus; note?: string; at: string }>;
+  createdAt: string;
+};
+
+export type AdminNotification = {
+  id: string;
+  title: string;
+  message: string;
+  channel: "push" | "email";
+  sentAt: string;
+  meta?: Record<string, unknown>;
+};
+
+export type AdminOrder = ApiOrder & {
+  trackingNumber?: string | null;
+  cancelReason?: string | null;
+  customerName?: string;
+};
+
+export type DashboardMetrics = {
+  totalRevenue: number;
+  ordersThisWeek: number;
+  ordersLastWeek: number;
+  weekChangePercent: number;
+  productCount: number;
+  todaysSales: number;
+  statusBreakdown: Record<string, number>;
+  revenueByDay: Array<{ date: string; revenue: number }>;
+  recentOrders: AdminOrder[];
+  lowStockCount: number;
+  pendingOrders: number;
+  pendingReturns: number;
+};
+
+export type AdminData = {
+  products: ApiProduct[];
+  categories: ApiCategory[];
+  orders: AdminOrder[];
+  coupons: AdminCoupon[];
+  returns: AdminReturn[];
+  notifications: AdminNotification[];
+  dashboard: DashboardMetrics | null;
+};
+
+export type StockLevel = "all" | "in" | "low" | "out";
+
+export type CustomFieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "boolean"
+  | "list"
+  | "url"
+  | "image"
+  | "video";
+
+export type ProductCustomField = {
+  id: string;
+  label: string;
+  type: CustomFieldType;
+  value: string | number | boolean | string[];
+  showOnProductPage: boolean;
+};
+
+export type HomepageSection =
+  | "sectionCopy"
+  | "hero"
+  | "categories"
+  | "fabrics"
+  | "occasions"
+  | "featured"
+  | "instagram"
+  | "reviews";
+
+export type HomepageContent = Record<string, unknown>;

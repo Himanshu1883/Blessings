@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { useCart, useCartMutations, useWishlist, useWishlistMutations } from "@/lib/api-hooks";
@@ -35,13 +36,15 @@ type ShopContextValue = {
 
 const ShopContext = createContext<ShopContextValue | null>(null);
 
-function requireAuthToast(openPanel: (p: Exclude<ShopPanel, null>) => void) {
+function requireAuthToast(navigate: ReturnType<typeof useNavigate>, from: string) {
   toast.error("Please sign in to continue.");
-  openPanel("account");
+  navigate({ to: "/login", search: { from } });
 }
 
 export function ShopProvider({ children }: { children: ReactNode }) {
   const [panel, setPanel] = useState<ShopPanel>(null);
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAuthenticated } = useAuth();
   const { data: cart } = useCart();
   const { data: wishlist = [] } = useWishlist();
@@ -54,7 +57,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const addToCart = useCallback(
     (productId: string, size = "M", quantity = 1) => {
       if (!isAuthenticated) {
-        requireAuthToast(openPanel);
+        requireAuthToast(navigate, pathname);
         return;
       }
       addItem.mutate(
@@ -65,7 +68,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         },
       );
     },
-    [isAuthenticated, addItem, openPanel],
+    [isAuthenticated, addItem, navigate, pathname],
   );
 
   const removeFromCart = useCallback(
@@ -92,7 +95,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const toggleWishlist = useCallback(
     (productId: string) => {
       if (!isAuthenticated) {
-        requireAuthToast(openPanel);
+        requireAuthToast(navigate, pathname);
         return;
       }
       const exists = wishlist.some((p) => p.id === productId);
@@ -102,7 +105,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         addWishlist.mutate(productId);
       }
     },
-    [isAuthenticated, wishlist, addWishlist, removeWishlist, openPanel],
+    [isAuthenticated, wishlist, addWishlist, removeWishlist, navigate, pathname],
   );
 
   const isInWishlist = useCallback(

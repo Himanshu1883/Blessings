@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, Heart, User, ShoppingBag, Menu, X, ChevronDown } from "lucide-react";
 import { WhatsAppLink } from "@/components/site/whatsapp-link";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { CATEGORIES } from "@/lib/catalog";
 import { CURRENCIES, useCurrency, type CurrencyCode } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
 const ANNOUNCEMENTS = [
@@ -20,7 +21,17 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const { openPanel, cartCount, wishlistCount } = useShop();
+
+  const openAccount = () => {
+    if (isAuthenticated) {
+      openPanel("account");
+    } else {
+      navigate({ to: "/login", search: { from: pathname } });
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -175,7 +186,7 @@ export function SiteHeader() {
             </button>
             <button
               type="button"
-              onClick={() => openPanel("account")}
+              onClick={openAccount}
               className="inline-flex min-h-11 min-w-11 items-center justify-center hover:text-[color:var(--maroon)] transition-colors"
               aria-label="Account"
             >
@@ -205,7 +216,7 @@ export function SiteHeader() {
       </div>
 
       {/* Mobile drawer */}
-      {mobileOpen && <MobileDrawer onClose={() => setMobileOpen(false)} />}
+      {mobileOpen && <MobileDrawer onClose={() => setMobileOpen(false)} onAccount={openAccount} />}
     </header>
   );
 }
@@ -332,10 +343,10 @@ function MegaMenu({ categorySlug, onClose }: { categorySlug: string; onClose: ()
   );
 }
 
-function MobileDrawer({ onClose }: { onClose: () => void }) {
+function MobileDrawer({ onClose, onAccount }: { onClose: () => void; onAccount: () => void }) {
   const { openPanel, cartCount, wishlistCount } = useShop();
 
-  const open = (panel: "search" | "cart" | "wishlist" | "account") => {
+  const open = (panel: "search" | "cart" | "wishlist") => {
     onClose();
     openPanel(panel);
   };
@@ -360,7 +371,7 @@ function MobileDrawer({ onClose }: { onClose: () => void }) {
           <button type="button" onClick={() => open("wishlist")} className="flex items-center justify-center gap-2 border border-foreground/15 py-3 eyebrow text-[10px]">
             <Heart className="size-4" /> Wishlist ({wishlistCount})
           </button>
-          <button type="button" onClick={() => open("account")} className="flex items-center justify-center gap-2 border border-foreground/15 py-3 eyebrow text-[10px]">
+          <button type="button" onClick={() => { onClose(); onAccount(); }} className="flex items-center justify-center gap-2 border border-foreground/15 py-3 eyebrow text-[10px]">
             <User className="size-4" /> Account
           </button>
           <WhatsAppLink

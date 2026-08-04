@@ -156,15 +156,25 @@ export function ScrollExperienceProvider({ children }: { children: ReactNode }) 
 
   useEffect(() => {
     const lenis = lenisRef.current;
+    const isAuthPage = pathname === "/login" || pathname === "/signup";
+
     if (lenis) {
-      lenis.scrollTo(0, { immediate: true, force: true });
+      if (isAuthPage) {
+        lenis.stop();
+        window.scrollTo(0, 0);
+      } else {
+        lenis.start();
+        lenis.scrollTo(0, { immediate: true, force: true });
+      }
     } else {
       window.scrollTo(0, 0);
     }
 
     let cleanup = () => {};
     const frame = requestAnimationFrame(() => {
-      cleanup = setupScrollReveals();
+      if (!isAuthPage) {
+        cleanup = setupScrollReveals();
+      }
     });
 
     return () => {

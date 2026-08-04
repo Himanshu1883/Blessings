@@ -115,14 +115,26 @@ export async function updateCategory(id: string, data: Partial<{
 
 export async function createProduct(data: {
   slug: string;
+  sku?: string;
   name: string;
   categoryId: string;
   fabric?: string;
   price: number;
   description?: string;
   sizes?: string[];
+  colors?: string[];
+  showColorSelector?: boolean;
+  showSizeSelector?: boolean;
   stock?: Record<string, number>;
   imageIds?: string[];
+  videoId?: string;
+  customFields?: Array<{
+    id: string;
+    label: string;
+    type: string;
+    value: unknown;
+    showOnProductPage: boolean;
+  }>;
   isNew?: boolean;
   bestSeller?: boolean;
 }) {
@@ -131,14 +143,20 @@ export async function createProduct(data: {
 
   const product = await Product.create({
     slug: data.slug.toLowerCase(),
+    sku: data.sku,
     name: sanitizeText(data.name),
     categoryId: data.categoryId,
     fabric: data.fabric ? sanitizeText(data.fabric) : "",
     price: data.price,
     description: data.description ? sanitizeText(data.description) : "",
     sizes: data.sizes ?? ["S", "M", "L", "XL"],
+    colors: data.colors ?? [],
+    showColorSelector: data.showColorSelector ?? true,
+    showSizeSelector: data.showSizeSelector ?? true,
     stock: data.stock ?? {},
     imageIds: data.imageIds ?? [],
+    videoId: data.videoId,
+    customFields: data.customFields ?? [],
     isNewProduct: data.isNew ?? false,
     bestSeller: data.bestSeller ?? false,
   });
@@ -148,13 +166,25 @@ export async function createProduct(data: {
 
 export async function updateProduct(id: string, data: Partial<{
   name: string;
+  sku: string;
   categoryId: string;
   fabric: string;
   price: number;
   description: string;
   sizes: string[];
+  colors: string[];
+  showColorSelector: boolean;
+  showSizeSelector: boolean;
   stock: Record<string, number>;
   imageIds: string[];
+  videoId: string | null;
+  customFields: Array<{
+    id: string;
+    label: string;
+    type: string;
+    value: unknown;
+    showOnProductPage: boolean;
+  }>;
   isNew: boolean;
   bestSeller: boolean;
   isActive: boolean;
@@ -163,13 +193,21 @@ export async function updateProduct(id: string, data: Partial<{
   if (!product) throw new AppError(404, "Product not found");
 
   if (data.name) product.name = sanitizeText(data.name);
+  if (data.sku !== undefined) product.sku = data.sku;
   if (data.categoryId) product.categoryId = data.categoryId as unknown as Types.ObjectId;
   if (data.fabric !== undefined) product.fabric = sanitizeText(data.fabric);
   if (data.price !== undefined) product.price = data.price;
   if (data.description !== undefined) product.description = sanitizeText(data.description);
   if (data.sizes) product.sizes = data.sizes;
+  if (data.colors) product.colors = data.colors;
+  if (data.showColorSelector !== undefined) product.showColorSelector = data.showColorSelector;
+  if (data.showSizeSelector !== undefined) product.showSizeSelector = data.showSizeSelector;
   if (data.stock) product.stock = new Map(Object.entries(data.stock));
   if (data.imageIds) product.imageIds = data.imageIds as unknown as Types.ObjectId[];
+  if (data.videoId !== undefined) {
+    product.videoId = data.videoId ? (data.videoId as unknown as Types.ObjectId) : undefined;
+  }
+  if (data.customFields) product.customFields = data.customFields as import("../models/Product.js").IProductCustomField[];
   if (data.isNew !== undefined) product.isNewProduct = data.isNew;
   if (data.bestSeller !== undefined) product.bestSeller = data.bestSeller;
   if (data.isActive !== undefined) product.isActive = data.isActive;
@@ -183,6 +221,59 @@ export async function updateProduct(id: string, data: Partial<{
 export async function deleteProduct(id: string) {
   const product = await Product.findByIdAndDelete(id);
   if (!product) throw new AppError(404, "Product not found");
+}
+
+export async function deleteCategory(id: string) {
+  const cat = await Category.findById(id);
+  if (!cat) throw new AppError(404, "Category not found");
+  const count = await Product.countDocuments({ categoryId: cat._id });
+  if (count > 0) throw new AppError(400, `Category has ${count} products. Move or delete them first.`);
+  await cat.deleteOne();
+}
+
+export async function patchProductStock(id: string, stock: Record<string, number>) {
+  const product = await Product.findById(id);
+  if (!product) throw new AppError(404, "Product not found");
+  product.stock = new Map(Object.entries(stock));
+  await product.save();
+  const cat = await Category.findById(product.categoryId);
+  const imageUrls = product.imageIds.map((gid) => `/api/media/${gid}`);
+  return toPublicProduct(product, cat?.slug, imageUrls);
+}
+
+export async function importProductsFromCsv(
+  rows: Array<Record<string, string>>,
+): Promise<{ created: number; errors: string[] }> {
+  let created = 0;
+  const errors: string[] = [];
+  for (const row of rows) {
+    try {
+      const slug = row.slug?.toLowerCase() || row.name?.toLowerCase().replace(/\s+/g, "-");
+      const cat = await Category.findOne({ slug: row.categorySlug });
+      if (!slug || !row.name || !cat) {
+        errors.push(`Skipped row: ${row.name ?? "unknown"} — missing fields`);
+        continue;
+      }
+      const existing = await Product.findOne({ slug });
+      if (existing) {
+        errors.push(`Skipped ${slug}: already exists`);
+        continue;
+      }
+      await Product.create({
+        slug,
+        sku: row.sku,
+        name: sanitizeText(row.name),
+        categoryId: cat._id,
+        fabric: row.fabric ? sanitizeText(row.fabric) : "",
+        price: Number(row.price) || 0,
+        description: row.description ? sanitizeText(row.description) : "",
+      });
+      created++;
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : "Import error");
+    }
+  }
+  return { created, errors };
 }
 
 export async function searchProducts(q: string) {

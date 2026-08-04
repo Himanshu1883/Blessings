@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -22,18 +24,27 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ShopCategoryRouteImport } from './routes/shop.$category'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
-import { Route as AdminProductsRouteImport } from './routes/admin/products'
-import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
-import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminTabRouteImport } from './routes/admin/$tab'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JournalRoute = JournalRouteImport.update({
@@ -91,19 +102,14 @@ const OrdersIdRoute = OrdersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => OrdersRoute,
 } as any)
-const AdminProductsRoute = AdminProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminOrdersRoute = AdminOrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
-  id: '/categories',
-  path: '/categories',
+const AdminTabRoute = AdminTabRouteImport.update({
+  id: '/$tab',
+  path: '/$tab',
   getParentRoute: () => AdminRoute,
 } as any)
 
@@ -115,11 +121,12 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/journal': typeof JournalRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRouteWithChildren
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/admin/categories': typeof AdminCategoriesRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/products': typeof AdminProductsRoute
+  '/admin/$tab': typeof AdminTabRoute
+  '/admin/login': typeof AdminLoginRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/shop/$category': typeof ShopCategoryRoute
@@ -132,11 +139,12 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/journal': typeof JournalRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRouteWithChildren
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/admin/categories': typeof AdminCategoriesRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/products': typeof AdminProductsRoute
+  '/admin/$tab': typeof AdminTabRoute
+  '/admin/login': typeof AdminLoginRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/shop/$category': typeof ShopCategoryRoute
@@ -151,11 +159,12 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/journal': typeof JournalRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRouteWithChildren
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/admin/categories': typeof AdminCategoriesRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/products': typeof AdminProductsRoute
+  '/admin/$tab': typeof AdminTabRoute
+  '/admin/login': typeof AdminLoginRoute
   '/orders/$id': typeof OrdersIdRoute
   '/product/$id': typeof ProductIdRoute
   '/shop/$category': typeof ShopCategoryRoute
@@ -171,11 +180,12 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/journal'
+    | '/login'
     | '/orders'
+    | '/signup'
     | '/sitemap.xml'
-    | '/admin/categories'
-    | '/admin/orders'
-    | '/admin/products'
+    | '/admin/$tab'
+    | '/admin/login'
     | '/orders/$id'
     | '/product/$id'
     | '/shop/$category'
@@ -188,11 +198,12 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/journal'
+    | '/login'
     | '/orders'
+    | '/signup'
     | '/sitemap.xml'
-    | '/admin/categories'
-    | '/admin/orders'
-    | '/admin/products'
+    | '/admin/$tab'
+    | '/admin/login'
     | '/orders/$id'
     | '/product/$id'
     | '/shop/$category'
@@ -206,11 +217,12 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/journal'
+    | '/login'
     | '/orders'
+    | '/signup'
     | '/sitemap.xml'
-    | '/admin/categories'
-    | '/admin/orders'
-    | '/admin/products'
+    | '/admin/$tab'
+    | '/admin/login'
     | '/orders/$id'
     | '/product/$id'
     | '/shop/$category'
@@ -225,7 +237,9 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   JournalRoute: typeof JournalRoute
+  LoginRoute: typeof LoginRoute
   OrdersRoute: typeof OrdersRouteWithChildren
+  SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ProductIdRoute: typeof ProductIdRoute
   ShopCategoryRoute: typeof ShopCategoryRoute
@@ -240,11 +254,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders': {
       id: '/orders'
       path: '/orders'
       fullPath: '/orders'
       preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal': {
@@ -324,41 +352,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersIdRouteImport
       parentRoute: typeof OrdersRoute
     }
-    '/admin/products': {
-      id: '/admin/products'
-      path: '/products'
-      fullPath: '/admin/products'
-      preLoaderRoute: typeof AdminProductsRouteImport
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/orders': {
-      id: '/admin/orders'
-      path: '/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AdminOrdersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/categories': {
-      id: '/admin/categories'
-      path: '/categories'
-      fullPath: '/admin/categories'
-      preLoaderRoute: typeof AdminCategoriesRouteImport
+    '/admin/$tab': {
+      id: '/admin/$tab'
+      path: '/$tab'
+      fullPath: '/admin/$tab'
+      preLoaderRoute: typeof AdminTabRouteImport
       parentRoute: typeof AdminRoute
     }
   }
 }
 
 interface AdminRouteChildren {
-  AdminCategoriesRoute: typeof AdminCategoriesRoute
-  AdminOrdersRoute: typeof AdminOrdersRoute
-  AdminProductsRoute: typeof AdminProductsRoute
+  AdminTabRoute: typeof AdminTabRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminCategoriesRoute: AdminCategoriesRoute,
-  AdminOrdersRoute: AdminOrdersRoute,
-  AdminProductsRoute: AdminProductsRoute,
+  AdminTabRoute: AdminTabRoute,
+  AdminLoginRoute: AdminLoginRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -383,7 +402,9 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   JournalRoute: JournalRoute,
+  LoginRoute: LoginRoute,
   OrdersRoute: OrdersRouteWithChildren,
+  SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ProductIdRoute: ProductIdRoute,
   ShopCategoryRoute: ShopCategoryRoute,

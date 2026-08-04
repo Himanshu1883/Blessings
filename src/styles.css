@@ -195,6 +195,49 @@
   }
 }
 
+@keyframes search-overlay-in {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes search-overlay-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+.search-overlay {
+  transform: translateY(-100%);
+  will-change: transform;
+}
+
+.search-overlay--open {
+  animation: search-overlay-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.search-overlay--closed {
+  animation: search-overlay-out 0.38s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-overlay--open,
+  .search-overlay--closed {
+    animation: none;
+    transform: translateY(0);
+  }
+  .search-overlay--closed {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
 @keyframes reveal-up {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
@@ -209,6 +252,39 @@
 }
 @utility animate-marquee {
   animation: marquee 40s linear infinite;
+}
+
+@keyframes auth-gallery-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes auth-gallery-down {
+  from {
+    transform: translateY(-50%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.auth-gallery-scroll-up {
+  animation: auth-gallery-up 28s linear infinite;
+}
+
+.auth-gallery-scroll-down {
+  animation: auth-gallery-down 32s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-gallery-scroll-up,
+  .auth-gallery-scroll-down {
+    animation: none;
+  }
 }
 
 /* ── Premium scroll reveals ── */
@@ -442,5 +518,58 @@ html.lenis.lenis-smooth {
 @media (min-width: 1024px) {
   [data-sonner-toaster][data-y-position="bottom"][data-x-position="right"] {
     bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@layer components {
+  .admin-shell {
+    @apply min-h-svh w-full;
+  }
+
+  .admin-sidebar {
+    @apply shrink-0;
+  }
+
+  .admin-topbar {
+    @apply backdrop-blur-sm bg-card/95;
+  }
+
+  .admin-card {
+    @apply rounded-xl border border-border bg-card shadow-sm;
+  }
+
+  .admin-table {
+    @apply w-full text-sm;
+  }
+
+  .admin-table thead {
+    @apply border-b border-border bg-muted/40;
+  }
+
+  .admin-table th {
+    @apply px-4 py-3 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground;
+  }
+
+  .admin-table td {
+    @apply px-4 py-3 align-middle;
+  }
+
+  .admin-table tbody tr {
+    @apply border-b border-border/60 transition-colors hover:bg-muted/30;
+  }
+
+  .admin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--gold) 40%, transparent) transparent;
+  }
+
+  .admin-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .admin-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--gold) 40%, transparent);
+    border-radius: 3px;
   }
 }

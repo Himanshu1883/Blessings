@@ -10,6 +10,7 @@ import {
   handleGoogleCallback,
   googleTokenLogin,
   updateProfile,
+  changePassword,
 } from "../services/authService.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import { validateBody } from "../middleware/validate.js";
@@ -138,6 +139,26 @@ router.patch(
     try {
       const user = await updateProfile(req.userId!, req.body);
       sendSuccess(res, user);
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+router.patch(
+  "/password",
+  requireAuth,
+  attachRefreshedCookie,
+  validateBody(
+    z.object({
+      currentPassword: z.string().min(1),
+      newPassword: z.string().min(8).max(128),
+    }),
+  ),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const result = await changePassword(req.userId!, req.body);
+      sendSuccess(res, result);
     } catch (e) {
       next(e);
     }
