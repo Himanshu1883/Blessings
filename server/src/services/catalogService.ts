@@ -46,7 +46,7 @@ export async function listProducts(query: {
   if (query.sort === "price-desc") sort = { price: -1 };
   if (query.sort === "new") sort = { isNewProduct: -1, createdAt: -1 };
 
-  const products = await Product.find(filter).sort(sort).populate("categoryId");
+  const products = await Product.find(filter).sort(sort);
   const cats = await Category.find({ _id: { $in: products.map((p) => p.categoryId) } });
   const catMap = new Map(cats.map((c) => [c._id.toString(), c.slug]));
 

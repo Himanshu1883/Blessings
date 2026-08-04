@@ -93,12 +93,18 @@ export function toPublicProduct(
       stock[k] = v;
     }
   }
+  // Handle both populated (Document) and non-populated (ObjectId) categoryId
+  const catId = product.categoryId as unknown;
+  const categoryId =
+    catId && typeof catId === "object" && "_id" in catId
+      ? (catId as { _id: Types.ObjectId })._id.toString()
+      : String(catId);
   return {
     id: product._id.toString(),
     slug: product.slug,
     sku: product.sku ?? null,
     name: product.name,
-    categoryId: product.categoryId.toString(),
+    categoryId,
     categorySlug: categorySlug ?? null,
     fabric: product.fabric,
     price: product.price,
