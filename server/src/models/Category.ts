@@ -9,6 +9,7 @@ export interface ICategory extends Document {
   subCategories: string[];
   sortOrder: number;
   isActive: boolean;
+  showOnNavbar: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,6 +23,7 @@ const categorySchema = new Schema<ICategory>(
     subCategories: { type: [String], default: [] },
     sortOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    showOnNavbar: { type: Boolean, default: true },
   },
   { timestamps: true },
 );
@@ -39,5 +41,6 @@ export function toPublicCategory(cat: ICategory, imageUrl?: string) {
     subCategories: cat.subCategories,
     sortOrder: cat.sortOrder,
     isActive: cat.isActive,
+    showOnNavbar: cat.showOnNavbar,
   };
 }

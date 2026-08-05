@@ -97,6 +97,7 @@ router.post(
       imageId: z.string().optional(),
       subCategories: z.array(z.string()).optional(),
       sortOrder: z.number().optional(),
+      showOnNavbar: z.boolean().optional(),
     }),
   ),
   async (req, res, next) => {
@@ -119,6 +120,7 @@ router.patch(
       subCategories: z.array(z.string()).optional(),
       sortOrder: z.number().optional(),
       isActive: z.boolean().optional(),
+      showOnNavbar: z.boolean().optional(),
     }),
   ),
   async (req, res, next) => {

@@ -1,28 +1,28 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-  Outlet,
+  HeadContent,
   Link,
+  Outlet,
+  Scripts,
   createRootRouteWithContext,
   useRouter,
   useRouterState,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
-import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
-import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
-import { PreFooterBanner } from "@/components/site/pre-footer-banner";
-import { CurrencyProvider } from "@/lib/currency";
-import { AuthProvider } from "@/lib/auth-context";
-import { ShopProvider } from "@/lib/shop-store";
-import { Toaster } from "@/components/ui/sonner";
-import { ShopPanels } from "@/components/site/shop-panels";
-import { MobileBottomNav } from "@/components/site/mobile-bottom-nav";
 import { FloatingWhatsApp } from "@/components/site/floating-whatsapp";
+import { MobileBottomNav } from "@/components/site/mobile-bottom-nav";
+import { PreFooterBanner } from "@/components/site/pre-footer-banner";
 import { ScrollExperienceProvider } from "@/components/site/scroll-experience";
+import { ShopPanels } from "@/components/site/shop-panels";
+import { SiteFooter } from "@/components/site/site-footer";
+import { SiteHeader } from "@/components/site/site-header";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/auth-context";
+import { CurrencyProvider } from "@/lib/currency";
+import { ShopProvider } from "@/lib/shop-store";
+import { reportLovableError } from "../lib/lovable-error-reporting";
+import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
   return (
@@ -90,14 +90,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits" },
-      { name: "description", content: "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada." },
+      {
+        name: "description",
+        content:
+          "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada.",
+      },
       { name: "author", content: "Blessings Men's Boutique" },
-      { property: "og:title", content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits" },
-      { property: "og:description", content: "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada." },
+      {
+        property: "og:title",
+        content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits",
+      },
+      {
+        property: "og:description",
+        content:
+          "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits" },
-      { name: "twitter:description", content: "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada." },
+      {
+        name: "twitter:title",
+        content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Haute-couture menswear from Delhi. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada.",
+      },
       { property: "og:image", content: "/banners/banner-1.jpeg" },
       { name: "twitter:image", content: "/banners/banner-1.jpeg" },
     ],
@@ -154,31 +172,31 @@ function RootComponent() {
       <AuthProvider>
         <CurrencyProvider>
           <ShopProvider>
-          <ScrollExperienceProvider>
-          <div className="flex min-h-screen flex-col bg-background text-foreground w-full max-w-[100vw]">
-            <SiteHeader />
-            <main
-              className={
-                isAuthPage
-                  ? "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0 overflow-x-hidden"
-                  : "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0"
-              }
-            >
-              <Outlet />
-            </main>
-            {isHome || isAuthPage ? (
-              <SiteFooter />
-            ) : (
-              <PreFooterBanner>
-                <SiteFooter />
-              </PreFooterBanner>
-            )}
-          </div>
-          <ShopPanels />
-          <MobileBottomNav />
-          <FloatingWhatsApp />
-          <Toaster position="bottom-right" />
-          </ScrollExperienceProvider>
+            <ScrollExperienceProvider>
+              <div className="flex min-h-screen flex-col bg-background text-foreground w-full max-w-[100vw]">
+                <SiteHeader />
+                <main
+                  className={
+                    isAuthPage
+                      ? "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0 overflow-x-hidden"
+                      : "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0"
+                  }
+                >
+                  <Outlet />
+                </main>
+                {isHome || isAuthPage ? (
+                  <SiteFooter />
+                ) : (
+                  <PreFooterBanner>
+                    <SiteFooter />
+                  </PreFooterBanner>
+                )}
+              </div>
+              <ShopPanels />
+              <MobileBottomNav />
+              <FloatingWhatsApp />
+              <Toaster position="bottom-right" />
+            </ScrollExperienceProvider>
           </ShopProvider>
         </CurrencyProvider>
       </AuthProvider>

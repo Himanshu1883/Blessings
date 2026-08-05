@@ -11,6 +11,14 @@ export function useCategories() {
   });
 }
 
+export function useNavbarCategories() {
+  return useQuery({
+    queryKey: ["navbar-categories"],
+    queryFn: () => api.get<ApiCategory[]>("/api/categories/navbar"),
+    staleTime: 60_000,
+  });
+}
+
 export function useProducts(category?: string, sort?: string) {
   const params = new URLSearchParams();
   if (category) params.set("category", category);

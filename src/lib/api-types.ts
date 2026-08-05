@@ -28,6 +28,7 @@ export type ApiCategory = {
   subCategories: string[];
   sortOrder: number;
   isActive: boolean;
+  showOnNavbar: boolean;
 };
 
 export type ApiProduct = {

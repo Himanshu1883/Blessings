@@ -6,6 +6,7 @@ import {
   listProducts,
   getProductBySlug,
   searchProducts,
+  listNavbarCategories,
 } from "../services/catalogService.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import { validateQuery, validateParams } from "../middleware/validate.js";
@@ -17,6 +18,15 @@ const productQuerySchema = z.object({
   category: z.string().optional(),
   sort: z.enum(["new", "price-asc", "price-desc"]).optional(),
   q: z.string().optional(),
+});
+
+router.get("/categories/navbar", async (_req, res, next) => {
+  try {
+    const cats = await listNavbarCategories();
+    sendSuccess(res, cats);
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.get("/categories", async (_req, res, next) => {

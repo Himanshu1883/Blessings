@@ -1,9 +1,44 @@
+import { cn } from "@/lib/utils";
+import type { StoreCategory, StoreProduct } from "@/lib/catalog-api";
+import { fetchCategories, fetchCategory, fetchProducts } from "@/lib/catalog-api";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { ArrowUpDown, Check, ChevronDown, SlidersHorizontal, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { ProductCard } from "./index";
-import { useState } from "react";
-import { SlidersHorizontal, ChevronDown } from "lucide-react";
-import { fetchCategory, fetchCategories, fetchProducts } from "@/lib/catalog-api";
-import type { StoreProduct } from "@/lib/catalog-api";
+
+const ALL_CATEGORY: StoreCategory = {
+  slug: "all",
+  name: "All",
+  tagline: "The complete Blessings collection — every silhouette, every fabric, every occasion.",
+  imageUrl: "",
+  subCategories: [],
+};
+
+const SORT_OPTIONS = [
+  { value: "new", label: "Newest" },
+  { value: "price-asc", label: "Price — Low to High" },
+  { value: "price-desc", label: "Price — High to Low" },
+] as const;
+
+type SortValue = (typeof SORT_OPTIONS)[number]["value"];
+
+function getFilterGroups(cat: StoreCategory) {
+  return [
+    { key: "subCategory", title: "Sub-Category", options: cat.subCategories },
+    { key: "fabric", title: "Fabric", options: ["Silk", "Velvet", "Cotton", "Wool", "Linen"] },
+    {
+      key: "color",
+      title: "Color",
+      options: ["Ivory", "Maroon", "Emerald", "Midnight", "Charcoal", "Pastel"],
+    },
+    {
+      key: "occasion",
+      title: "Occasion",
+      options: ["Wedding", "Engagement", "Reception", "Sangeet", "Cocktail"],
+    },
+    { key: "size", title: "Size", options: ["XS", "S", "M", "L", "XL", "XXL", "Custom"] },
+  ].filter((g) => g.options.length > 0);
+}
 
 export const Route = createFileRoute("/shop/$category")({
   head: ({ loaderData }) => {
@@ -20,13 +55,16 @@ export const Route = createFileRoute("/shop/$category")({
     };
   },
   loader: async ({ params }) => {
-    const [cat, categories, products] = await Promise.all([
-      fetchCategory(params.category),
-      fetchCategories(),
-      fetchProducts(params.category),
-    ]);
+    const isAll = params.category === "all";
+    const cat = isAll ? ALL_CATEGORY : await fetchCategory(params.category);
+    const categories = await fetchCategories();
+    const products = await fetchProducts(isAll ? undefined : params.category);
     if (!cat) throw notFound();
-    return { cat, categories, products };
+    return { cat, categories, products } as {
+      cat: StoreCategory;
+      categories: StoreCategory[];
+      products: StoreProduct[];
+    };
   },
   component: ShopCategory,
   notFoundComponent: () => (
@@ -37,9 +75,31 @@ export const Route = createFileRoute("/shop/$category")({
 });
 
 function ShopCategory() {
-  const { cat, categories, products } = Route.useLoaderData();
-  const [sort, setSort] = useState<"new" | "price-asc" | "price-desc">("new");
-  const [openFilters, setOpenFilters] = useState(false);
+  const { cat, categories, products } = Route.useLoaderData() as {
+    cat: StoreCategory;
+    categories: StoreCategory[];
+    products: StoreProduct[];
+  };
+
+  const [sort, setSort] = useState<SortValue>("new");
+  const [filters, setFilters] = useState<Record<string, string[]>>({});
+  const [mobileSheet, setMobileSheet] = useState<"filter" | "sort" | null>(null);
+
+  const groups = useMemo(() => getFilterGroups(cat), [cat]);
+  const activeFilterCount = Object.values(filters).reduce((n, arr) => n + arr.length, 0);
+  const sortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "Sort";
+
+  const toggleFilter = (key: string, option: string) => {
+    setFilters((prev) => {
+      const current = prev[key] ?? [];
+      const next = current.includes(option)
+        ? current.filter((o) => o !== option)
+        : [...current, option];
+      return { ...prev, [key]: next };
+    });
+  };
+
+  const clearFilters = () => setFilters({});
 
   const sorted = [...products].sort((a: StoreProduct, b: StoreProduct) => {
     if (sort === "price-asc") return a.price - b.price;
@@ -49,13 +109,21 @@ function ShopCategory() {
 
   return (
     <div>
-      <section className="reveal-ignore relative h-[45vh] sm:h-[50vh] min-h-[280px] sm:min-h-[360px] overflow-hidden">
-        <img src={cat.imageUrl} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
+      <section className="reveal-ignore relative h-[45vh] sm:h-[50vh] min-h-[280px] sm:min-h-[360px] overflow-hidden -mt-21">
+        <img
+          src={cat.imageUrl}
+          alt={cat.name}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
         <div className="absolute inset-0 bg-[color:var(--charcoal)]/50" />
         <div className="relative h-full flex flex-col items-center justify-center text-center text-[color:var(--ivory)] px-4 sm:px-6">
           <p className="eyebrow text-[color:var(--gold-soft)] mb-3 sm:mb-4">The Collection</p>
-          <h1 className="font-serif italic text-3xl sm:text-5xl md:text-7xl text-balance">{cat.name}</h1>
-          <p className="mt-4 sm:mt-6 max-w-lg text-sm sm:text-base text-[color:var(--ivory)]/80 px-2">{cat.tagline}</p>
+          <h1 className="font-serif italic text-3xl sm:text-5xl md:text-7xl text-balance">
+            {cat.name}
+          </h1>
+          <p className="mt-4 sm:mt-6 max-w-lg text-sm sm:text-base text-[color:var(--ivory)]/80 px-2">
+            {cat.tagline}
+          </p>
         </div>
       </section>
 
@@ -75,61 +143,270 @@ function ShopCategory() {
         </div>
       </div>
 
-      <div data-reveal-section data-reveal-direction="alternate" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-10 sm:py-14 grid grid-cols-12 gap-6 sm:gap-8">
-        <aside className={`col-span-12 md:col-span-3 lg:col-span-2 ${openFilters ? "block" : "hidden md:block"}`}>
-          <div className="sticky top-32 space-y-8">
-            <FilterGroup title="Sub-Category" options={cat.subCategories} />
-            <FilterGroup title="Fabric" options={["Silk", "Velvet", "Cotton", "Wool", "Linen"]} />
-            <FilterGroup title="Color" options={["Ivory", "Maroon", "Emerald", "Midnight", "Charcoal", "Pastel"]} />
-            <FilterGroup title="Occasion" options={["Wedding", "Engagement", "Reception", "Sangeet", "Cocktail"]} />
-            <FilterGroup title="Size" options={["XS", "S", "M", "L", "XL", "XXL", "Custom"]} />
+      <div
+        data-reveal-section
+        data-reveal-direction="alternate"
+        className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-10 sm:py-14 grid grid-cols-12 gap-6 sm:gap-8 pb-28 md:pb-14"
+      >
+        {/* Desktop sidebar — sticks in place and scrolls independently once it outgrows the viewport */}
+        <aside className="hidden md:block md:col-span-3 lg:col-span-2">
+          <div className="sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-8 [scrollbar-width:thin]">
+            <div className="flex items-center justify-between">
+              <p className="eyebrow text-[10px] text-foreground/50">Refine</p>
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="eyebrow text-[9px] text-foreground/50 underline underline-offset-2 hover:text-[color:var(--maroon)] transition-colors"
+                >
+                  Clear all ({activeFilterCount})
+                </button>
+              )}
+            </div>
+
+            {groups.map((g) => (
+              <FilterGroup
+                key={g.key}
+                title={g.title}
+                options={g.options}
+                selected={filters[g.key] ?? []}
+                onToggle={(option) => toggleFilter(g.key, option)}
+              />
+            ))}
           </div>
         </aside>
 
         <div className="col-span-12 md:col-span-9 lg:col-span-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
-            <button onClick={() => setOpenFilters((o) => !o)} className="md:hidden inline-flex items-center gap-2 eyebrow text-[10px] min-h-11">
-              <SlidersHorizontal className="size-3.5" /> Filter
-            </button>
-            <p className="eyebrow text-[10px] text-foreground/50 order-first sm:order-none">{sorted.length} pieces</p>
-            <div className="relative w-full sm:w-auto">
+            <p className="eyebrow text-[10px] text-foreground/50 order-first sm:order-none">
+              {sorted.length} pieces
+            </p>
+
+            {/* Desktop-only inline sort — mobile uses the bottom sheet instead */}
+            <div className="relative hidden sm:block">
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as "new" | "price-asc" | "price-desc")}
-                className="appearance-none bg-transparent border border-foreground/20 pl-4 pr-9 py-2.5 eyebrow text-[10px] cursor-pointer w-full sm:w-auto"
+                onChange={(e) => setSort(e.target.value as SortValue)}
+                className="appearance-none bg-transparent border border-foreground/20 pl-4 pr-9 py-2.5 eyebrow text-[10px] cursor-pointer"
               >
-                <option value="new">Newest</option>
-                <option value="price-asc">Price — Low to High</option>
-                <option value="price-desc">Price — High to Low</option>
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="size-3 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
+
+          {/* Applied filter chips */}
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mb-6 sm:mb-8">
+              {Object.entries(filters).flatMap(([key, opts]) =>
+                opts.map((o) => (
+                  <button
+                    key={`${key}-${o}`}
+                    type="button"
+                    onClick={() => toggleFilter(key, o)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 pl-3 pr-2 py-1.5 text-[11px] text-foreground/80 transition-colors hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)]"
+                  >
+                    {o}
+                    <X className="size-3" />
+                  </button>
+                )),
+              )}
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[11px] text-foreground/50 underline underline-offset-2 hover:text-[color:var(--maroon)] transition-colors"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8 min-w-0">
-            {sorted.map((p) => <ProductCard key={p.id} product={p} />)}
+            {sorted.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
         </div>
       </div>
+
+      {/* Mobile — fixed filter/sort bar, sitting just above the app's bottom tab bar */}
+      <div className="md:hidden fixed inset-x-0 bottom-[calc(62px+env(safe-area-inset-bottom))] z-30 grid grid-cols-2 divide-x divide-foreground/10 border-t border-foreground/10 bg-background/95 backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={() => setMobileSheet("filter")}
+          className="flex items-center justify-center gap-2 py-3.5 eyebrow text-[10px] min-h-11"
+        >
+          <SlidersHorizontal className="size-3.5" strokeWidth={1.6} />
+          Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileSheet("sort")}
+          className="flex items-center justify-center gap-2 py-3.5 eyebrow text-[10px] min-h-11"
+        >
+          <ArrowUpDown className="size-3.5" strokeWidth={1.6} />
+          {sortLabel}
+        </button>
+      </div>
+
+      {mobileSheet === "filter" && (
+        <BottomSheet
+          title="Filters"
+          onClose={() => setMobileSheet(null)}
+          footer={
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="flex-1 border border-foreground/20 py-3.5 eyebrow text-[10px]"
+              >
+                Clear all
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileSheet(null)}
+                className="flex-[2] bg-[color:var(--maroon)] text-[color:var(--ivory)] py-3.5 eyebrow text-[10px]"
+              >
+                Show {sorted.length} results
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-8">
+            {groups.map((g) => (
+              <FilterGroup
+                key={g.key}
+                title={g.title}
+                options={g.options}
+                selected={filters[g.key] ?? []}
+                onToggle={(option) => toggleFilter(g.key, option)}
+              />
+            ))}
+          </div>
+        </BottomSheet>
+      )}
+
+      {mobileSheet === "sort" && (
+        <BottomSheet title="Sort by" onClose={() => setMobileSheet(null)}>
+          <div className="space-y-1">
+            {SORT_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => {
+                  setSort(o.value);
+                  setMobileSheet(null);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between py-4 text-left text-[15px] min-h-11",
+                  sort === o.value ? "text-[color:var(--maroon)]" : "text-foreground",
+                )}
+              >
+                {o.label}
+                {sort === o.value && <Check className="size-4" strokeWidth={1.8} />}
+              </button>
+            ))}
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 }
 
-function FilterGroup({ title, options }: { title: string; options: string[] }) {
+function FilterGroup({
+  title,
+  options,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  options: string[];
+  selected: string[];
+  onToggle: (option: string) => void;
+}) {
+  if (!options.length) return null;
+
   return (
-    <details open className="border-b border-foreground/10 pb-6">
+    <details open className="group border-b border-foreground/10 pb-6 last:border-b-0 last:pb-0">
       <summary className="flex items-center justify-between cursor-pointer eyebrow text-[10px] list-none">
-        {title}
-        <ChevronDown className="size-3" />
+        <span className="flex items-center gap-1.5">
+          {title}
+          {selected.length > 0 && (
+            <span className="text-[color:var(--maroon)]">({selected.length})</span>
+          )}
+        </span>
+        <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
       </summary>
-      <ul className="mt-4 space-y-2.5">
+      <ul className="mt-4 space-y-3">
         {options.map((o) => (
           <li key={o}>
-            <label className="flex items-center gap-3 text-xs text-foreground/70 cursor-pointer hover:text-foreground">
-              <input type="checkbox" className="accent-[color:var(--maroon)]" /> {o}
+            <label className="flex items-center gap-3 text-[13px] text-foreground/70 cursor-pointer hover:text-foreground min-h-6">
+              <input
+                type="checkbox"
+                checked={selected.includes(o)}
+                onChange={() => onToggle(o)}
+                className="size-4 accent-[color:var(--maroon)]"
+              />
+              {o}
             </label>
           </li>
         ))}
       </ul>
     </details>
+  );
+}
+
+// Slide-up sheet used for both the Filter and Sort mobile flows.
+function BottomSheet({
+  title,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="md:hidden fixed inset-0 z-40 bg-[color:var(--charcoal)]/40 animate-reveal"
+      />
+      <div
+        className="md:hidden fixed inset-x-0 bottom-0 z-50 flex max-h-[82vh] flex-col rounded-t-2xl bg-background shadow-2xl animate-reveal"
+        data-lenis-prevent
+      >
+        <div className="flex items-center justify-center pt-3 pb-1">
+          <span className="h-1 w-10 rounded-full bg-foreground/15" aria-hidden="true" />
+        </div>
+        <div className="flex items-center justify-between border-b border-foreground/10 px-5 pb-4">
+          <h3 className="font-serif text-xl">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex min-h-11 min-w-11 items-center justify-center text-foreground/70 hover:text-foreground"
+          >
+            <X className="size-5" strokeWidth={1.6} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-5" data-lenis-prevent>
+          {children}
+        </div>
+        {footer && (
+          <div className="border-t border-foreground/10 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            {footer}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

@@ -79,6 +79,7 @@ export async function createCategory(data: {
   imageId?: string;
   subCategories?: string[];
   sortOrder?: number;
+  showOnNavbar?: boolean;
 }) {
   const existing = await Category.findOne({ slug: data.slug.toLowerCase() });
   if (existing) throw new AppError(409, "Category slug already exists");
@@ -89,6 +90,7 @@ export async function createCategory(data: {
     imageId: data.imageId,
     subCategories: data.subCategories?.map(sanitizeText) ?? [],
     sortOrder: data.sortOrder ?? 0,
+    showOnNavbar: data.showOnNavbar ?? true,
   });
   return toPublicCategory(cat, cat.imageId ? `/api/media/${cat.imageId}` : undefined);
 }
@@ -100,6 +102,7 @@ export async function updateCategory(id: string, data: Partial<{
   subCategories: string[];
   sortOrder: number;
   isActive: boolean;
+  showOnNavbar: boolean;
 }>) {
   const cat = await Category.findById(id);
   if (!cat) throw new AppError(404, "Category not found");
@@ -109,8 +112,21 @@ export async function updateCategory(id: string, data: Partial<{
   if (data.subCategories) cat.subCategories = data.subCategories.map(sanitizeText);
   if (data.sortOrder !== undefined) cat.sortOrder = data.sortOrder;
   if (data.isActive !== undefined) cat.isActive = data.isActive;
+  if (data.showOnNavbar !== undefined) cat.showOnNavbar = data.showOnNavbar;
   await cat.save();
   return toPublicCategory(cat, cat.imageId ? `/api/media/${cat.imageId}` : undefined);
+}
+
+export async function listNavbarCategories() {
+  const cats = await Category.find({ isActive: true, showOnNavbar: true }).sort({ sortOrder: 1, name: 1 });
+  const result = [];
+  for (const cat of cats) {
+    const count = await Product.countDocuments({ categoryId: cat._id, isActive: true });
+    if (count > 0) {
+      result.push(toPublicCategory(cat, cat.imageId ? `/api/media/${cat.imageId}` : undefined));
+    }
+  }
+  return result;
 }
 
 export async function createProduct(data: {

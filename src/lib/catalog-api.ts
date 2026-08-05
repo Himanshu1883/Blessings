@@ -31,6 +31,7 @@ export type StoreCategory = {
   tagline: string;
   imageUrl: string;
   subCategories: string[];
+  showOnNavbar?: boolean;
 };
 
 function mapApiProduct(p: ApiProduct): StoreProduct {
@@ -74,6 +75,7 @@ function mapApiCategory(c: ApiCategory): StoreCategory {
     tagline: c.tagline,
     imageUrl: resolveMediaUrl(c.imageUrl) ?? "",
     subCategories: c.subCategories,
+    showOnNavbar: c.showOnNavbar,
   };
 }
 
@@ -101,6 +103,12 @@ async function safeApiGet<T>(path: string): Promise<T | null> {
 
 export async function fetchCategories(): Promise<StoreCategory[]> {
   const data = await safeApiGet<ApiCategory[]>("/api/categories");
+  if (data?.length) return data.map(mapApiCategory);
+  return CATEGORIES.map(mapStaticCategory);
+}
+
+export async function fetchNavbarCategories(): Promise<StoreCategory[]> {
+  const data = await safeApiGet<ApiCategory[]>("/api/categories/navbar");
   if (data?.length) return data.map(mapApiCategory);
   return CATEGORIES.map(mapStaticCategory);
 }

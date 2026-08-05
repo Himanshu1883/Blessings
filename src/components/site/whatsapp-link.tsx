@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { whatsappUrl } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
+import { whatsappUrl } from "@/lib/whatsapp";
+import type { ReactNode } from "react";
 
 type WhatsAppLinkProps = {
   message?: string;

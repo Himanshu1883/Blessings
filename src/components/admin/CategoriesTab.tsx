@@ -24,6 +24,7 @@ type CategoryForm = {
   subCategories: string;
   sortOrder: string;
   isActive: boolean;
+  showOnNavbar: boolean;
   imageId: string | null;
   imagePreview: string | null;
 };
@@ -36,6 +37,7 @@ function emptyForm(): CategoryForm {
     subCategories: "",
     sortOrder: "0",
     isActive: true,
+    showOnNavbar: true,
     imageId: null,
     imagePreview: null,
   };
@@ -49,6 +51,7 @@ function fromCategory(c: ApiCategory): CategoryForm {
     subCategories: c.subCategories.join(", "),
     sortOrder: String(c.sortOrder),
     isActive: c.isActive,
+    showOnNavbar: c.showOnNavbar,
     imageId: c.imageId,
     imagePreview: c.imageUrl,
   };
@@ -143,6 +146,7 @@ export function CategoriesTab({ api }: Props) {
         .filter(Boolean),
       sortOrder: Number(form.sortOrder) || 0,
       isActive: form.isActive,
+      showOnNavbar: form.showOnNavbar,
       ...(form.imageId ? { imageId: form.imageId } : {}),
     };
     try {
@@ -317,6 +321,14 @@ export function CategoriesTab({ api }: Props) {
               id="cat-active"
               checked={form.isActive}
               onCheckedChange={(checked) => setForm((f) => ({ ...f, isActive: checked }))}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="cat-navbar">Show on navbar</Label>
+            <Switch
+              id="cat-navbar"
+              checked={form.showOnNavbar}
+              onCheckedChange={(checked) => setForm((f) => ({ ...f, showOnNavbar: checked }))}
             />
           </div>
           <div className="space-y-2">
