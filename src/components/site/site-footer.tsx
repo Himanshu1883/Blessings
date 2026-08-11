@@ -64,7 +64,7 @@ export function SiteFooter() {
         <div className="grid grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-6 lg:gap-5 flex-1">
           <div className="col-span-2 lg:col-span-4">
             <div className="font-serif text-2xl lg:text-3xl tracking-[0.14em] text-[color:var(--ivory)]">BLESSINGS</div>
-            <div className="text-[9px] tracking-[0.44em] text-[color:var(--ivory)]/45 mt-1">MEN&apos;S BOUTIQUE · DELHI</div>
+            <div className="text-[9px] tracking-[0.44em] text-[color:var(--ivory)]/45 mt-1">THE MEN&apos;S BOUTIQUE · DELHI</div>
             <p className="mt-3 text-xs lg:text-sm text-[color:var(--ivory)]/65 leading-relaxed max-w-sm hidden sm:block">
               A Delhi atelier making hand-painted and hand-embroidered statement pieces for men who dress like they
               mean it — shipped worldwide.

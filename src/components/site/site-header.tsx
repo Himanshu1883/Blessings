@@ -185,7 +185,7 @@ export function SiteHeader() {
                   Blessings
                 </span>
                 <span className="block eyebrow text-[6px] sm:text-[7px] mt-1 sm:mt-1.5 tracking-[0.28em] sm:tracking-[0.36em] transition-colors duration-300 truncate text-foreground/45 group-hover:text-[color:var(--gold)]">
-                  Men's Boutique — Delhi
+                  The Men's Boutique — Delhi
                 </span>
               </Link>
 
@@ -252,8 +252,8 @@ export function SiteHeader() {
                 <span className="block font-serif text-[22px] md:text-[28px] tracking-[0.06em] leading-none transition-colors duration-300 whitespace-nowrap text-foreground group-hover:text-[color:var(--maroon)]">
                   Blessings
                 </span>
-                <span className="block eyebrow text-[7.5px] md:text-[8px] mt-1.5 md:mt-2 tracking-[0.4em] transition-colors duration-300 whitespace-nowrap text-foreground/45 group-hover:text-[color:var(--gold)]">
-                  Men's Boutique — Delhi
+                <span className="block eyebrow text-[7.5px] md:text-[8px] mt-1.5 md:mt-2 tracking-[0.4em] transition-colors duration-300 whitespace-nowrap text-foreground/95 group-hover:text-[color:var(--blue)]">
+                  The Men's Boutique — Delhi
                 </span>
               </Link>
 
