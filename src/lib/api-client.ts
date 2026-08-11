@@ -11,7 +11,11 @@ export class ApiError extends Error {
 }
 
 export function getApiBase(): string {
-  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) {
+  if (
+    typeof import.meta !== "undefined" &&
+    import.meta.env?.DEV &&
+    import.meta.env?.VITE_API_URL
+  ) {
     return String(import.meta.env.VITE_API_URL).replace(/\/$/, "");
   }
   if (typeof window !== "undefined") return "";

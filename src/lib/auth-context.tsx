@@ -88,7 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refetch]);
 
   const googleLoginUrl = useMemo(() => {
-    const base = import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "";
+    const base =
+      import.meta.env.DEV && import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace(/\/$/, "")
+        : "";
     return `${base}/api/auth/google`;
   }, []);
 
