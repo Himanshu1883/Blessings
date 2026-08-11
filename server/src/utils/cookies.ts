@@ -7,7 +7,7 @@ export const REFRESH_COOKIE = "blessings_refresh";
 export const authCookieOptions = {
   httpOnly: true,
   secure: isProd,
-  sameSite: "none" as const,
+  sameSite: isProd ? ("none" as const) : ("lax" as const),
   path: "/",
   ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 };
