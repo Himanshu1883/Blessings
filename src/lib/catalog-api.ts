@@ -51,6 +51,10 @@ function mapApiProduct(p: ApiProduct): StoreProduct {
   };
 }
 
+export function storeProductFromApi(p: ApiProduct): StoreProduct {
+  return mapApiProduct(p);
+}
+
 function mapStaticProduct(p: StaticProduct): StoreProduct {
   return {
     id: p.id,

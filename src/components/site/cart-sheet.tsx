@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { BagIcon, MinusIcon, PlusIcon, TrashIcon } from "@/components/icons/site-icons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +31,7 @@ export function CartSheet() {
 
         {lines.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-            <ShoppingBag className="size-10 text-foreground/25" strokeWidth={1.2} />
+            <BagIcon className="size-10 text-foreground/25" />
             <p className="font-serif italic text-xl">Your bag is empty</p>
             <p className="text-sm text-foreground/60 max-w-xs">Explore our collections and add statement pieces to your bag.</p>
             <Button asChild variant="outline" className="mt-2 rounded-none eyebrow text-[10px] tracking-[0.2em]" onClick={closePanel}>
@@ -70,7 +70,7 @@ export function CartSheet() {
                         className="p-1 text-foreground/40 hover:text-[color:var(--maroon)] transition-colors"
                         aria-label="Remove item"
                       >
-                        <Trash2 className="size-4" />
+                        <TrashIcon className="size-4" />
                       </button>
                     </div>
                     <p className="mt-2 text-sm text-[color:var(--maroon)] tabular-nums">{format(product.price)}</p>
@@ -82,7 +82,7 @@ export function CartSheet() {
                           onClick={() => updateCartQuantity(product.id, line.size, line.quantity - 1)}
                           aria-label="Decrease quantity"
                         >
-                          <Minus className="size-3.5" />
+                          <MinusIcon className="size-3.5" />
                         </button>
                         <span className="w-8 text-center text-sm tabular-nums">{line.quantity}</span>
                         <button
@@ -91,7 +91,7 @@ export function CartSheet() {
                           onClick={() => updateCartQuantity(product.id, line.size, line.quantity + 1)}
                           aria-label="Increase quantity"
                         >
-                          <Plus className="size-3.5" />
+                          <PlusIcon className="size-3.5" />
                         </button>
                       </div>
                     </div>

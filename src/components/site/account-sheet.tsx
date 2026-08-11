@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LogOut, Package, User } from "lucide-react";
+import { LogOutIcon, PackageIcon, UserIcon } from "@/components/icons/site-icons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +43,7 @@ export function AccountSheet() {
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="" className="size-full object-cover" />
               ) : (
-                <User className="size-5 text-foreground/50" />
+                <UserIcon className="size-5 text-foreground/50" />
               )}
             </div>
             <div>
@@ -69,7 +69,7 @@ export function AccountSheet() {
               onClick={handleClose}
               className="flex items-center gap-3 border border-foreground/10 px-4 py-3 text-sm hover:bg-[color:var(--muted)]/40 transition-colors"
             >
-              <Package className="size-4" />
+              <PackageIcon className="size-4" />
               Order history
             </Link>
             <Link
@@ -96,7 +96,7 @@ export function AccountSheet() {
             className="mt-auto rounded-none eyebrow text-[10px] tracking-[0.2em]"
             onClick={handleLogout}
           >
-            <LogOut className="size-3.5 mr-2" />
+            <LogOutIcon className="size-3.5 mr-2" />
             Sign out
           </Button>
         </div>

@@ -14,8 +14,7 @@ export const Route = createFileRoute("/admin/login")({
 });
 
 function AdminLoginPage() {
-  const { from } = Route.useSearch();
-  const { login, isAdmin, isLoading, isAuthenticated } = useAuth();
+  const { login, logout, isAdmin, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +22,7 @@ function AdminLoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (!isLoading && isAuthenticated && isAdmin) {
-    return <Navigate to={from as "/admin/dashboard"} replace />;
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,8 +30,13 @@ function AdminLoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate({ to: from as "/admin/dashboard" });
+      const user = await login(email, password);
+      if (user.role !== "admin") {
+        await logout();
+        setError("Invalid credentials or insufficient permissions.");
+        return;
+      }
+      navigate({ to: "/admin/dashboard" });
     } catch {
       setError("Invalid credentials or insufficient permissions.");
     } finally {

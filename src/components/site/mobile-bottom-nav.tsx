@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { Calendar, Home, MessageCircle, Search } from "lucide-react";
+import { CalendarIcon, ChatIcon, HomeIcon, SearchIcon } from "@/components/icons/site-icons";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { WHATSAPP_MESSAGES, whatsappUrl } from "@/lib/whatsapp";
 import { useShop } from "@/lib/shop-store";
@@ -26,18 +26,18 @@ export function MobileBottomNav() {
           className="mx-auto grid w-full max-w-md grid-cols-5 items-stretch h-[60px] [@media(max-height:420px)]:h-12 px-1 pb-[env(safe-area-inset-bottom)]"
         >
           <NavLink to="/" active={isHome} label="Home">
-            <Home className="size-[22px]" strokeWidth={1.5} />
+            <HomeIcon className="size-[22px]" />
           </NavLink>
 
           <NavButton label="Explore" onClick={() => openPanel("search")}>
-            <Search className="size-[22px]" strokeWidth={1.5} />
+            <SearchIcon className="size-[22px]" />
           </NavButton>
 
           {/* Reserved center column — the WhatsApp FAB floats above this slot */}
           <div className="flex items-center justify-center" aria-hidden="true" />
 
           <NavLink to="/contact" active={isBook} label="Book">
-            <Calendar className="size-[22px]" strokeWidth={1.5} />
+            <CalendarIcon className="size-[22px]" />
           </NavLink>
 
           <a
@@ -46,7 +46,7 @@ export function MobileBottomNav() {
             rel="noopener noreferrer"
             className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium tracking-[0.1em] uppercase text-foreground/45 transition-colors hover:text-foreground/70 active:scale-95 [@media(max-height:420px)]:gap-0"
           >
-            <MessageCircle className="size-[22px]" strokeWidth={1.5} />
+            <ChatIcon className="size-[22px]" />
             <span className="[@media(max-height:420px)]:hidden">Chat</span>
           </a>
         </div>

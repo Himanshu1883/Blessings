@@ -1,7 +1,6 @@
 import bespokeImg from "@/assets/bespoke.jpg";
 import craftImg from "@/assets/craft.jpg";
-import { InstagramIcon } from "@/components/icons/instagram-icon";
-import { InstagramLink } from "@/components/site/instagram-link";
+import { InstagramReelsSection } from "@/components/site/instagram-reels-section";
 import { ParallaxScroll } from "@/components/site/parallax-scroll";
 import { PreFooterBanner } from "@/components/site/pre-footer-banner";
 import { WhatsAppLink } from "@/components/site/whatsapp-link";
@@ -10,18 +9,16 @@ import { fetchCategories, fetchProducts } from "@/lib/catalog-api";
 import { useCurrency } from "@/lib/currency";
 import { fetchHomepageContent } from "@/lib/homepage-api";
 import { useShop } from "@/lib/shop-store";
-import { INSTAGRAM_HANDLE } from "@/lib/social";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BagIcon, EditIcon, HeartIcon } from "@/components/icons/site-icons";
 import {
   ArrowLeft,
   ArrowRight,
-  Heart,
   Ruler,
   Scissors,
   Shield,
-  ShoppingBag,
   Star,
   Truck,
 } from "lucide-react";
@@ -440,10 +437,14 @@ export function ProductCard({
   product,
   dark = false,
   layout = "grid",
+  onAdminEdit,
+  adminEditReady = true,
 }: {
   product: StoreProduct;
   dark?: boolean;
   layout?: "grid" | "carousel";
+  onAdminEdit?: (product: StoreProduct) => void;
+  adminEditReady?: boolean;
 }) {
   const { format } = useCurrency();
   const { toggleWishlist, isInWishlist, addToCart } = useShop();
@@ -471,6 +472,21 @@ export function ProductCard({
               New
             </span>
           )}
+          {onAdminEdit && (
+            <button
+              type="button"
+              aria-label="Edit product"
+              disabled={!adminEditReady}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAdminEdit(product);
+              }}
+              className="absolute top-4 right-4 z-10 size-10 bg-[color:var(--charcoal)] text-[color:var(--ivory)] flex items-center justify-center hover:bg-[color:var(--maroon)] transition-colors disabled:opacity-50"
+            >
+              <EditIcon className="size-4" />
+            </button>
+          )}
           <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-100 translate-x-0 md:opacity-0 md:translate-x-2 md:group-hover:opacity-100 md:group-hover:translate-x-0 transition-all duration-500">
             <button
               type="button"
@@ -483,12 +499,8 @@ export function ProductCard({
               }}
               className="size-10 bg-[color:var(--ivory)] text-[color:var(--charcoal)] flex items-center justify-center hover:bg-[color:var(--gold)]"
             >
-              <Heart
-                className={cn(
-                  "size-4",
-                  saved && "fill-[color:var(--maroon)] text-[color:var(--maroon)]",
-                )}
-                strokeWidth={1.5}
+              <HeartIcon
+                className={cn("size-4", saved && "text-[color:var(--maroon)]")}
               />
             </button>
             <button
@@ -502,7 +514,7 @@ export function ProductCard({
               }}
               className="size-10 bg-[color:var(--ivory)] text-[color:var(--charcoal)] flex items-center justify-center hover:bg-[color:var(--gold)]"
             >
-              <ShoppingBag className="size-4" strokeWidth={1.5} />
+              <BagIcon className="size-4" />
             </button>
           </div>
         </div>
@@ -658,51 +670,8 @@ function ParallaxCraftsmanship() {
           </div>
         </section>
       }
-      cover={<InstagramGrid />}
+      cover={<InstagramReelsSection />}
     />
-  );
-}
-
-function InstagramGrid() {
-  const { categories } = Route.useLoaderData();
-  const imgs = categories.map((c) => c.imageUrl).slice(0, 6);
-  return (
-    <section data-reveal-direction="alternate" className="py-16 sm:py-24 md:py-28 bg-background">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-6 mb-8 sm:mb-10">
-        <div>
-          <p className="eyebrow text-[color:var(--gold)] mb-4">(06) The Journal</p>
-          <h2 className="font-serif italic text-3xl sm:text-4xl md:text-5xl">
-            @{INSTAGRAM_HANDLE}
-          </h2>
-        </div>
-        <InstagramLink
-          className="inline-flex items-center gap-3 eyebrow text-[10px] border-b border-foreground/20 pb-1 hover:text-[color:var(--maroon)] hover:border-[color:var(--maroon)]"
-          iconClassName="size-3.5"
-        >
-          Follow on Instagram
-        </InstagramLink>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-px bg-foreground/10">
-        {imgs.map((src, i) => (
-          <InstagramLink
-            key={i}
-            className="relative aspect-square block group overflow-hidden bg-background p-0"
-            showIcon={false}
-            aria-label="View on Instagram"
-          >
-            <img
-              src={src}
-              alt="Instagram post"
-              loading="lazy"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-[color:var(--charcoal)]/30 md:bg-[color:var(--charcoal)]/0 md:group-hover:bg-[color:var(--charcoal)]/60 transition-colors flex items-center justify-center md:opacity-0 md:group-hover:opacity-100">
-              <InstagramIcon className="size-6 text-[color:var(--ivory)]" />
-            </div>
-          </InstagramLink>
-        ))}
-      </div>
-    </section>
   );
 }
 

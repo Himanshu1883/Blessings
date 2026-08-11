@@ -118,15 +118,10 @@ export async function updateCategory(id: string, data: Partial<{
 }
 
 export async function listNavbarCategories() {
-  const cats = await Category.find({ isActive: true, showOnNavbar: true }).sort({ sortOrder: 1, name: 1 });
-  const result = [];
-  for (const cat of cats) {
-    const count = await Product.countDocuments({ categoryId: cat._id, isActive: true });
-    if (count > 0) {
-      result.push(toPublicCategory(cat, cat.imageId ? `/api/media/${cat.imageId}` : undefined));
-    }
-  }
-  return result;
+  const cats = await Category.find({ isActive: true }).sort({ sortOrder: 1, name: 1 });
+  return cats.map((cat) =>
+    toPublicCategory(cat, cat.imageId ? `/api/media/${cat.imageId}` : undefined),
+  );
 }
 
 export async function createProduct(data: {

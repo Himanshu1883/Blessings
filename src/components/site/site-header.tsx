@@ -1,14 +1,21 @@
 import { WhatsAppLink } from "@/components/site/whatsapp-link";
 import { useAuth } from "@/lib/auth-context";
-import { CATEGORIES } from "@/lib/catalog";
 import { fetchNavbarCategories, type StoreCategory } from "@/lib/catalog-api";
 import { CURRENCIES, useCurrency, type CurrencyCode } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, ChevronRight, Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ChevronDownIcon, CloseIcon, HeartIcon, MenuIcon, SearchIcon, UserIcon, BagIcon } from "@/components/icons/site-icons";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const ALL_COLLECTIONS: StoreCategory = {
+  slug: "all",
+  name: "All Collections",
+  tagline: "The complete Blessings collection — every silhouette, every fabric, every occasion.",
+  imageUrl: "/banners/banner-1.jpeg",
+  subCategories: [],
+};
 
 const ANNOUNCEMENTS = [
   "Complimentary Worldwide Shipping on Orders over $1,000",
@@ -16,7 +23,6 @@ const ANNOUNCEMENTS = [
   "Handcrafted in Delhi. Delivered to London, New York, Dubai, Toronto.",
 ];
 
-// ── Module-level cache so navbar categories are fetched once and reused across mounts ──
 let navbarCategoriesCache: StoreCategory[] | null = null;
 let navbarCategoriesPromise: Promise<StoreCategory[]> | null = null;
 
@@ -33,15 +39,15 @@ function getNavbarCategories(): Promise<StoreCategory[]> {
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopOpen, setDesktopOpen] = useState(false);
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const [navbarCategories, setNavbarCategories] = useState<StoreCategory[]>(
     () => navbarCategoriesCache ?? [],
   );
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [desktopMenuTop, setDesktopMenuTop] = useState(80);
-  const [activeDesktopCategory, setActiveDesktopCategory] = useState<string | null>(null);
+  const [activeCategorySlug, setActiveCategorySlug] = useState<string>("");
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const collectionsCloseTimer = useRef<number | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -51,7 +57,10 @@ export function SiteHeader() {
   useEffect(() => {
     let mounted = true;
     getNavbarCategories().then((cats) => {
-      if (mounted) setNavbarCategories(cats);
+      if (mounted) {
+        setNavbarCategories(cats);
+        setActiveCategorySlug((current) => current || cats[0]?.slug || "all");
+      }
     });
     return () => {
       mounted = false;
@@ -66,11 +75,9 @@ export function SiteHeader() {
     }
   };
 
-  // Scroll handling for hide/show with smooth animation
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
       if (currentScrollY > 50) {
         if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 10) {
           setIsVisible(false);
@@ -80,10 +87,8 @@ export function SiteHeader() {
       } else {
         setIsVisible(true);
       }
-
       setLastScrollY(currentScrollY);
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
@@ -95,74 +100,52 @@ export function SiteHeader() {
 
   useEffect(() => {
     setMobileOpen(false);
-    setDesktopOpen(false);
+    setCollectionsOpen(false);
   }, [pathname]);
 
+  const openCollectionsMenu = () => {
+    if (collectionsCloseTimer.current) {
+      window.clearTimeout(collectionsCloseTimer.current);
+      collectionsCloseTimer.current = null;
+    }
+    setCollectionsOpen(true);
+    setActiveCategorySlug((current) => current || navbarCategories[0]?.slug || "all");
+  };
+
+  const scheduleCloseCollectionsMenu = () => {
+    if (collectionsCloseTimer.current) window.clearTimeout(collectionsCloseTimer.current);
+    collectionsCloseTimer.current = window.setTimeout(() => {
+      setCollectionsOpen(false);
+      collectionsCloseTimer.current = null;
+    }, 140);
+  };
+
   useEffect(() => {
-    if (!navbarCategories.length) return;
-
-    setActiveDesktopCategory((current) => {
-      if (current && navbarCategories.some((cat) => cat.slug === current)) return current;
-      return navbarCategories[0]?.slug ?? null;
-    });
-  }, [navbarCategories]);
-
-  useEffect(() => {
-    if (!mobileOpen && !desktopOpen) return;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
     return () => {
-      document.body.style.overflow = originalOverflow;
+      if (collectionsCloseTimer.current) window.clearTimeout(collectionsCloseTimer.current);
     };
-  }, [desktopOpen, mobileOpen]);
-
-  useEffect(() => {
-    if (!desktopOpen) return;
-
-    const syncDesktopMenuTop = () => {
-      const nextTop = headerRef.current?.getBoundingClientRect().bottom ?? 80;
-      setDesktopMenuTop(Math.max(nextTop, 0));
-    };
-
-    syncDesktopMenuTop();
-    window.addEventListener("resize", syncDesktopMenuTop);
-    window.addEventListener("scroll", syncDesktopMenuTop, { passive: true });
-
-    return () => {
-      window.removeEventListener("resize", syncDesktopMenuTop);
-      window.removeEventListener("scroll", syncDesktopMenuTop);
-    };
-  }, [desktopOpen, isVisible]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 1023px)");
-    const handleChange = (event: MediaQueryListEvent) => {
-      if (event.matches) setDesktopOpen(false);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   useEffect(() => {
-    if (!mobileOpen && !desktopOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMobileOpen(false);
-        setDesktopOpen(false);
-      }
+    if (!mobileOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
     };
+  }, [mobileOpen]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [desktopOpen, mobileOpen]);
+  }, [mobileOpen]);
 
   return (
     <>
-      {/* Announcement bar - always visible */}
       <div
         className={cn(
           "bg-[color:var(--charcoal)] text-[color:var(--ivory)]/90 h-10 overflow-hidden flex items-center justify-center px-4 sm:px-6 transition-all duration-500 w-full relative z-50",
@@ -174,31 +157,27 @@ export function SiteHeader() {
         </span>
       </div>
 
-      {/* Main header with hide/show animation */}
       <header
         ref={headerRef}
         className={cn(
           "sticky top-0 z-40 transition-all duration-500 ease-in-out",
-          isVisible
-            ? "translate-y-0 opacity-100"
-            : "-translate-y-full opacity-0 pointer-events-none",
+          isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none",
         )}
       >
         <div
-          className="relative transition-all duration-500 w-full bg-background/95 backdrop-blur-sm shadow-[0_1px_0_rgba(0,0,0,0.04)] border-b border-foreground/5"
-          style={{
-            backgroundColor: "#f5f0eb",
-          }}
+          className="relative w-full bg-background/95 backdrop-blur-sm shadow-[0_1px_0_rgba(0,0,0,0.04)] border-b border-foreground/5"
+          style={{ backgroundColor: "#f5f0eb" }}
+          onMouseLeave={scheduleCloseCollectionsMenu}
         >
           <nav className="relative w-full px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 h-[72px] md:h-20">
-            {/* Mobile — balanced 3-column grid */}
+            {/* Mobile */}
             <div className="lg:hidden grid grid-cols-[44px_1fr_auto] items-center h-full w-full gap-2">
               <button
                 className="justify-self-start min-h-11 min-w-11 flex items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
                 onClick={() => setMobileOpen((o) => !o)}
                 aria-label="Menu"
               >
-                {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+                {mobileOpen ? <CloseIcon className="size-5" /> : <MenuIcon className="size-5" />}
               </button>
 
               <Link to="/" className="justify-self-center text-center min-w-0 max-w-full group">
@@ -211,14 +190,14 @@ export function SiteHeader() {
               </Link>
 
               <div className="justify-self-end flex items-center gap-0.5 shrink-0">
-                <CurrencyDropdown compact transparent={false} />
+                <CurrencyDropdown compact />
                 <button
                   type="button"
                   onClick={() => openPanel("cart")}
                   className="relative min-h-11 min-w-11 flex items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
                   aria-label="Cart"
                 >
-                  <ShoppingBag className="size-[17px]" strokeWidth={1.4} />
+                  <BagIcon className="size-[17px]" />
                   {cartCount > 0 && (
                     <span className="absolute top-1 right-1 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
                       {cartCount}
@@ -228,51 +207,47 @@ export function SiteHeader() {
               </div>
             </div>
 
-            {/* Desktop — 3-column grid so left/right stay full-width and the logo stays truly centered regardless of how much content sits on either side */}
+            {/* Desktop */}
             <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center h-full w-full">
-              {/* Left */}
-              <div className="flex items-center gap-9 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => setDesktopOpen((open) => !open)}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center text-foreground transition-colors hover:text-[color:var(--maroon)]"
-                  aria-label={desktopOpen ? "Close menu" : "Open menu"}
-                  aria-expanded={desktopOpen}
-                >
-                  {desktopOpen ? <X className="size-[18px]" strokeWidth={1.6} /> : <Menu className="size-[18px]" strokeWidth={1.6} />}
-                </button>
-
-                <div
-                  className={cn(
-                    "flex items-center gap-8 xl:gap-9 eyebrow whitespace-nowrap transition-all duration-300 ease-in-out",
-                    desktopOpen
-                      ? "opacity-0 -translate-x-2 pointer-events-none"
-                      : "opacity-100 translate-x-0",
-                  )}
-                  aria-hidden={desktopOpen}
-                >
+              <div className="flex items-center gap-8 xl:gap-9 min-w-0 eyebrow whitespace-nowrap">
+                <div className="relative py-1" onMouseEnter={openCollectionsMenu}>
                   <Link
-                    to="/about"
-                    className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
+                    to="/shop/$category"
+                    params={{ category: "all" }}
+                    onClick={() => setCollectionsOpen(false)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-[10px] tracking-[0.24em] transition-colors",
+                      collectionsOpen || pathname.startsWith("/shop/")
+                        ? "text-[color:var(--maroon)]"
+                        : "text-foreground hover:text-[color:var(--maroon)]",
+                    )}
                   >
-                    About Us
-                  </Link>
-                  <Link
-                    to="/journal"
-                    className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
-                  >
-                    Blog
-                  </Link>
-                  <Link
-                    to="/contact"
-                    className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
-                  >
-                    Contact Us
+                    All Collections
+                    <ChevronDownIcon
+                      className={cn("size-3 transition-transform duration-200", collectionsOpen && "rotate-180")}
+                    />
                   </Link>
                 </div>
+                <Link
+                  to="/about"
+                  className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
+                >
+                  About Us
+                </Link>
+                <Link
+                  to="/journal"
+                  className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
+                >
+                  Blog
+                </Link>
+                <Link
+                  to="/contact"
+                  className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
+                >
+                  Contact Us
+                </Link>
               </div>
 
-              {/* Center — logo */}
               <Link to="/" className="text-center group z-10 justify-self-center">
                 <span className="block font-serif text-[22px] md:text-[28px] tracking-[0.06em] leading-none transition-colors duration-300 whitespace-nowrap text-foreground group-hover:text-[color:var(--maroon)]">
                   Blessings
@@ -282,17 +257,8 @@ export function SiteHeader() {
                 </span>
               </Link>
 
-              {/* Right — nav + utilities */}
               <div className="flex items-center justify-end gap-4 md:gap-5 min-w-0">
-                <div
-                  className={cn(
-                    "flex items-center gap-8 xl:gap-9 eyebrow whitespace-nowrap transition-all duration-300 ease-in-out",
-                    desktopOpen
-                      ? "opacity-0 translate-x-2 pointer-events-none w-0 overflow-hidden"
-                      : "opacity-100 translate-x-0",
-                  )}
-                  aria-hidden={desktopOpen}
-                >
+                <div className="flex items-center gap-8 xl:gap-9 eyebrow whitespace-nowrap">
                   <Link
                     to="/bespoke"
                     className="text-[10px] tracking-[0.24em] transition-colors whitespace-nowrap text-foreground hover:text-[color:var(--maroon)]"
@@ -307,28 +273,27 @@ export function SiteHeader() {
                   </Link>
                 </div>
                 <span className="h-4 w-px bg-foreground/15" aria-hidden="true" />
-                <CurrencyDropdown transparent={false} />
+                <CurrencyDropdown />
                 <button
                   type="button"
                   onClick={() => openPanel("search")}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors duration-300 hover:text-[color:var(--maroon)] text-foreground"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
                   aria-label="Search"
                   title="Search (Ctrl+K)"
                 >
-                  <Search className="size-[17px]" strokeWidth={1.4} />
+                  <SearchIcon className="size-[17px]" />
                 </button>
                 <button
                   type="button"
                   onClick={() => openPanel("wishlist")}
-                  className="inline-flex relative min-h-11 min-w-11 items-center justify-center transition-colors duration-300 hover:text-[color:var(--maroon)] text-foreground"
+                  className="inline-flex relative min-h-11 min-w-11 items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
                   aria-label="Wishlist"
                 >
-                  <Heart
+                  <HeartIcon
                     className={cn(
-                      "size-[17px] transition-colors duration-300",
-                      wishlistCount > 0 && "fill-[color:var(--maroon)] text-[color:var(--maroon)]",
+                      "size-[17px]",
+                      wishlistCount > 0 && "text-[color:var(--maroon)]",
                     )}
-                    strokeWidth={1.4}
                   />
                   {wishlistCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
@@ -339,18 +304,18 @@ export function SiteHeader() {
                 <button
                   type="button"
                   onClick={openAccount}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors duration-300 hover:text-[color:var(--maroon)] text-foreground"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
                   aria-label="Account"
                 >
-                  <User className="size-[17px]" strokeWidth={1.4} />
+                  <UserIcon className="size-[17px]" />
                 </button>
                 <button
                   type="button"
                   onClick={() => openPanel("cart")}
-                  className="relative min-h-11 min-w-11 flex items-center justify-center transition-colors duration-300 hover:text-[color:var(--maroon)] text-foreground"
+                  className="relative min-h-11 min-w-11 flex items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
                   aria-label="Cart"
                 >
-                  <ShoppingBag className="size-[17px]" strokeWidth={1.4} />
+                  <BagIcon className="size-[17px]" />
                   {cartCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
                       {cartCount}
@@ -360,63 +325,237 @@ export function SiteHeader() {
               </div>
             </div>
           </nav>
+
+          {collectionsOpen && (
+            <CollectionsMegaMenu
+              categories={navbarCategories}
+              activeCategorySlug={activeCategorySlug}
+              onCategoryHover={setActiveCategorySlug}
+              onClose={() => setCollectionsOpen(false)}
+              onMouseEnter={openCollectionsMenu}
+            />
+          )}
         </div>
       </header>
 
-      {desktopOpen && (
-        <DesktopMenuPanel
+      {mobileOpen && (
+        <MobileDrawer
           categories={navbarCategories}
-          activeCategorySlug={activeDesktopCategory}
-          onCategoryChange={setActiveDesktopCategory}
-          onClose={() => setDesktopOpen(false)}
+          onClose={() => setMobileOpen(false)}
           onAccount={openAccount}
-          topOffset={desktopMenuTop}
         />
       )}
-
-      {mobileOpen && <MobileDrawer onClose={() => setMobileOpen(false)} onAccount={openAccount} />}
     </>
   );
 }
 
-function CurrencyDropdown({
-  compact = false,
-  transparent = false,
+function getActiveCollection(categories: StoreCategory[], slug: string): StoreCategory {
+  if (slug === "all") return ALL_COLLECTIONS;
+  return categories.find((c) => c.slug === slug) ?? categories[0] ?? ALL_COLLECTIONS;
+}
+
+function isFeaturedCategory(index: number) {
+  return index % 2 === 0;
+}
+
+function splitCategories(columns: StoreCategory[], count: number) {
+  const perCol = Math.ceil(columns.length / count);
+  return Array.from({ length: count }, (_, i) =>
+    columns.slice(i * perCol, (i + 1) * perCol),
+  ).filter((col) => col.length > 0);
+}
+
+function CollectionsMegaMenu({
+  categories,
+  activeCategorySlug,
+  onCategoryHover,
+  onClose,
+  onMouseEnter,
 }: {
-  compact?: boolean;
-  transparent?: boolean;
+  categories: StoreCategory[];
+  activeCategorySlug: string;
+  onCategoryHover: (slug: string) => void;
+  onClose: () => void;
+  onMouseEnter: () => void;
 }) {
+  const active = getActiveCollection(categories, activeCategorySlug);
+  const columnCount = categories.length > 10 ? 3 : 2;
+  const cols = useMemo(() => splitCategories(categories, columnCount), [categories, columnCount]);
+  const startIndexes = useMemo(() => {
+    let offset = 0;
+    return cols.map((col) => {
+      const start = offset;
+      offset += col.length;
+      return start;
+    });
+  }, [cols]);
+
+  return (
+    <div
+      className="hidden lg:block absolute left-0 right-0 top-full z-50 border-t border-foreground/8 bg-background shadow-[0_24px_48px_rgba(0,0,0,0.08)] animate-reveal"
+      onMouseEnter={onMouseEnter}
+    >
+      <div className="max-w-[1400px] mx-auto px-10 xl:px-14 py-10 grid grid-cols-[1fr_minmax(340px,420px)] gap-10 xl:gap-14 items-stretch">
+        <div className="flex flex-col min-h-[22rem] max-h-[min(70vh,36rem)]">
+          <div
+            className={cn(
+              "grid gap-x-8 xl:gap-x-10 gap-y-4 flex-1 content-start overflow-y-auto pr-2 [scrollbar-width:thin]",
+              columnCount === 3 ? "grid-cols-3" : "grid-cols-2",
+            )}
+          >
+            {cols.map((col, colIndex) => (
+              <CollectionLinkColumn
+                key={colIndex}
+                categories={col}
+                startIndex={startIndexes[colIndex] ?? 0}
+                activeSlug={activeCategorySlug}
+                onHover={onCategoryHover}
+                onClose={onClose}
+              />
+            ))}
+          </div>
+
+          <Link
+            to="/shop/$category"
+            params={{ category: "all" }}
+            onClick={onClose}
+            className="mt-10 inline-flex w-fit items-center justify-center rounded-full bg-[color:var(--charcoal)] px-8 py-3.5 text-[11px] font-medium tracking-[0.22em] text-[color:var(--ivory)] transition-colors hover:bg-[color:var(--maroon)]"
+          >
+            VIEW ALL COLLECTIONS
+          </Link>
+        </div>
+
+        <CollectionHeroCard category={active} onClose={onClose} />
+      </div>
+    </div>
+  );
+}
+
+function CollectionLinkColumn({
+  categories,
+  startIndex,
+  activeSlug,
+  onHover,
+  onClose,
+}: {
+  categories: StoreCategory[];
+  startIndex: number;
+  activeSlug: string;
+  onHover: (slug: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <ul className="space-y-3.5">
+      {categories.map((category, i) => {
+        const index = startIndex + i;
+        const featured = isFeaturedCategory(index);
+        const active = activeSlug === category.slug;
+
+        return (
+          <li key={category.slug}>
+            <Link
+              to="/shop/$category"
+              params={{ category: category.slug }}
+              onClick={onClose}
+              onMouseEnter={() => onHover(category.slug)}
+              onFocus={() => onHover(category.slug)}
+              className={cn(
+                "group inline-flex items-center gap-2.5 text-[11px] font-medium tracking-[0.18em] uppercase transition-colors",
+                active
+                  ? "text-[color:var(--maroon)]"
+                  : "text-foreground/80 hover:text-[color:var(--maroon)]",
+              )}
+            >
+              <span>{category.name}</span>
+              {featured && (
+                <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-[8px] tracking-[0.16em] text-foreground/45">
+                  Featured
+                </span>
+              )}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function CollectionHeroCard({
+  category,
+  onClose,
+}: {
+  category: StoreCategory;
+  onClose: () => void;
+}) {
+  const imageUrl = category.imageUrl || "/banners/banner-1.jpeg";
+  const shopSlug = category.slug === "all" ? "all" : category.slug;
+  const eyebrow =
+    category.slug === "all" ? "Blessings / Curated" : `Blessings / ${category.name}`;
+
+  return (
+    <Link
+      to="/shop/$category"
+      params={{ category: shopSlug }}
+      onClick={onClose}
+      className="group relative block min-h-[22rem] overflow-hidden rounded-2xl bg-[color:var(--muted)]"
+    >
+      <img
+        src={imageUrl}
+        alt={category.name}
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/75 via-[color:var(--charcoal)]/20 to-transparent" />
+
+      <div className="absolute inset-x-0 bottom-0 p-7 sm:p-8">
+        <p className="eyebrow text-[9px] sm:text-[10px] text-[color:var(--ivory)]/70 mb-2 tracking-[0.28em]">
+          {eyebrow}
+        </p>
+        <h3 className="font-serif text-3xl sm:text-[2rem] leading-tight text-[color:var(--ivory)] max-w-[16ch]">
+          {category.slug === "all" ? "Every Occasion" : category.name}
+        </h3>
+        {category.tagline ? (
+          <p className="mt-2 text-sm text-[color:var(--ivory)]/75 line-clamp-2 max-w-xs hidden sm:block">
+            {category.tagline}
+          </p>
+        ) : null}
+        <span className="mt-5 inline-block eyebrow text-[10px] tracking-[0.22em] text-[color:var(--ivory)] border-b border-[color:var(--ivory)]/60 pb-1 transition-colors group-hover:border-[color:var(--gold-soft)] group-hover:text-[color:var(--gold-soft)]">
+          Explore Collection
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function CurrencyDropdown({ compact = false }: { compact?: boolean }) {
   const { currency, setCurrency, info } = useCurrency();
   const [open, setOpen] = useState(false);
+
   return (
     <div className="relative" onMouseLeave={() => setOpen(false)}>
       <button
         onClick={() => setOpen((o) => !o)}
         onMouseEnter={() => setOpen(true)}
         className={cn(
-          "flex items-center justify-center min-h-11 transition-colors duration-300",
+          "flex items-center justify-center min-h-11 transition-colors duration-300 text-foreground hover:text-[color:var(--maroon)]",
           compact ? "gap-0.5 px-1 eyebrow text-[9px] sm:text-[10px]" : "gap-1 eyebrow text-[10px]",
-          transparent
-            ? "text-white/80 hover:text-white"
-            : "text-foreground hover:text-[color:var(--maroon)]",
         )}
         aria-label="Change currency"
       >
         {compact ? (
           <>
             <span className="text-sm leading-none">{info.flag}</span>
-            <ChevronDown className="size-2.5 shrink-0" strokeWidth={1.5} />
+            <ChevronDownIcon className="size-2.5 shrink-0" />
           </>
         ) : (
           <>
             <span>{info.flag}</span>
             <span>{currency}</span>
-            <ChevronDown className="size-3" strokeWidth={1.5} />
+            <ChevronDownIcon className="size-3 shrink-0" />
           </>
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-foreground/10 shadow-xl py-2 animate-reveal">
+        <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-foreground/10 shadow-xl py-2 animate-reveal z-50">
           {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => {
             const c = CURRENCIES[code];
             return (
@@ -443,178 +582,15 @@ function CurrencyDropdown({
   );
 }
 
-/**
- * Allure-style flyout: a quiet, borderless serif list on the left (active item
- * gets a thin underline, the rest just fade in on hover), and a softly
- * blurred, minimally-captioned image on the right. No boxes, no dividers.
- */
-function DesktopMenuPanel({
+function MobileDrawer({
   categories,
-  activeCategorySlug,
-  onCategoryChange,
   onClose,
   onAccount,
-  topOffset,
 }: {
   categories: StoreCategory[];
-  activeCategorySlug: string | null;
-  onCategoryChange: (slug: string) => void;
   onClose: () => void;
   onAccount: () => void;
-  topOffset: number;
 }) {
-  const { openPanel, cartCount, wishlistCount } = useShop();
-  const activeCategory =
-    categories.find((category) => category.slug === activeCategorySlug) ?? categories[0] ?? null;
-
-  return (
-    <>
-      <button
-        type="button"
-        className="hidden lg:block fixed inset-x-0 bottom-0 z-30 bg-[color:var(--charcoal)]/25 backdrop-blur-[2px]"
-        style={{ top: `${topOffset}px` }}
-        onClick={onClose}
-        aria-label="Close desktop menu"
-      />
-
-      <div
-        className="hidden lg:grid fixed inset-x-0 z-40 bg-background shadow-2xl"
-        style={{ top: `${topOffset}px`, height: `calc(100vh - ${topOffset}px)` }}
-      >
-        <div className="grid h-full grid-cols-[minmax(360px,30rem)_minmax(0,1fr)]">
-          {/* Left — quiet, borderless category list */}
-          <div className="flex h-full flex-col overflow-y-auto bg-background px-12 py-10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="mb-10 inline-flex w-fit items-center text-foreground transition-colors hover:text-[color:var(--maroon)]"
-              aria-label="Close desktop menu"
-            >
-              <X className="size-5" strokeWidth={1.6} />
-            </button>
-
-            <nav className="flex flex-col gap-1">
-              <Link
-                to="/shop/$category"
-                params={{ category: "all" }}
-                onClick={onClose}
-                onMouseEnter={() => onCategoryChange("all")}
-                className={cn(
-                  "w-fit font-serif text-4xl leading-[1.35] transition-colors",
-                  activeCategory === null || activeCategorySlug === "all"
-                    ? "text-foreground border-b border-foreground/70"
-                    : "text-foreground/85 hover:text-[color:var(--maroon)]",
-                )}
-              >
-                All collections
-              </Link>
-
-              {categories.map((category) => (
-                <Link
-                  key={category.slug}
-                  to="/shop/$category"
-                  params={{ category: category.slug }}
-                  onClick={onClose}
-                  onMouseEnter={() => onCategoryChange(category.slug)}
-                  onFocus={() => onCategoryChange(category.slug)}
-                  className={cn(
-                    "flex w-fit items-center gap-2 text-left font-serif text-4xl leading-[1.35] transition-colors",
-                    activeCategory?.slug === category.slug
-                      ? "text-foreground border-b border-foreground/70"
-                      : "text-foreground/85 hover:text-[color:var(--maroon)]",
-                  )}
-                >
-                  <span>{category.name}</span>
-                  {category.subCategories?.length ? (
-                    <ChevronRight className="size-5 opacity-50" strokeWidth={1.4} />
-                  ) : null}
-                </Link>
-              ))}
-
-              <Link
-                to="/bespoke"
-                onClick={onClose}
-                className="w-fit font-serif text-4xl leading-[1.35] text-foreground/85 transition-colors hover:text-[color:var(--maroon)]"
-              >
-                Bespoke
-              </Link>
-              <Link
-                to="/journal"
-                onClick={onClose}
-                className="w-fit font-serif text-4xl leading-[1.35] text-foreground/85 transition-colors hover:text-[color:var(--maroon)]"
-              >
-                Journal
-              </Link>
-            </nav>
-
-            {/* Utility links — plain text, no boxes */}
-            <div className="mt-auto flex flex-col gap-4 pt-10 text-sm">
-              <Link
-                to="/orders"
-                onClick={onClose}
-                className="text-foreground/70 transition-colors hover:text-[color:var(--maroon)] w-fit"
-              >
-                Orders
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onAccount();
-                }}
-                className="text-left text-foreground/70 transition-colors hover:text-[color:var(--maroon)] w-fit"
-              >
-                Profile
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  openPanel("wishlist");
-                }}
-                className="text-left text-foreground/70 transition-colors hover:text-[color:var(--maroon)] w-fit"
-              >
-                Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  openPanel("cart");
-                }}
-                className="text-left text-foreground/70 transition-colors hover:text-[color:var(--maroon)] w-fit"
-              >
-                Bag {cartCount > 0 ? `(${cartCount})` : ""}
-              </button>
-            </div>
-          </div>
-
-          {/* Right — softly blurred image, minimal caption, no gradient card */}
-          <div className="relative hidden h-full overflow-hidden xl:block bg-[color:var(--maroon)]">
-            {activeCategory?.imageUrl ? (
-              <img
-                src={activeCategory.imageUrl}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover scale-105 blur-sm"
-              />
-            ) : null}
-            <div className="absolute inset-0 bg-[color:var(--charcoal)]/45" />
-
-            <div className="relative flex h-full items-center justify-center px-12">
-              <h3 className="font-serif text-7xl tracking-tight text-[color:var(--ivory)]/95 text-center">
-                {activeCategory?.name ?? "Collection"}
-              </h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// Mobile menu drawer — same quiet, borderless list treatment as desktop
-function MobileDrawer({ onClose, onAccount }: { onClose: () => void; onAccount: () => void }) {
   const { openPanel, cartCount, wishlistCount } = useShop();
 
   const open = (panel: "search" | "cart" | "wishlist") => {
@@ -636,37 +612,55 @@ function MobileDrawer({ onClose, onAccount }: { onClose: () => void; onAccount: 
         data-lenis-prevent
       >
         <div className="p-8 space-y-8">
+          <div>
+            <p className="eyebrow text-[10px] text-foreground/45 mb-4">Collections</p>
+            <Link
+              to="/shop/$category"
+              params={{ category: "all" }}
+              onClick={onClose}
+              className="block w-fit font-serif text-3xl text-foreground hover:text-[color:var(--maroon)] transition-colors"
+            >
+              All Collections
+            </Link>
+          </div>
+
+          {categories.map((cat) => (
+            <div key={cat.slug}>
+              <Link
+                to="/shop/$category"
+                params={{ category: cat.slug }}
+                onClick={onClose}
+                className="block w-fit font-serif text-3xl text-foreground hover:text-[color:var(--maroon)] transition-colors"
+              >
+                {cat.name}
+              </Link>
+              {cat.subCategories.length > 0 && (
+                <ul className="mt-3 ml-1 space-y-2">
+                  {cat.subCategories.map((s) => (
+                    <li key={s}>
+                      <Link
+                        to="/shop/$category"
+                        params={{ category: cat.slug }}
+                        className="text-base text-foreground/65 hover:text-[color:var(--maroon)] transition-colors"
+                        onClick={onClose}
+                      >
+                        {s}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+
           <Link
             to="/shop/$category"
             params={{ category: "all" }}
             onClick={onClose}
-            className="block w-fit font-serif text-3xl text-foreground hover:text-[color:var(--maroon)] transition-colors"
+            className="inline-flex w-fit items-center justify-center rounded-full bg-[color:var(--charcoal)] px-6 py-3 text-[10px] tracking-[0.2em] text-[color:var(--ivory)]"
           >
-            All collections
+            VIEW ALL COLLECTIONS
           </Link>
-
-          {CATEGORIES.map((cat) => (
-            <details key={cat.slug} className="group">
-              <summary className="flex items-center gap-2 w-fit font-serif text-3xl cursor-pointer list-none text-foreground hover:text-[color:var(--maroon)] transition-colors">
-                <span>{cat.name}</span>
-                <ChevronDown className="size-4 opacity-50 transition-transform group-open:rotate-180" />
-              </summary>
-              <ul className="mt-4 space-y-3 pl-1">
-                {cat.subCategories.map((s) => (
-                  <li key={s}>
-                    <Link
-                      to="/shop/$category"
-                      params={{ category: cat.slug }}
-                      className="text-base text-foreground/65 hover:text-[color:var(--maroon)] transition-colors"
-                      onClick={onClose}
-                    >
-                      {s}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ))}
 
           <Link
             to="/bespoke"
@@ -684,28 +678,27 @@ function MobileDrawer({ onClose, onAccount }: { onClose: () => void; onAccount: 
             Journal
           </Link>
 
-          {/* Utility links — plain text, no boxes */}
           <div className="flex flex-col gap-4 border-t border-foreground/10 pt-6 text-sm">
             <button
               type="button"
               onClick={() => open("search")}
               className="text-left text-foreground/70 hover:text-[color:var(--maroon)] transition-colors flex items-center gap-2 w-fit"
             >
-              <Search className="size-4" /> Search
+              <SearchIcon className="size-4" /> Search
             </button>
             <button
               type="button"
               onClick={() => open("cart")}
               className="text-left text-foreground/70 hover:text-[color:var(--maroon)] transition-colors flex items-center gap-2 w-fit"
             >
-              <ShoppingBag className="size-4" /> Bag {cartCount > 0 ? `(${cartCount})` : ""}
+              <BagIcon className="size-4" /> Bag {cartCount > 0 ? `(${cartCount})` : ""}
             </button>
             <button
               type="button"
               onClick={() => open("wishlist")}
               className="text-left text-foreground/70 hover:text-[color:var(--maroon)] transition-colors flex items-center gap-2 w-fit"
             >
-              <Heart className="size-4" /> Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}
+              <HeartIcon className="size-4" /> Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}
             </button>
             <button
               type="button"
@@ -715,7 +708,7 @@ function MobileDrawer({ onClose, onAccount }: { onClose: () => void; onAccount: 
               }}
               className="text-left text-foreground/70 hover:text-[color:var(--maroon)] transition-colors flex items-center gap-2 w-fit"
             >
-              <User className="size-4" /> Account
+              <UserIcon className="size-4" /> Account
             </button>
             <WhatsAppLink
               message={WHATSAPP_MESSAGES.general}

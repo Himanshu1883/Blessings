@@ -17,7 +17,7 @@ type AuthContextValue = {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (identifier: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<ApiUser>;
   register: (data: {
     name: string;
     email?: string;
@@ -55,10 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (identifier: string, password: string) => {
-      await api.post<ApiUser>("/api/auth/login", { identifier, password });
-      await queryClient.invalidateQueries({ queryKey: ["auth"] });
+      const loggedInUser = await api.post<ApiUser>("/api/auth/login", { identifier, password });
+      queryClient.setQueryData(["auth", "me"], loggedInUser);
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
       await queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      return loggedInUser;
     },
     [queryClient],
   );

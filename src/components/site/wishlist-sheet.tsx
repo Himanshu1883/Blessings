@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, ShoppingBag, Trash2 } from "lucide-react";
+import { BagIcon, HeartIcon, TrashIcon } from "@/components/icons/site-icons";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -29,7 +29,7 @@ export function WishlistSheet() {
 
         {products.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-            <Heart className="size-10 text-foreground/25" strokeWidth={1.2} />
+            <HeartIcon className="size-10 text-foreground/25" />
             <p className="font-serif italic text-xl">Nothing saved yet</p>
             <p className="text-sm text-foreground/60 max-w-xs">Tap the heart on any piece to save it to your wishlist.</p>
             <Button asChild variant="outline" className="mt-2 rounded-none eyebrow text-[10px] tracking-[0.2em]" onClick={closePanel}>
@@ -62,7 +62,7 @@ export function WishlistSheet() {
                       className="p-1 text-foreground/40 hover:text-[color:var(--maroon)] transition-colors"
                       aria-label="Remove from wishlist"
                     >
-                      <Trash2 className="size-4" />
+                      <TrashIcon className="size-4" />
                     </button>
                   </div>
                   <p className="mt-2 text-sm text-[color:var(--maroon)] tabular-nums">{format(product.price)}</p>
@@ -72,7 +72,7 @@ export function WishlistSheet() {
                     className="mt-3 w-fit rounded-none eyebrow text-[9px] tracking-[0.15em] h-9 gap-2"
                     onClick={() => addToCart(product.id)}
                   >
-                    <ShoppingBag className="size-3.5" />
+                    <BagIcon className="size-3.5" />
                     Add to bag
                   </Button>
                 </div>

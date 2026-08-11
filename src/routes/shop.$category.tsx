@@ -1,9 +1,15 @@
 import { cn } from "@/lib/utils";
 import type { StoreCategory, StoreProduct } from "@/lib/catalog-api";
-import { fetchCategories, fetchCategory, fetchProducts } from "@/lib/catalog-api";
+import { fetchCategories, fetchCategory, fetchProducts, storeProductFromApi } from "@/lib/catalog-api";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowUpDown, Check, ChevronDown, SlidersHorizontal, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowUpDown, Check, ChevronDown, Loader2, Plus, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ProductEditModal } from "@/components/admin/ProductEditModal";
+import { useAdminProductCatalog } from "@/hooks/useAdminProductCatalog";
+import { useAuth } from "@/lib/auth-context";
+import type { AdminProduct } from "@/lib/admin/product-form";
+import type { ApiProduct } from "@/lib/api-types";
+import { toast } from "sonner";
 import { ProductCard } from "./index";
 
 const ALL_CATEGORY: StoreCategory = {
@@ -75,19 +81,36 @@ export const Route = createFileRoute("/shop/$category")({
 });
 
 function ShopCategory() {
-  const { cat, categories, products } = Route.useLoaderData() as {
+  const loaderData = Route.useLoaderData() as {
     cat: StoreCategory;
     categories: StoreCategory[];
     products: StoreProduct[];
   };
+  const { cat, categories } = loaderData;
 
+  const { isAdmin } = useAuth();
+  const adminCatalog = useAdminProductCatalog(isAdmin);
+
+  const [products, setProducts] = useState(loaderData.products);
   const [sort, setSort] = useState<SortValue>("new");
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [mobileSheet, setMobileSheet] = useState<"filter" | "sort" | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
+
+  useEffect(() => {
+    setProducts(loaderData.products);
+  }, [loaderData.products]);
 
   const groups = useMemo(() => getFilterGroups(cat), [cat]);
   const activeFilterCount = Object.values(filters).reduce((n, arr) => n + arr.length, 0);
   const sortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "Sort";
+  const isEmptyCollection = products.length === 0;
+
+  const defaultCategoryId = useMemo(() => {
+    if (cat.slug === "all") return adminCatalog.categories[0]?.id ?? "";
+    return adminCatalog.categories.find((c) => c.slug === cat.slug)?.id ?? "";
+  }, [cat.slug, adminCatalog.categories]);
 
   const toggleFilter = (key: string, option: string) => {
     setFilters((prev) => {
@@ -106,6 +129,34 @@ function ShopCategory() {
     if (sort === "price-desc") return b.price - a.price;
     return Number(!!b.isNew) - Number(!!a.isNew);
   });
+
+  const handleAdminEdit = (storeProduct: StoreProduct) => {
+    const adminProduct = adminCatalog.products.find((p) => p.id === storeProduct.mongoId);
+    if (!adminProduct) {
+      toast.error("Product details are still loading. Please try again.");
+      return;
+    }
+    setEditingProduct(adminProduct);
+    setEditOpen(true);
+  };
+
+  const openAddProduct = () => {
+    setEditingProduct(null);
+    setEditOpen(true);
+  };
+
+  const handleProductSaved = (saved: ApiProduct) => {
+    const mapped = storeProductFromApi(saved);
+    if (editingProduct) {
+      setProducts((prev) =>
+        prev.map((p) => (p.mongoId === saved.id ? mapped : p)),
+      );
+      return;
+    }
+    if (cat.slug === "all" || saved.categorySlug === cat.slug) {
+      setProducts((prev) => [...prev, mapped]);
+    }
+  };
 
   return (
     <div>
@@ -148,7 +199,8 @@ function ShopCategory() {
         data-reveal-direction="alternate"
         className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-10 sm:py-14 grid grid-cols-12 gap-6 sm:gap-8 pb-28 md:pb-14"
       >
-        {/* Desktop sidebar — sticks in place and scrolls independently once it outgrows the viewport */}
+        {/* Desktop sidebar — hidden when collection is empty */}
+        {!isEmptyCollection && (
         <aside className="hidden md:block md:col-span-3 lg:col-span-2">
           <div className="sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-8 [scrollbar-width:thin]">
             <div className="flex items-center justify-between">
@@ -175,8 +227,11 @@ function ShopCategory() {
             ))}
           </div>
         </aside>
+        )}
 
-        <div className="col-span-12 md:col-span-9 lg:col-span-10">
+        <div className={cn("col-span-12", !isEmptyCollection && "md:col-span-9 lg:col-span-10")}>
+          {!isEmptyCollection && (
+          <>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
             <p className="eyebrow text-[10px] text-foreground/50 order-first sm:order-none">
               {sorted.length} pieces
@@ -227,13 +282,31 @@ function ShopCategory() {
 
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8 min-w-0">
             {sorted.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard
+                key={p.id}
+                product={p}
+                onAdminEdit={isAdmin ? handleAdminEdit : undefined}
+                adminEditReady={adminCatalog.ready}
+              />
             ))}
           </div>
+          </>
+          )}
+
+          {isEmptyCollection && (
+            <CategoryEmptyState
+              categoryName={cat.name}
+              isAdmin={isAdmin}
+              adminReady={adminCatalog.ready}
+              adminLoading={adminCatalog.loading}
+              onAddProduct={openAddProduct}
+            />
+          )}
         </div>
       </div>
 
-      {/* Mobile — fixed filter/sort bar, sitting just above the app's bottom tab bar */}
+      {/* Mobile — fixed filter/sort bar */}
+      {!isEmptyCollection && (
       <div className="md:hidden fixed inset-x-0 bottom-[calc(62px+env(safe-area-inset-bottom))] z-30 grid grid-cols-2 divide-x divide-foreground/10 border-t border-foreground/10 bg-background/95 backdrop-blur-sm">
         <button
           type="button"
@@ -252,8 +325,9 @@ function ShopCategory() {
           {sortLabel}
         </button>
       </div>
+      )}
 
-      {mobileSheet === "filter" && (
+      {mobileSheet === "filter" && !isEmptyCollection && (
         <BottomSheet
           title="Filters"
           onClose={() => setMobileSheet(null)}
@@ -290,7 +364,7 @@ function ShopCategory() {
         </BottomSheet>
       )}
 
-      {mobileSheet === "sort" && (
+      {mobileSheet === "sort" && !isEmptyCollection && (
         <BottomSheet title="Sort by" onClose={() => setMobileSheet(null)}>
           <div className="space-y-1">
             {SORT_OPTIONS.map((o) => (
@@ -313,6 +387,92 @@ function ShopCategory() {
           </div>
         </BottomSheet>
       )}
+
+      {isAdmin && (
+        <ProductEditModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          product={editingProduct}
+          categories={adminCatalog.categories}
+          defaultCategoryId={defaultCategoryId}
+          onSave={async (id, body) => {
+            if (id) return adminCatalog.updateProduct(id, body);
+            return adminCatalog.createProduct(body);
+          }}
+          uploadMedia={adminCatalog.uploadMedia}
+          onSaved={handleProductSaved}
+        />
+      )}
+    </div>
+  );
+}
+
+function CategoryEmptyState({
+  categoryName,
+  isAdmin,
+  adminReady,
+  adminLoading,
+  onAddProduct,
+}: {
+  categoryName: string;
+  isAdmin: boolean;
+  adminReady: boolean;
+  adminLoading: boolean;
+  onAddProduct: () => void;
+}) {
+  if (isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-16 sm:py-24 px-4 border border-dashed border-foreground/15 bg-[color:var(--muted)]/20">
+        <p className="eyebrow text-[10px] text-[color:var(--gold)] mb-4">Admin</p>
+        <h2 className="font-serif italic text-2xl sm:text-3xl text-foreground mb-3">
+          No products in {categoryName} yet
+        </h2>
+        <p className="text-sm text-foreground/60 max-w-md mb-8 leading-relaxed">
+          This collection is empty. Add the first piece here — it will appear on the storefront
+          as soon as you save.
+        </p>
+        <button
+          type="button"
+          onClick={onAddProduct}
+          disabled={!adminReady || adminLoading}
+          className="inline-flex items-center gap-2 rounded-full bg-[color:var(--charcoal)] px-8 py-3.5 text-[11px] font-medium tracking-[0.18em] text-[color:var(--ivory)] transition-colors hover:bg-[color:var(--maroon)] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {adminLoading || !adminReady ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Plus className="size-4" strokeWidth={1.6} />
+          )}
+          Add product
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-20 sm:py-28 px-4">
+      <p className="eyebrow text-[10px] text-foreground/45 mb-4">Coming soon</p>
+      <h2 className="font-serif italic text-2xl sm:text-3xl text-foreground mb-3">
+        This collection is being curated
+      </h2>
+      <p className="text-sm text-foreground/60 max-w-md mb-10 leading-relaxed">
+        New pieces for {categoryName} will appear here shortly. Explore our other collections or
+        speak with our concierge for bespoke requests.
+      </p>
+      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+        <Link
+          to="/shop/$category"
+          params={{ category: "all" }}
+          className="inline-flex items-center justify-center rounded-full border border-foreground/20 px-7 py-3 text-[11px] tracking-[0.16em] hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] transition-colors"
+        >
+          View all collections
+        </Link>
+        <Link
+          to="/contact"
+          className="inline-flex items-center justify-center rounded-full bg-[color:var(--charcoal)] px-7 py-3 text-[11px] tracking-[0.16em] text-[color:var(--ivory)] hover:bg-[color:var(--maroon)] transition-colors"
+        >
+          Contact concierge
+        </Link>
+      </div>
     </div>
   );
 }

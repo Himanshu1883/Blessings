@@ -18,13 +18,14 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { from } = Route.useSearch();
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading, googleLoginUrl } = useAuth();
+  const { login, isAuthenticated, isLoading, isAdmin, googleLoginUrl } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loginId, setLoginId] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   if (!isLoading && isAuthenticated) {
+    if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
     return <Navigate to={from} replace />;
   }
 
@@ -32,9 +33,9 @@ function LoginPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await login(loginId.trim(), loginPassword);
+      const user = await login(loginId.trim(), loginPassword);
       toast.success("Welcome back.");
-      navigate({ to: from });
+      navigate({ to: user.role === "admin" ? "/admin/dashboard" : from });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");
     } finally {

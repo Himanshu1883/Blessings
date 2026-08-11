@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, X } from "lucide-react";
+import { CloseIcon, SearchIcon } from "@/components/icons/site-icons";
 import { useCategories, useProducts } from "@/lib/api-hooks";
 import { resolveMediaUrl } from "@/lib/api-client";
 import { useCurrency } from "@/lib/currency";
@@ -195,7 +195,7 @@ export function SearchDialog() {
             className="absolute right-3 top-1/2 -translate-y-1/2 min-h-11 min-w-11 flex items-center justify-center text-foreground/70 hover:text-foreground transition-colors"
             aria-label="Close search"
           >
-            <X className="size-5" strokeWidth={1.5} />
+            <CloseIcon className="size-5" />
           </button>
         </header>
 
@@ -221,7 +221,7 @@ export function SearchDialog() {
                 type="submit"
                 className="h-12 sm:h-14 inline-flex items-center justify-center gap-2 bg-[color:var(--charcoal)] px-5 sm:px-8 text-[color:var(--ivory)] text-xs sm:text-sm font-medium tracking-wide hover:bg-[color:var(--charcoal)]/90 transition-colors shrink-0"
               >
-                <Search className="size-4" strokeWidth={1.75} />
+                <SearchIcon className="size-4" />
                 <span>Search</span>
               </button>
             </form>
