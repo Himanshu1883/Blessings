@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/apiResponse.js";
 import { verifyAccessToken } from "../utils/tokens.js";
-import { ACCESS_COOKIE, REFRESH_COOKIE } from "../utils/cookies.js";
+import { ACCESS_COOKIE, REFRESH_COOKIE, authCookieOptions } from "../utils/cookies.js";
 import { User } from "../models/User.js";
 import { hashToken, signAccessToken } from "../utils/tokens.js";
 import { setAuthCookies } from "../utils/cookies.js";
@@ -53,11 +53,8 @@ export function attachRefreshedCookie(req: AuthRequest, res: Response, next: Nex
   const token = res.locals.newAccessToken as string | undefined;
   if (token) {
     res.cookie(ACCESS_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      ...authCookieOptions,
       maxAge: 15 * 60 * 1000,
-      path: "/",
     });
   }
   next();

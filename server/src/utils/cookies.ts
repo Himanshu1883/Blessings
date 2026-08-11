@@ -4,21 +4,21 @@ import { env, isProd } from "../config/env.js";
 export const ACCESS_COOKIE = "blessings_access";
 export const REFRESH_COOKIE = "blessings_refresh";
 
-const cookieBase = {
+export const authCookieOptions = {
   httpOnly: true,
   secure: isProd,
-  sameSite: isProd ? ("none" as const) : ("lax" as const),
+  sameSite: "none" as const,
   path: "/",
   ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 };
 
 export function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
   res.cookie(ACCESS_COOKIE, accessToken, {
-    ...cookieBase,
+    ...authCookieOptions,
     maxAge: 15 * 60 * 1000,
   });
   res.cookie(REFRESH_COOKIE, refreshToken, {
-    ...cookieBase,
+    ...authCookieOptions,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
