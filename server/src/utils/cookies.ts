@@ -24,6 +24,6 @@ export function setAuthCookies(res: Response, accessToken: string, refreshToken:
 }
 
 export function clearAuthCookies(res: Response) {
-  res.clearCookie(ACCESS_COOKIE, cookieBase);
-  res.clearCookie(REFRESH_COOKIE, cookieBase);
+  res.clearCookie(ACCESS_COOKIE, authCookieOptions);
+  res.clearCookie(REFRESH_COOKIE, authCookieOptions);
 }
