@@ -1,30 +1,38 @@
+import { ChevronDownIcon } from "@/components/icons/site-icons";
 import { WhatsAppLink } from "@/components/site/whatsapp-link";
 import { useAuth } from "@/lib/auth-context";
-import { fetchNavbarCategories, type StoreCategory } from "@/lib/catalog-api";
+import {
+  fetchNavbarCategories,
+  fetchProducts,
+  type StoreCategory,
+  type StoreProduct,
+} from "@/lib/catalog-api";
 import { CURRENCIES, useCurrency, type CurrencyCode } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronDownIcon, CloseIcon, HeartIcon, MenuIcon, SearchIcon, UserIcon, BagIcon } from "@/components/icons/site-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const ALL_COLLECTIONS: StoreCategory = {
-  slug: "all",
-  name: "All Collections",
-  tagline: "The complete Blessings collection — every silhouette, every fabric, every occasion.",
-  imageUrl: "/banners/banner-1.jpeg",
-  subCategories: [],
-};
+const UTILITY_LEFT = [
+  { label: "RETURNS", to: "/contact" as const },
+  { label: "SHIPPING", to: "/contact" as const },
+  { label: "HELP", to: "/contact" as const },
+] as const;
 
-const ANNOUNCEMENTS = [
-  "Complimentary Worldwide Shipping on Orders over $1,000",
-  "Bespoke Virtual Fittings Available — Book a Consultation",
-  "Handcrafted in Delhi. Delivered to London, New York, Dubai, Toronto.",
-];
+const STATIC_NAV = [
+  { label: "ABOUT", to: "/about" as const },
+  { label: "BLOG", to: "/journal" as const },
+  { label: "BESPOKE", to: "/bespoke" as const },
+  { label: "CONTACT", to: "/contact" as const },
+] as const;
+
+const BRAND_TAGLINE = "The Men's Boutique · Delhi";
 
 let navbarCategoriesCache: StoreCategory[] | null = null;
 let navbarCategoriesPromise: Promise<StoreCategory[]> | null = null;
+let navbarProductsCache: StoreProduct[] | null = null;
+let navbarProductsPromise: Promise<StoreProduct[]> | null = null;
 
 function getNavbarCategories(): Promise<StoreCategory[]> {
   if (navbarCategoriesCache) return Promise.resolve(navbarCategoriesCache);
@@ -37,30 +45,45 @@ function getNavbarCategories(): Promise<StoreCategory[]> {
   return navbarCategoriesPromise;
 }
 
+function getNavbarProducts(): Promise<StoreProduct[]> {
+  if (navbarProductsCache) return Promise.resolve(navbarProductsCache);
+  if (!navbarProductsPromise) {
+    navbarProductsPromise = fetchProducts().then((products) => {
+      navbarProductsCache = products;
+      return products;
+    });
+  }
+  return navbarProductsPromise;
+}
+
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [announcementIdx, setAnnouncementIdx] = useState(0);
   const [navbarCategories, setNavbarCategories] = useState<StoreCategory[]>(
     () => navbarCategoriesCache ?? [],
   );
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [activeCategorySlug, setActiveCategorySlug] = useState<string>("");
-  const [collectionsOpen, setCollectionsOpen] = useState(false);
-  const collectionsCloseTimer = useRef<number | null>(null);
+  const [navbarProducts, setNavbarProducts] = useState<StoreProduct[]>(
+    () => navbarProductsCache ?? [],
+  );
+  const [scrolled, setScrolled] = useState(false);
+  const [shopMenuOpen, setShopMenuOpen] = useState(false);
+  const menuCloseTimer = useRef<number | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const { openPanel, cartCount, wishlistCount } = useShop();
-  const headerRef = useRef<HTMLElement>(null);
+  const { openPanel, cartCount } = useShop();
+
+  const visibleCategories = useMemo(
+    () => navbarCategories.filter((c) => c.showOnNavbar !== false),
+    [navbarCategories],
+  );
 
   useEffect(() => {
     let mounted = true;
     getNavbarCategories().then((cats) => {
-      if (mounted) {
-        setNavbarCategories(cats);
-        setActiveCategorySlug((current) => current || cats[0]?.slug || "all");
-      }
+      if (mounted) setNavbarCategories(cats);
+    });
+    getNavbarProducts().then((products) => {
+      if (mounted) setNavbarProducts(products);
     });
     return () => {
       mounted = false;
@@ -76,53 +99,36 @@ export function SiteHeader() {
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY > 50) {
-        if (currentScrollY > lastScrollY && currentScrollY - lastScrollY > 10) {
-          setIsVisible(false);
-        } else if (currentScrollY < lastScrollY && lastScrollY - currentScrollY > 10) {
-          setIsVisible(true);
-        }
-      } else {
-        setIsVisible(true);
-      }
-      setLastScrollY(currentScrollY);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
-
-  useEffect(() => {
-    const t = setInterval(() => setAnnouncementIdx((i) => (i + 1) % ANNOUNCEMENTS.length), 4500);
-    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
     setMobileOpen(false);
-    setCollectionsOpen(false);
+    setShopMenuOpen(false);
   }, [pathname]);
 
-  const openCollectionsMenu = () => {
-    if (collectionsCloseTimer.current) {
-      window.clearTimeout(collectionsCloseTimer.current);
-      collectionsCloseTimer.current = null;
+  const openShopMenu = () => {
+    if (menuCloseTimer.current) {
+      window.clearTimeout(menuCloseTimer.current);
+      menuCloseTimer.current = null;
     }
-    setCollectionsOpen(true);
-    setActiveCategorySlug((current) => current || navbarCategories[0]?.slug || "all");
+    setShopMenuOpen(true);
   };
 
-  const scheduleCloseCollectionsMenu = () => {
-    if (collectionsCloseTimer.current) window.clearTimeout(collectionsCloseTimer.current);
-    collectionsCloseTimer.current = window.setTimeout(() => {
-      setCollectionsOpen(false);
-      collectionsCloseTimer.current = null;
+  const scheduleCloseShopMenu = () => {
+    if (menuCloseTimer.current) window.clearTimeout(menuCloseTimer.current);
+    menuCloseTimer.current = window.setTimeout(() => {
+      setShopMenuOpen(false);
+      menuCloseTimer.current = null;
     }, 140);
   };
 
   useEffect(() => {
     return () => {
-      if (collectionsCloseTimer.current) window.clearTimeout(collectionsCloseTimer.current);
+      if (menuCloseTimer.current) window.clearTimeout(menuCloseTimer.current);
     };
   }, []);
 
@@ -144,195 +150,183 @@ export function SiteHeader() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [mobileOpen]);
 
+  const solidHeader = scrolled || pathname !== "/" || shopMenuOpen;
+
   return (
     <>
-      <div
-        className={cn(
-          "bg-[color:var(--charcoal)] text-[color:var(--ivory)]/90 h-10 overflow-hidden flex items-center justify-center px-4 sm:px-6 transition-all duration-500 w-full relative z-50",
-          !isVisible && "opacity-70",
-        )}
-      >
-        <span className="eyebrow text-[9px] sm:text-[10px] text-[color:var(--gold-soft)] transition-opacity duration-500 text-center truncate max-w-full px-2">
-          {ANNOUNCEMENTS[announcementIdx]}
-        </span>
-      </div>
-
       <header
-        ref={headerRef}
         className={cn(
-          "sticky top-0 z-40 transition-all duration-500 ease-in-out",
-          isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none",
+          "fixed inset-x-0 top-0 z-40 transition-colors duration-300",
+          solidHeader
+            ? "bg-white text-[color:var(--charcoal)] shadow-[0_1px_0_rgba(0,0,0,0.06)]"
+            : "bg-transparent text-white",
         )}
       >
-        <div
-          className="relative w-full bg-background/95 backdrop-blur-sm shadow-[0_1px_0_rgba(0,0,0,0.04)] border-b border-foreground/5"
-          style={{ backgroundColor: "#f5f0eb" }}
-          onMouseLeave={scheduleCloseCollectionsMenu}
-        >
-          <nav className="relative w-full px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 h-[72px] md:h-20">
-            {/* Mobile */}
-            <div className="lg:hidden grid grid-cols-[44px_1fr_auto] items-center h-full w-full gap-2">
-              <button
-                className="justify-self-start min-h-11 min-w-11 flex items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
-                onClick={() => setMobileOpen((o) => !o)}
-                aria-label="Menu"
-              >
-                {mobileOpen ? <CloseIcon className="size-5" /> : <MenuIcon className="size-5" />}
-              </button>
-
-              <Link to="/" className="justify-self-center text-center min-w-0 max-w-full group">
-                <span className="block font-serif text-[19px] sm:text-[22px] tracking-[0.06em] leading-none transition-colors duration-300 truncate text-foreground group-hover:text-[color:var(--maroon)]">
-                  Blessings
-                </span>
-                <span className="block eyebrow text-[6px] sm:text-[7px] mt-1 sm:mt-1.5 tracking-[0.28em] sm:tracking-[0.36em] transition-colors duration-300 truncate text-foreground/45 group-hover:text-[color:var(--gold)]">
-                  The Men's Boutique — Delhi
-                </span>
-              </Link>
-
-              <div className="justify-self-end flex items-center gap-0.5 shrink-0">
-                <CurrencyDropdown compact />
-                <button
-                  type="button"
-                  onClick={() => openPanel("cart")}
-                  className="relative min-h-11 min-w-11 flex items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
-                  aria-label="Cart"
-                >
-                  <BagIcon className="size-[17px]" />
-                  {cartCount > 0 && (
-                    <span className="absolute top-1 right-1 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
-                      {cartCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Desktop */}
-            <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center h-full w-full">
-              <div className="flex items-center gap-8 xl:gap-9 min-w-0 eyebrow whitespace-nowrap">
-                <div className="relative py-1" onMouseEnter={openCollectionsMenu}>
-                  <Link
-                    to="/shop/$category"
-                    params={{ category: "all" }}
-                    onClick={() => setCollectionsOpen(false)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 text-[10px] tracking-[0.24em] transition-colors",
-                      collectionsOpen || pathname.startsWith("/shop/")
-                        ? "text-[color:var(--maroon)]"
-                        : "text-foreground hover:text-[color:var(--maroon)]",
+        <div className="relative w-full" onMouseLeave={scheduleCloseShopMenu}>
+          {/* ── Desktop: two-row header ── */}
+          <div className="hidden lg:block">
+            {/* Top row: utility | logo | utility */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center px-8 xl:px-14 pt-5 pb-2">
+              <div className="flex items-center min-w-0">
+                {UTILITY_LEFT.map((item, i) => (
+                  <span key={item.label} className="inline-flex items-center">
+                    {i > 0 && (
+                      <span
+                        className={cn(
+                          "mx-3 text-[10px] select-none",
+                          solidHeader ? "text-[color:var(--charcoal)]/30" : "text-white/40",
+                        )}
+                        aria-hidden
+                      >
+                        |
+                      </span>
                     )}
-                  >
-                    All Collections
-                    <ChevronDownIcon
-                      className={cn("size-3 transition-transform duration-200", collectionsOpen && "rotate-180")}
-                    />
-                  </Link>
-                </div>
-                <Link
-                  to="/about"
-                  className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
-                >
-                  About Us
-                </Link>
-                <Link
-                  to="/journal"
-                  className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
-                >
-                  Blog
-                </Link>
-                <Link
-                  to="/contact"
-                  className="text-[10px] tracking-[0.24em] transition-colors text-foreground hover:text-[color:var(--maroon)]"
-                >
-                  Contact Us
-                </Link>
+                    <Link
+                      to={item.to}
+                      className={cn(
+                        "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                        solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  </span>
+                ))}
               </div>
 
-              <Link to="/" className="text-center group z-10 justify-self-center">
-                <span className="block font-serif text-[22px] md:text-[28px] tracking-[0.06em] leading-none transition-colors duration-300 whitespace-nowrap text-foreground group-hover:text-[color:var(--maroon)]">
+              <Link to="/" className="text-center transition-opacity hover:opacity-80">
+                <span
+                  className={cn(
+                    "block text-[26px] xl:text-[28px] font-bold tracking-[0.18em] uppercase",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                  )}
+                >
                   Blessings
                 </span>
-                <span className="block eyebrow text-[7.5px] md:text-[8px] mt-1.5 md:mt-2 tracking-[0.4em] transition-colors duration-300 whitespace-nowrap text-foreground/95 group-hover:text-[color:var(--blue)]">
-                  The Men's Boutique — Delhi
+                <span
+                  className={cn(
+                    "block mt-1.5 text-[8px] xl:text-[8.5px] tracking-[0.36em] uppercase",
+                    solidHeader ? "text-[color:var(--charcoal)]/45" : "text-white/55",
+                  )}
+                >
+                  {BRAND_TAGLINE}
                 </span>
               </Link>
 
-              <div className="flex items-center justify-end gap-4 md:gap-5 min-w-0">
-                <div className="flex items-center gap-8 xl:gap-9 eyebrow whitespace-nowrap">
-                  <Link
-                    to="/bespoke"
-                    className="text-[10px] tracking-[0.24em] transition-colors whitespace-nowrap text-foreground hover:text-[color:var(--maroon)]"
-                  >
-                    Bespoke
-                  </Link>
-                  <Link
-                    to="/journal"
-                    className="text-[10px] tracking-[0.24em] transition-colors whitespace-nowrap text-foreground hover:text-[color:var(--maroon)]"
-                  >
-                    Journal
-                  </Link>
-                </div>
-                <span className="h-4 w-px bg-foreground/15" aria-hidden="true" />
-                <CurrencyDropdown />
+              <div className="flex items-center justify-end gap-6 xl:gap-7 min-w-0">
                 <button
                   type="button"
                   onClick={() => openPanel("search")}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
-                  aria-label="Search"
-                  title="Search (Ctrl+K)"
-                >
-                  <SearchIcon className="size-[17px]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openPanel("wishlist")}
-                  className="inline-flex relative min-h-11 min-w-11 items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
-                  aria-label="Wishlist"
-                >
-                  <HeartIcon
-                    className={cn(
-                      "size-[17px]",
-                      wishlistCount > 0 && "text-[color:var(--maroon)]",
-                    )}
-                  />
-                  {wishlistCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
-                      {wishlistCount}
-                    </span>
+                  className={cn(
+                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
                   )}
+                >
+                  Search
                 </button>
                 <button
                   type="button"
                   onClick={openAccount}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
-                  aria-label="Account"
+                  className={cn(
+                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                  )}
                 >
-                  <UserIcon className="size-[17px]" />
+                  {isAuthenticated ? "Account" : "Login"}
                 </button>
                 <button
                   type="button"
                   onClick={() => openPanel("cart")}
-                  className="relative min-h-11 min-w-11 flex items-center justify-center transition-colors hover:text-[color:var(--maroon)] text-foreground"
-                  aria-label="Cart"
-                >
-                  <BagIcon className="size-[17px]" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] text-[9px] flex items-center justify-center font-medium">
-                      {cartCount}
-                    </span>
+                  className={cn(
+                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
                   )}
+                >
+                  Cart ({cartCount})
                 </button>
               </div>
             </div>
+
+            {/* Bottom row: nav links grouped with tighter spacing */}
+            <nav className="flex w-full items-center justify-center gap-5 xl:gap-6 px-8 xl:px-14 pb-4">
+              <NavDropdownTrigger
+                label="Shop All"
+                active={shopMenuOpen}
+                solidHeader={solidHeader}
+                onOpen={openShopMenu}
+                href="/shop/$category"
+                hrefParams={{ category: "all" }}
+                onNavigate={() => setShopMenuOpen(false)}
+              />
+
+              {STATIC_NAV.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                    pathname === item.to && "opacity-70",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          {/* ── Mobile header ── */}
+          <nav className="lg:hidden px-4 sm:px-6 py-3.5">
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+              <button
+                className={cn(
+                  "text-[11px] font-medium tracking-[0.14em] uppercase min-h-11 px-1 transition-opacity hover:opacity-70",
+                  solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                )}
+                onClick={() => setMobileOpen((o) => !o)}
+                aria-label="Menu"
+              >
+                {mobileOpen ? "Close" : "Menu"}
+              </button>
+
+              <Link to="/" className="justify-self-center text-center transition-opacity hover:opacity-80">
+                <span
+                  className={cn(
+                    "block text-[20px] sm:text-[22px] font-bold tracking-[0.16em] uppercase",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                  )}
+                >
+                  Blessings
+                </span>
+                <span
+                  className={cn(
+                    "block mt-1 text-[6.5px] sm:text-[7px] tracking-[0.32em] uppercase",
+                    solidHeader ? "text-[color:var(--charcoal)]/45" : "text-white/55",
+                  )}
+                >
+                  {BRAND_TAGLINE}
+                </span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => openPanel("cart")}
+                className={cn(
+                  "justify-self-end text-[11px] font-medium tracking-[0.14em] uppercase min-h-11 px-1 transition-opacity hover:opacity-70",
+                  solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                )}
+              >
+                Cart ({cartCount})
+              </button>
+            </div>
           </nav>
 
-          {collectionsOpen && (
-            <CollectionsMegaMenu
-              categories={navbarCategories}
-              activeCategorySlug={activeCategorySlug}
-              onCategoryHover={setActiveCategorySlug}
-              onClose={() => setCollectionsOpen(false)}
-              onMouseEnter={openCollectionsMenu}
+          {shopMenuOpen && (
+            <ShopAllMegaMenu
+              categories={visibleCategories}
+              products={navbarProducts}
+              onClose={() => setShopMenuOpen(false)}
+              onMouseEnter={openShopMenu}
             />
           )}
         </div>
@@ -340,245 +334,214 @@ export function SiteHeader() {
 
       {mobileOpen && (
         <MobileDrawer
-          categories={navbarCategories}
+          categories={visibleCategories}
           onClose={() => setMobileOpen(false)}
           onAccount={openAccount}
+          isAuthenticated={isAuthenticated}
         />
       )}
     </>
   );
 }
 
-function getActiveCollection(categories: StoreCategory[], slug: string): StoreCategory {
-  if (slug === "all") return ALL_COLLECTIONS;
-  return categories.find((c) => c.slug === slug) ?? categories[0] ?? ALL_COLLECTIONS;
+function NavDropdownTrigger({
+  label,
+  active,
+  solidHeader,
+  onOpen,
+  href,
+  hrefParams,
+  onNavigate,
+}: {
+  label: string;
+  active: boolean;
+  solidHeader: boolean;
+  onOpen: () => void;
+  href: "/shop/$category";
+  hrefParams: { category: string };
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="relative py-1" onMouseEnter={onOpen}>
+      <Link
+        to={href}
+        params={hrefParams}
+        onClick={onNavigate}
+        className={cn(
+          "inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+          solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+          active && "opacity-70",
+        )}
+      >
+        {label}
+        <ChevronDownIcon
+          className={cn("size-3 transition-transform duration-200", active && "rotate-180")}
+        />
+      </Link>
+    </div>
+  );
 }
 
-function isFeaturedCategory(index: number) {
-  return index % 2 === 0;
-}
-
-function splitCategories(columns: StoreCategory[], count: number) {
-  const perCol = Math.ceil(columns.length / count);
-  return Array.from({ length: count }, (_, i) =>
-    columns.slice(i * perCol, (i + 1) * perCol),
-  ).filter((col) => col.length > 0);
-}
-
-function CollectionsMegaMenu({
+function ShopAllMegaMenu({
   categories,
-  activeCategorySlug,
-  onCategoryHover,
+  products,
   onClose,
   onMouseEnter,
 }: {
   categories: StoreCategory[];
-  activeCategorySlug: string;
-  onCategoryHover: (slug: string) => void;
+  products: StoreProduct[];
   onClose: () => void;
   onMouseEnter: () => void;
 }) {
-  const active = getActiveCollection(categories, activeCategorySlug);
-  const columnCount = categories.length > 10 ? 3 : 2;
-  const cols = useMemo(() => splitCategories(categories, columnCount), [categories, columnCount]);
-  const startIndexes = useMemo(() => {
-    let offset = 0;
-    return cols.map((col) => {
-      const start = offset;
-      offset += col.length;
-      return start;
-    });
-  }, [cols]);
+  const { format, currency } = useCurrency();
+
+  const featuredProducts = useMemo(() => {
+    const slugs = new Set(categories.map((c) => c.slug));
+    return products.filter((p) => slugs.has(p.categorySlug)).slice(0, 5);
+  }, [categories, products]);
+
+  if (categories.length === 0) return null;
 
   return (
     <div
-      className="hidden lg:block absolute left-0 right-0 top-full z-50 border-t border-foreground/8 bg-background shadow-[0_24px_48px_rgba(0,0,0,0.08)] animate-reveal"
+      className="hidden lg:flex absolute inset-x-0 top-full z-50 h-[70vh] w-full flex-col overflow-hidden bg-white border-t border-black/6 shadow-[0_20px_48px_rgba(0,0,0,0.08)] animate-reveal"
       onMouseEnter={onMouseEnter}
     >
-      <div className="max-w-[1400px] mx-auto px-10 xl:px-14 py-10 grid grid-cols-[1fr_minmax(340px,420px)] gap-10 xl:gap-14 items-stretch">
-        <div className="flex flex-col min-h-[22rem] max-h-[min(70vh,36rem)]">
-          <div
-            className={cn(
-              "grid gap-x-8 xl:gap-x-10 gap-y-4 flex-1 content-start overflow-y-auto pr-2 [scrollbar-width:thin]",
-              columnCount === 3 ? "grid-cols-3" : "grid-cols-2",
-            )}
-          >
-            {cols.map((col, colIndex) => (
-              <CollectionLinkColumn
-                key={colIndex}
-                categories={col}
-                startIndex={startIndexes[colIndex] ?? 0}
-                activeSlug={activeCategorySlug}
-                onHover={onCategoryHover}
+      {/* Categories — 6-column grid, no scroll */}
+      <div className="flex-[2] min-h-0 overflow-hidden px-10 xl:px-16 pt-5 pb-3">
+        <div className="mx-auto grid h-full w-full max-w-[1440px] grid-cols-6 content-start gap-x-5 xl:gap-x-7 gap-y-3">
+          {categories.map((category) => (
+            <CategoryColumn key={category.slug} category={category} onClose={onClose} compact />
+          ))}
+        </div>
+      </div>
+
+      {/* Products — fills remaining height */}
+      {featuredProducts.length > 0 && (
+        <div className="flex min-h-0 flex-[3] flex-col overflow-hidden border-t border-black/8 px-10 xl:px-16 py-3">
+          <div className="mx-auto grid h-full w-full max-w-[1440px] grid-cols-5 gap-3 xl:gap-4">
+            {featuredProducts.map((product) => (
+              <MegaMenuProductCard
+                key={product.id}
+                product={product}
+                formatPrice={format}
+                currency={currency}
                 onClose={onClose}
               />
             ))}
           </div>
-
-          <Link
-            to="/shop/$category"
-            params={{ category: "all" }}
-            onClick={onClose}
-            className="mt-10 inline-flex w-fit items-center justify-center rounded-full bg-[color:var(--charcoal)] px-8 py-3.5 text-[11px] font-medium tracking-[0.22em] text-[color:var(--ivory)] transition-colors hover:bg-[color:var(--maroon)]"
-          >
-            VIEW ALL COLLECTIONS
-          </Link>
-        </div>
-
-        <CollectionHeroCard category={active} onClose={onClose} />
-      </div>
-    </div>
-  );
-}
-
-function CollectionLinkColumn({
-  categories,
-  startIndex,
-  activeSlug,
-  onHover,
-  onClose,
-}: {
-  categories: StoreCategory[];
-  startIndex: number;
-  activeSlug: string;
-  onHover: (slug: string) => void;
-  onClose: () => void;
-}) {
-  return (
-    <ul className="space-y-3.5">
-      {categories.map((category, i) => {
-        const index = startIndex + i;
-        const featured = isFeaturedCategory(index);
-        const active = activeSlug === category.slug;
-
-        return (
-          <li key={category.slug}>
-            <Link
-              to="/shop/$category"
-              params={{ category: category.slug }}
-              onClick={onClose}
-              onMouseEnter={() => onHover(category.slug)}
-              onFocus={() => onHover(category.slug)}
-              className={cn(
-                "group inline-flex items-center gap-2.5 text-[11px] font-medium tracking-[0.18em] uppercase transition-colors",
-                active
-                  ? "text-[color:var(--maroon)]"
-                  : "text-foreground/80 hover:text-[color:var(--maroon)]",
-              )}
-            >
-              <span>{category.name}</span>
-              {featured && (
-                <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-[8px] tracking-[0.16em] text-foreground/45">
-                  Featured
-                </span>
-              )}
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function CollectionHeroCard({
-  category,
-  onClose,
-}: {
-  category: StoreCategory;
-  onClose: () => void;
-}) {
-  const imageUrl = category.imageUrl || "/banners/banner-1.jpeg";
-  const shopSlug = category.slug === "all" ? "all" : category.slug;
-  const eyebrow =
-    category.slug === "all" ? "Blessings / Curated" : `Blessings / ${category.name}`;
-
-  return (
-    <Link
-      to="/shop/$category"
-      params={{ category: shopSlug }}
-      onClick={onClose}
-      className="group relative block min-h-[22rem] overflow-hidden rounded-2xl bg-[color:var(--muted)]"
-    >
-      <img
-        src={imageUrl}
-        alt={category.name}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/75 via-[color:var(--charcoal)]/20 to-transparent" />
-
-      <div className="absolute inset-x-0 bottom-0 p-7 sm:p-8">
-        <p className="eyebrow text-[9px] sm:text-[10px] text-[color:var(--ivory)]/70 mb-2 tracking-[0.28em]">
-          {eyebrow}
-        </p>
-        <h3 className="font-serif text-3xl sm:text-[2rem] leading-tight text-[color:var(--ivory)] max-w-[16ch]">
-          {category.slug === "all" ? "Every Occasion" : category.name}
-        </h3>
-        {category.tagline ? (
-          <p className="mt-2 text-sm text-[color:var(--ivory)]/75 line-clamp-2 max-w-xs hidden sm:block">
-            {category.tagline}
-          </p>
-        ) : null}
-        <span className="mt-5 inline-block eyebrow text-[10px] tracking-[0.22em] text-[color:var(--ivory)] border-b border-[color:var(--ivory)]/60 pb-1 transition-colors group-hover:border-[color:var(--gold-soft)] group-hover:text-[color:var(--gold-soft)]">
-          Explore Collection
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-function CurrencyDropdown({ compact = false }: { compact?: boolean }) {
-  const { currency, setCurrency, info } = useCurrency();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="relative" onMouseLeave={() => setOpen(false)}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        onMouseEnter={() => setOpen(true)}
-        className={cn(
-          "flex items-center justify-center min-h-11 transition-colors duration-300 text-foreground hover:text-[color:var(--maroon)]",
-          compact ? "gap-0.5 px-1 eyebrow text-[9px] sm:text-[10px]" : "gap-1 eyebrow text-[10px]",
-        )}
-        aria-label="Change currency"
-      >
-        {compact ? (
-          <>
-            <span className="text-sm leading-none">{info.flag}</span>
-            <ChevronDownIcon className="size-2.5 shrink-0" />
-          </>
-        ) : (
-          <>
-            <span>{info.flag}</span>
-            <span>{currency}</span>
-            <ChevronDownIcon className="size-3 shrink-0" />
-          </>
-        )}
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-44 bg-background border border-foreground/10 shadow-xl py-2 animate-reveal z-50">
-          {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => {
-            const c = CURRENCIES[code];
-            return (
-              <button
-                key={code}
-                onClick={() => {
-                  setCurrency(code);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-2 text-xs hover:bg-[color:var(--muted)] transition-colors text-left",
-                  currency === code && "text-[color:var(--maroon)]",
-                )}
-              >
-                <span className="text-sm">{c.flag}</span>
-                <span className="font-medium">{c.code}</span>
-                <span className="text-foreground/50 text-[10px] ml-auto">{c.symbol}</span>
-              </button>
-            );
-          })}
         </div>
       )}
     </div>
+  );
+}
+
+function CategoryColumn({
+  category,
+  onClose,
+  compact = false,
+}: {
+  category: StoreCategory;
+  onClose: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <Link
+        to="/shop/$category"
+        params={{ category: category.slug }}
+        onClick={onClose}
+        className={cn(
+          "block font-bold text-[color:var(--charcoal)] hover:opacity-70 transition-opacity",
+          compact ? "text-[12px] mb-1.5" : "text-[15px] mb-4",
+        )}
+      >
+        {category.name}
+      </Link>
+      {category.subCategories.length > 0 ? (
+        <ul className={cn(compact ? "space-y-1" : "space-y-2.5")}>
+          {(compact ? category.subCategories.slice(0, 4) : category.subCategories).map((sub) => (
+            <li key={sub}>
+              <Link
+                to="/shop/$category"
+                params={{ category: category.slug }}
+                onClick={onClose}
+                className={cn(
+                  "text-[color:var(--charcoal)]/80 hover:text-[color:var(--charcoal)] transition-colors",
+                  compact ? "text-[11px] leading-tight" : "text-[14px]",
+                )}
+              >
+                {sub}
+              </Link>
+            </li>
+          ))}
+          {compact && category.subCategories.length > 4 && (
+            <li>
+              <Link
+                to="/shop/$category"
+                params={{ category: category.slug }}
+                onClick={onClose}
+                className="text-[11px] font-medium text-[color:var(--charcoal)] hover:opacity-70 transition-opacity"
+              >
+                View all
+              </Link>
+            </li>
+          )}
+        </ul>
+      ) : (
+        <Link
+          to="/shop/$category"
+          params={{ category: category.slug }}
+          onClick={onClose}
+          className={cn(
+            "text-[color:var(--charcoal)]/80 hover:text-[color:var(--charcoal)] transition-colors",
+            compact ? "text-[12px]" : "text-[14px]",
+          )}
+        >
+          Shop {category.name}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function MegaMenuProductCard({
+  product,
+  formatPrice,
+  currency,
+  onClose,
+}: {
+  product: StoreProduct;
+  formatPrice: (price: number) => string;
+  currency: CurrencyCode;
+  onClose: () => void;
+}) {
+  return (
+    <Link
+      to="/product/$id"
+      params={{ id: product.slug }}
+      onClick={onClose}
+      className="group flex h-full min-h-0 flex-col"
+    >
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-[#ececec]">
+        {product.bestSeller && (
+          <span className="absolute top-2 left-2 z-10 bg-white px-2 py-0.5 text-[10px] font-medium text-[#c45c3e]">
+            Sale
+          </span>
+        )}
+        <img
+          src={product.imageUrl || "/banners/banner-1.jpeg"}
+          alt={product.name}
+          className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
+        />
+      </div>
+      <h4 className="mt-2 shrink-0 text-[13px] font-bold leading-tight text-[color:var(--charcoal)] line-clamp-1">
+        {product.name}
+      </h4>
+      <p className="mt-0.5 shrink-0 text-[12px] text-[color:var(--charcoal)]">
+        From {formatPrice(product.price)} {currency}
+      </p>
+    </Link>
   );
 }
 
@@ -586,10 +549,12 @@ function MobileDrawer({
   categories,
   onClose,
   onAccount,
+  isAuthenticated,
 }: {
   categories: StoreCategory[];
   onClose: () => void;
   onAccount: () => void;
+  isAuthenticated: boolean;
 }) {
   const { openPanel, cartCount, wishlistCount } = useShop();
 
@@ -602,103 +567,27 @@ function MobileDrawer({
     <>
       <button
         type="button"
-        className="lg:hidden fixed inset-0 top-[7rem] z-40 bg-black/40"
+        className="lg:hidden fixed inset-0 top-[4.25rem] z-40 bg-black/40"
         onClick={onClose}
         aria-label="Close menu"
       />
 
       <div
-        className="lg:hidden fixed inset-x-0 top-[7rem] bottom-[calc(62px+env(safe-area-inset-bottom))] z-50 bg-background overflow-y-auto animate-reveal"
+        className="lg:hidden fixed inset-x-0 top-[4.25rem] bottom-[calc(62px+env(safe-area-inset-bottom))] z-50 bg-white overflow-y-auto animate-reveal"
         data-lenis-prevent
       >
-        <div className="p-8 space-y-8">
-          <div>
-            <p className="eyebrow text-[10px] text-foreground/45 mb-4">Collections</p>
-            <Link
-              to="/shop/$category"
-              params={{ category: "all" }}
-              onClick={onClose}
-              className="block w-fit font-serif text-3xl text-foreground hover:text-[color:var(--maroon)] transition-colors"
-            >
-              All Collections
-            </Link>
+        <div className="px-6 py-8 space-y-8">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-medium tracking-[0.14em] uppercase text-[color:var(--charcoal)]/60">
+            {UTILITY_LEFT.map((item) => (
+              <Link key={item.label} to={item.to} onClick={onClose}>
+                {item.label}
+              </Link>
+            ))}
           </div>
 
-          {categories.map((cat) => (
-            <div key={cat.slug}>
-              <Link
-                to="/shop/$category"
-                params={{ category: cat.slug }}
-                onClick={onClose}
-                className="block w-fit font-serif text-3xl text-foreground hover:text-[color:var(--maroon)] transition-colors"
-              >
-                {cat.name}
-              </Link>
-              {cat.subCategories.length > 0 && (
-                <ul className="mt-3 ml-1 space-y-2">
-                  {cat.subCategories.map((s) => (
-                    <li key={s}>
-                      <Link
-                        to="/shop/$category"
-                        params={{ category: cat.slug }}
-                        className="text-base text-foreground/65 hover:text-[color:var(--maroon)] transition-colors"
-                        onClick={onClose}
-                      >
-                        {s}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-
-          <Link
-            to="/shop/$category"
-            params={{ category: "all" }}
-            onClick={onClose}
-            className="inline-flex w-fit items-center justify-center rounded-full bg-[color:var(--charcoal)] px-6 py-3 text-[10px] tracking-[0.2em] text-[color:var(--ivory)]"
-          >
-            VIEW ALL COLLECTIONS
-          </Link>
-
-          <Link
-            to="/bespoke"
-            onClick={onClose}
-            className="block w-fit font-serif text-3xl text-foreground hover:text-[color:var(--maroon)] transition-colors"
-          >
-            Bespoke Fitting
-          </Link>
-
-          <Link
-            to="/journal"
-            onClick={onClose}
-            className="block w-fit font-serif text-3xl text-foreground hover:text-[color:var(--maroon)] transition-colors"
-          >
-            Journal
-          </Link>
-
-          <div className="flex flex-col gap-4 border-t border-foreground/10 pt-6 text-sm">
-            <button
-              type="button"
-              onClick={() => open("search")}
-              className="text-left text-foreground/70 hover:text-[color:var(--maroon)] transition-colors flex items-center gap-2 w-fit"
-            >
-              <SearchIcon className="size-4" /> Search
-            </button>
-            <button
-              type="button"
-              onClick={() => open("cart")}
-              className="text-left text-foreground/70 hover:text-[color:var(--maroon)] transition-colors flex items-center gap-2 w-fit"
-            >
-              <BagIcon className="size-4" /> Bag {cartCount > 0 ? `(${cartCount})` : ""}
-            </button>
-            <button
-              type="button"
-              onClick={() => open("wishlist")}
-              className="text-left text-foreground/70 hover:text-[color:var(--maroon)] transition-colors flex items-center gap-2 w-fit"
-            >
-              <HeartIcon className="size-4" /> Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-medium tracking-[0.14em] uppercase text-[color:var(--charcoal)]">
+            <button type="button" onClick={() => open("search")}>
+              Search
             </button>
             <button
               type="button"
@@ -706,19 +595,118 @@ function MobileDrawer({
                 onClose();
                 onAccount();
               }}
-              className="text-left text-foreground/70 hover:text-[color:var(--maroon)] transition-colors flex items-center gap-2 w-fit"
             >
-              <UserIcon className="size-4" /> Account
+              {isAuthenticated ? "Account" : "Login"}
             </button>
-            <WhatsAppLink
-              message={WHATSAPP_MESSAGES.general}
-              className="flex items-center gap-2 text-[#25D366] w-fit"
-            >
-              WhatsApp Concierge
-            </WhatsAppLink>
+            <button type="button" onClick={() => open("cart")}>
+              Cart ({cartCount})
+            </button>
+            <button type="button" onClick={() => open("wishlist")}>
+              Wishlist ({wishlistCount})
+            </button>
           </div>
+
+          <div className="border-t border-black/8 pt-6">
+            <p className="text-[10px] font-medium tracking-[0.2em] uppercase text-[color:var(--charcoal)]/45 mb-4">
+              Shop All
+            </p>
+            <Link
+              to="/shop/$category"
+              params={{ category: "all" }}
+              onClick={onClose}
+              className="block text-[15px] font-bold tracking-[0.06em] uppercase text-[color:var(--charcoal)] mb-5"
+            >
+              View All Collections
+            </Link>
+            {categories.length > 0 ? (
+              <ul className="space-y-4">
+                {categories.map((cat) => (
+                  <li key={cat.slug}>
+                    <Link
+                      to="/shop/$category"
+                      params={{ category: cat.slug }}
+                      onClick={onClose}
+                      className="block text-[15px] font-bold tracking-[0.06em] uppercase text-[color:var(--charcoal)]"
+                    >
+                      {cat.name}
+                    </Link>
+                    {cat.subCategories.length > 0 && (
+                      <ul className="mt-2 ml-1 space-y-2">
+                        {cat.subCategories.map((sub) => (
+                          <li key={sub}>
+                            <Link
+                              to="/shop/$category"
+                              params={{ category: cat.slug }}
+                              onClick={onClose}
+                              className="text-[13px] text-[color:var(--charcoal)]/65 hover:text-[color:var(--charcoal)] transition-colors"
+                            >
+                              {sub}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[13px] text-[color:var(--charcoal)]/50">No collections available.</p>
+            )}
+          </div>
+
+          <div className="border-t border-black/8 pt-6 space-y-3">
+            {STATIC_NAV.map((item) => (
+              <Link
+                key={item.label}
+                to={item.to}
+                onClick={onClose}
+                className="block text-[15px] font-bold tracking-[0.06em] uppercase text-[color:var(--charcoal)]"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="border-t border-black/8 pt-6">
+            <CurrencyDropdownMobile />
+          </div>
+
+          <WhatsAppLink
+            message={WHATSAPP_MESSAGES.general}
+            className="flex items-center gap-2 text-[#25D366] text-[13px] font-medium"
+          >
+            WhatsApp Concierge
+          </WhatsAppLink>
         </div>
       </div>
     </>
+  );
+}
+
+function CurrencyDropdownMobile() {
+  const { currency, setCurrency } = useCurrency();
+
+  return (
+    <div>
+      <p className="text-[10px] font-medium tracking-[0.2em] uppercase text-[color:var(--charcoal)]/45 mb-3">
+        Currency
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
+          <button
+            key={code}
+            onClick={() => setCurrency(code)}
+            className={cn(
+              "px-3 py-1.5 text-[11px] font-medium tracking-[0.1em] uppercase border transition-colors",
+              currency === code
+                ? "border-[color:var(--charcoal)] bg-[color:var(--charcoal)] text-white"
+                : "border-black/15 text-[color:var(--charcoal)]/70 hover:border-[color:var(--charcoal)]",
+            )}
+          >
+            {code}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

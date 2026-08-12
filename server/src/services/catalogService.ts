@@ -118,7 +118,7 @@ export async function updateCategory(id: string, data: Partial<{
 }
 
 export async function listNavbarCategories() {
-  const cats = await Category.find({ isActive: true }).sort({ sortOrder: 1, name: 1 });
+  const cats = await Category.find({ isActive: true, showOnNavbar: true }).sort({ sortOrder: 1, name: 1 });
   return cats.map((cat) =>
     toPublicCategory(cat, cat.imageId ? `/api/media/${cat.imageId}` : undefined),
   );

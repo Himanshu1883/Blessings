@@ -1,5 +1,6 @@
 import bespokeImg from "@/assets/bespoke.jpg";
 import craftImg from "@/assets/craft.jpg";
+import { BagIcon, EditIcon, HeartIcon } from "@/components/icons/site-icons";
 import { InstagramReelsSection } from "@/components/site/instagram-reels-section";
 import { ParallaxScroll } from "@/components/site/parallax-scroll";
 import { PreFooterBanner } from "@/components/site/pre-footer-banner";
@@ -12,15 +13,17 @@ import { useShop } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BagIcon, EditIcon, HeartIcon } from "@/components/icons/site-icons";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUpRight,
+  Plus,
   Ruler,
   Scissors,
   Shield,
   Star,
   Truck,
+  X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -47,6 +50,7 @@ function Index() {
       />
       <CategoryEditorial />
       <NewArrivals />
+      <StyleSeekersMarquee />
       <BespokeStory />
       <GroomsEdit />
       <ParallaxCraftsmanship />
@@ -177,7 +181,7 @@ function Hero({
       aria-roledescription="carousel"
       aria-label="Featured collections"
     >
-      <div className="relative h-[calc(100svh-7rem)] min-h-[32rem] w-full md:h-screen md:min-h-[44rem]">
+      <div className="relative h-[calc(100svh-4.25rem)] min-h-[32rem] w-full lg:h-screen lg:min-h-[44rem]">
         {banners.map((banner, index) => {
           const isActive = index === active;
           return (
@@ -319,115 +323,367 @@ function SectionHeader({
   );
 }
 
+/**
+ * Redesigned to match the "Best selling products" reference: a horizontal,
+ * arrow-navigated rail instead of the old masonry grid. Header carries the
+ * eyebrow + italic serif title on the left, a text CTA + round-cornerless
+ * bordered prev/next buttons on the right (same button language as
+ * NewArrivals below, so the two rails feel like one system).
+ */
 function CategoryEditorial() {
   const { categories } = Route.useLoaderData();
   const cats = categories;
+  const scroller = useRef<HTMLDivElement>(null);
+  const scrollBy = (dx: number) => scroller.current?.scrollBy({ left: dx, behavior: "smooth" });
+
   return (
     <section
       data-reveal-direction="alternate"
       className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-32"
     >
-      <SectionHeader
-        eyebrow="(01) The Collections"
-        title="Heritage silhouettes, contemporary craft."
-        ctaHref="/shop/sherwanis"
-        ctaLabel="View all →"
-      />
-      <div className="grid grid-cols-12 gap-4 md:gap-6">
-        {/* Big feature */}
-        <CategoryTile cat={cats[0]} className="col-span-12 md:col-span-7 aspect-[4/5]" size="lg" />
-        <div className="col-span-12 md:col-span-5 flex flex-col gap-4 md:gap-6">
-          <CategoryTile cat={cats[1]} className="aspect-[5/4]" />
-          <CategoryTile cat={cats[3]} className="aspect-[3/4]" />
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-8 sm:mb-12">
+        <div className="max-w-xl">
+          <p className="eyebrow text-[color:var(--gold)] mb-4">(01) The Collections</p>
+          <h2 className="font-serif italic text-4xl md:text-5xl leading-tight text-balance">
+            Heritage silhouettes, contemporary craft.
+          </h2>
         </div>
-        <CategoryTile cat={cats[2]} className="col-span-12 md:col-span-4 aspect-[3/4]" />
-        <CategoryTile cat={cats[4]} className="col-span-12 md:col-span-4 aspect-[3/4]" />
-        <CategoryTile cat={cats[5]} className="col-span-12 md:col-span-4 aspect-[3/4]" />
+        <div className="flex items-center gap-5 shrink-0">
+          <a
+            href="/shop/sherwanis"
+            className="eyebrow text-[10px] border-b border-foreground/20 pb-1 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] transition-colors"
+          >
+            View all →
+          </a>
+          <div className="hidden sm:flex gap-3">
+            <button
+              type="button"
+              onClick={() => scrollBy(-360)}
+              aria-label="Previous collections"
+              className="size-11 border border-foreground/15 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] flex items-center justify-center transition-colors"
+            >
+              <ArrowLeft className="size-4" strokeWidth={1.4} />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollBy(360)}
+              aria-label="Next collections"
+              className="size-11 border border-foreground/15 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] flex items-center justify-center transition-colors"
+            >
+              <ArrowRight className="size-4" strokeWidth={1.4} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        ref={scroller}
+        className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+      >
+        {cats.map((cat) => (
+          <CategoryTile key={cat.slug} cat={cat} />
+        ))}
       </div>
     </section>
   );
 }
 
-function CategoryTile({
-  cat,
-  className,
-  size = "md",
-}: {
-  cat: StoreCategory;
-  className?: string;
-  size?: "md" | "lg";
-}) {
+/**
+ * Card anatomy mirrors the reference: tall product-style image, a subtle
+ * "New" tag if present, a hover overlay chip ("Shop the edit" — our stand-in
+ * for the reference's "Quick view"), then a light caption stack below the
+ * image (eyebrow label + serif italic name) rather than the old dark
+ * gradient-overlay caption baked into the image itself.
+ */
+function CategoryTile({ cat }: { cat: StoreCategory & { tag?: string } }) {
   return (
     <Link
       to="/shop/$category"
       params={{ category: cat.slug }}
-      className={cn("group relative block overflow-hidden bg-[color:var(--muted)]", className)}
+      className="group min-w-[min(280px,78vw)] sm:min-w-[320px] md:min-w-[360px] snap-start shrink-0"
     >
-      <img
-        src={cat.imageUrl}
-        alt={cat.name}
-        loading="lazy"
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/70 via-transparent to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 text-[color:var(--ivory)]">
-        <p className="eyebrow text-[9px] text-[color:var(--gold-soft)] mb-2">The Collection</p>
-        <h3
-          className={cn(
-            "font-serif italic leading-tight",
-            size === "lg" ? "text-3xl md:text-5xl" : "text-2xl md:text-3xl",
-          )}
-        >
-          {cat.name}
-        </h3>
-        <div className="mt-3 flex items-center gap-2 eyebrow text-[10px] opacity-100 translate-x-0 md:opacity-0 md:-translate-x-2 md:group-hover:opacity-100 md:group-hover:translate-x-0 transition-all duration-500">
-          Shop <ArrowRight className="size-3" />
+      <div className="relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]">
+        <img
+          src={cat.imageUrl}
+          alt={cat.name}
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+        />
+        {cat.tag && (
+          <span className="absolute top-4 left-4 eyebrow text-[9px] bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-2.5 py-1">
+            {cat.tag}
+          </span>
+        )}
+        <div className="absolute inset-0 flex items-center justify-center bg-[color:var(--charcoal)]/0 group-hover:bg-[color:var(--charcoal)]/25 opacity-0 group-hover:opacity-100 transition-all duration-300">
+          <span className="eyebrow text-[10px] bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-4 py-2">
+            Shop the edit
+          </span>
         </div>
+      </div>
+      <div className="mt-4">
+        <p className="eyebrow text-[9px] text-foreground/50 mb-1.5">The Collection</p>
+        <h3 className="font-serif italic text-2xl leading-tight">{cat.name}</h3>
       </div>
     </Link>
   );
 }
 
+/**
+ * Shoppable lookbook, redesigned after the reference: a full-bleed photo
+ * that auto-advances through "looks" (here, best-seller products standing
+ * in for outfit photography), a big serif "New look" headline pinned left,
+ * a pulsing hotspot dot over the garment that toggles a quick-view card,
+ * and a "See all" link bottom-right. Pauses on hover/touch like the Hero
+ * carousel above, for the same reason — don't fight someone mid-read.
+ *
+ * NOTE: hotspot position is currently a single fixed point (`HOTSPOT`)
+ * because StoreProduct doesn't carry per-image garment coordinates. If you
+ * shoot dedicated lookbook photography later, swap `looks` to read real
+ * x/y per photo (e.g. a `look.hotspots` field) instead of reusing product
+ * thumbnails as full-bleed backgrounds.
+ */
+const HOTSPOT = { x: "50%", y: "58%" };
+
 function NewArrivals() {
   const { products } = Route.useLoaderData();
-  const scroller = useRef<HTMLDivElement>(null);
-  const scrollBy = (dx: number) => scroller.current?.scrollBy({ left: dx, behavior: "smooth" });
+  const { format } = useCurrency();
+  const looks = products.filter((p) => p.bestSeller).slice(0, 5);
+  const [active, setActive] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [cardOpen, setCardOpen] = useState(true);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isPaused || looks.length <= 1) return;
+    intervalRef.current = setInterval(() => {
+      setActive((c) => (c + 1) % looks.length);
+      setCardOpen(true);
+    }, 6000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isPaused, looks.length]);
+
+  const goTo = (index: number) => {
+    setActive((index + looks.length) % looks.length);
+    setCardOpen(true);
+  };
+
+  if (!looks.length) return null;
+  const look = looks[active];
+
   return (
     <section
       data-reveal-direction="split"
-      className="bg-[color:var(--charcoal)] text-[color:var(--ivory)] py-16 sm:py-24 md:py-32 overflow-hidden"
+      className="relative bg-[color:var(--muted)] overflow-hidden"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+      aria-roledescription="carousel"
+      aria-label="New arrivals lookbook"
     >
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 flex flex-col md:flex-row md:items-end md:justify-between mb-8 sm:mb-12 gap-4 sm:gap-6">
-        <div>
-          <p className="eyebrow text-[color:var(--gold)] mb-4">(02) New Arrivals</p>
-          <h2 className="font-serif italic text-3xl sm:text-4xl md:text-5xl">
-            Winter Weddings Edit
-          </h2>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => scrollBy(-360)}
-            className="size-11 border border-[color:var(--ivory)]/20 hover:border-[color:var(--gold)] hover:text-[color:var(--gold)] flex items-center justify-center transition-colors"
-            aria-label="Previous"
+      <div className="relative h-[36rem] sm:h-[42rem] md:h-[46rem] w-full">
+        {looks.map((p, i) => (
+          <div
+            key={p.id}
+            className={cn(
+              "absolute inset-0 flex items-center justify-center bg-[color:var(--muted)] transition-opacity duration-[1400ms] ease-in-out",
+              i === active ? "opacity-100 z-10" : "opacity-0 z-0",
+            )}
           >
-            <ArrowLeft className="size-4" strokeWidth={1.4} />
-          </button>
-          <button
-            onClick={() => scrollBy(360)}
-            className="size-11 border border-[color:var(--ivory)]/20 hover:border-[color:var(--gold)] hover:text-[color:var(--gold)] flex items-center justify-center transition-colors"
-            aria-label="Next"
-          >
-            <ArrowRight className="size-4" strokeWidth={1.4} />
-          </button>
-        </div>
-      </div>
-      <div
-        ref={scroller}
-        className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory px-4 sm:px-6 md:px-8 max-w-[1600px] mx-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2"
-      >
-        {products.map((p) => (
-          <ProductCard key={p.id} product={p} dark layout="carousel" />
+            <img
+              src={p.imageUrl}
+              alt={p.name}
+              loading={i === 0 ? "eager" : "lazy"}
+              className="h-full w-full object-contain object-center"
+            />
+          </div>
         ))}
+
+        {/* Headline */}
+        <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center px-6 sm:px-10 md:px-16 max-w-md pointer-events-none">
+          <p className="eyebrow text-[color:var(--maroon)] mb-4">(02) New Arrivals</p>
+          <h2 className="font-serif text-5xl sm:text-6xl md:text-7xl leading-[0.95] text-foreground">
+            New look
+          </h2>
+          <p className="mt-4 text-sm text-foreground/60">Discover our new arrivals.</p>
+        </div>
+
+        {/* Hotspot */}
+        <button
+          type="button"
+          onClick={() => setCardOpen((v) => !v)}
+          aria-label={cardOpen ? "Hide product details" : `Show details for ${look.name}`}
+          className="absolute z-20 size-6 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+          style={{ left: HOTSPOT.x, top: HOTSPOT.y }}
+        >
+          <span className="absolute size-6 rounded-full bg-[color:var(--charcoal)]/30 animate-ping" />
+          <span className="absolute size-6 rounded-full bg-[color:var(--charcoal)]/80 flex items-center justify-center">
+            <span className="size-1.5 rounded-full bg-[color:var(--ivory)]" />
+          </span>
+        </button>
+
+        {/* Quick-view card */}
+        <div
+          className={cn(
+            "absolute z-20 left-6 sm:left-10 md:left-16 bottom-10 sm:bottom-14 md:bottom-16 w-[calc(100%-3rem)] max-w-sm bg-background shadow-lg flex items-stretch transition-all duration-500",
+            cardOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none",
+          )}
+        >
+          <Link to="/product/$id" params={{ id: look.id }} className="w-24 sm:w-28 shrink-0 block">
+            <img src={look.imageUrl} alt={look.name} className="h-full w-full object-cover" />
+          </Link>
+          <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between min-w-0">
+            <div>
+              <Link
+                to="/product/$id"
+                params={{ id: look.id }}
+                className="font-serif text-lg leading-tight text-foreground truncate block"
+              >
+                {look.name}
+              </Link>
+              <p className="text-sm mt-1.5 text-[color:var(--maroon)]">{format(look.price)}</p>
+            </div>
+            <Link
+              to="/product/$id"
+              params={{ id: look.id }}
+              className="mt-3 inline-flex items-center gap-1.5 eyebrow text-[10px] text-foreground/70 hover:text-[color:var(--maroon)] transition-colors"
+            >
+              <Plus className="size-3" strokeWidth={1.6} /> Quick view
+            </Link>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCardOpen(false)}
+            aria-label="Close product details"
+            className="absolute top-3 right-3 text-foreground/40 hover:text-foreground transition-colors"
+          >
+            <X className="size-4" strokeWidth={1.6} />
+          </button>
+        </div>
+
+        {/* Manual slide dots */}
+        {looks.length > 1 && (
+          <div className="absolute z-20 right-6 sm:right-10 md:right-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2.5">
+            {looks.map((p, index) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => goTo(index)}
+                aria-label={`Show look ${index + 1}`}
+                aria-current={index === active}
+                className="min-h-11 min-w-6 flex items-center justify-center touch-manipulation"
+              >
+                <span
+                  className={cn(
+                    "w-1.5 rounded-full transition-all duration-500",
+                    index === active
+                      ? "h-8 bg-[color:var(--maroon)]"
+                      : "h-1.5 bg-foreground/25 hover:bg-foreground/50",
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* See all */}
+        <a
+          href="/shop/sherwanis"
+          className="absolute z-20 right-6 sm:right-10 md:right-16 bottom-6 eyebrow text-[10px] border-b border-foreground/30 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] pb-0.5 transition-colors"
+        >
+          See all
+        </a>
+      </div>
+    </section>
+  );
+}
+
+const STYLE_SEEKER_CATEGORIES = [
+  {
+    label: "Sherwanis",
+    slug: "sherwanis",
+    image: "/blessings_1.jpg.jpeg",
+  },
+  {
+    label: "Bandhgalas",
+    slug: "bandhgalas",
+    image: "/blessings_2.jpg.jpeg",
+  },
+  {
+    label: "Wedding Suits",
+    slug: "wedding-suits",
+    image: "/blessings_3.jpg.jpeg",
+  },
+  {
+    label: "Indo-Western",
+    slug: "indo-western",
+    image: "/blessings_4.jpg.jpeg",
+  },
+  {
+    label: "Occasion Kurtas",
+    slug: "occasion-kurtas",
+    image: "/blessings_5.jpg.jpeg",
+  },
+  {
+    label: "Accessories",
+    slug: "accessories",
+    image: "/banners/banner-1.jpeg",
+  },
+] as const;
+
+// Cycled per tile so widths alternate like the reference (narrow, wide, narrow...)
+const TILE_WIDTHS = ["w-[200px] sm:w-[230px]", "w-[260px] sm:w-[320px]"] as const;
+
+function StyleSeekersMarquee() {
+  const track = [...STYLE_SEEKER_CATEGORIES, ...STYLE_SEEKER_CATEGORIES];
+  return (
+    <section data-reveal-direction="alternate" className="py-16 sm:py-24 md:py-32 overflow-hidden">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center mb-14 md:mb-20">
+        <p className="eyebrow text-[color:var(--gold)] mb-5">Loved by Style Seekers</p>
+        <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl leading-snug text-balance">
+          Trusted by thousands for quality and style. Discover why customers love our timeless
+          designs and service.
+        </h2>
+
+        <Link
+          to="/shop/$category"
+          params={{ category: "sherwanis" }}
+          className="mt-8 inline-flex items-center gap-2 rounded-full border border-foreground/20 px-8 py-3 eyebrow text-[10px] hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] transition-colors"
+        >
+          Explore Collection
+        </Link>
+      </div>
+
+      <div className="group [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+        <div className="flex items-end gap-4 sm:gap-5 w-max animate-marquee group-hover:[animation-play-state:paused]">
+          {track.map((cat, i) => (
+            <Link
+              key={`${cat.label}-${i}`}
+              to="/shop/$category"
+              params={{ category: cat.slug }}
+              className={cn(
+                "group/tile relative block aspect-[3/4] overflow-hidden bg-[color:var(--muted)] shrink-0",
+                TILE_WIDTHS[i % TILE_WIDTHS.length],
+              )}
+            >
+              <img
+                src={cat.image}
+                alt={cat.label}
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover/tile:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/70 via-transparent to-transparent" />
+              <span className="absolute bottom-4 left-4 eyebrow text-[10px] text-[color:var(--ivory)]">
+                {cat.label}
+              </span>
+              <span className="absolute bottom-4 right-4 size-9 rounded-full bg-[color:var(--ivory)] text-[color:var(--charcoal)] flex items-center justify-center">
+                <ArrowUpRight className="size-4" strokeWidth={1.6} />
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -499,9 +755,7 @@ export function ProductCard({
               }}
               className="size-10 bg-[color:var(--ivory)] text-[color:var(--charcoal)] flex items-center justify-center hover:bg-[color:var(--gold)]"
             >
-              <HeartIcon
-                className={cn("size-4", saved && "text-[color:var(--maroon)]")}
-              />
+              <HeartIcon className={cn("size-4", saved && "text-[color:var(--maroon)]")} />
             </button>
             <button
               type="button"
@@ -553,9 +807,9 @@ export function ProductCard({
 
 function BespokeStory() {
   return (
-    <section className="bg-[color:var(--maroon)] text-[color:var(--ivory)] py-16 sm:py-24 md:py-32 relative overflow-hidden">
+    <section className="bg-background py-16 sm:py-24 md:py-32 relative overflow-hidden">
       <div className="absolute -top-10 left-0 right-0 text-center pointer-events-none select-none">
-        <span className="font-serif italic text-[18vw] leading-none text-[color:var(--ivory)]/[0.04]">
+        <span className="font-serif italic text-[18vw] leading-none text-foreground/[0.03]">
           Bespoke
         </span>
       </div>
@@ -573,19 +827,19 @@ function BespokeStory() {
             loading="lazy"
             className="w-full aspect-[4/5] object-cover"
           />
-          <div className="absolute bottom-0 right-0 md:-bottom-8 md:-right-12 size-32 sm:size-40 md:size-52 bg-[color:var(--gold)] text-[color:var(--maroon)] flex flex-col items-center justify-center text-center p-4 md:p-6">
+          <div className="absolute bottom-0 right-0 md:-bottom-8 md:-right-12 size-32 sm:size-40 md:size-52 bg-[color:var(--ivory)] border border-[color:var(--gold)]/30 text-[color:var(--maroon)] flex flex-col items-center justify-center text-center p-4 md:p-6 shadow-sm">
             <span className="font-serif italic text-4xl md:text-5xl">30+</span>
-            <span className="eyebrow text-[9px] mt-2 leading-tight">
+            <span className="eyebrow text-[9px] mt-2 leading-tight text-foreground/60">
               Days of Artisan Craftsmanship
             </span>
           </div>
         </div>
         <div>
-          <p className="eyebrow text-[color:var(--gold-soft)] mb-6">(03) The Bespoke Experience</p>
-          <h2 className="font-serif italic text-4xl md:text-6xl leading-[1.05] text-balance">
+          <p className="eyebrow text-[color:var(--maroon)] mb-6">(03) The Bespoke Experience</p>
+          <h2 className="font-serif italic text-4xl md:text-6xl leading-[1.05] text-balance text-foreground">
             Tailored to your story, delivered to your door.
           </h2>
-          <p className="mt-8 text-[color:var(--ivory)]/70 leading-relaxed max-w-md">
+          <p className="mt-8 text-foreground/60 leading-relaxed max-w-md">
             From our flagship atelier in Delhi to your doorstep in London, New York or Dubai — every
             garment is a dialogue between tradition and your personal vision. Virtual consultations
             available for our international clientele.
@@ -597,18 +851,15 @@ function BespokeStory() {
               ["03", "Master pattern & three fittings"],
               ["04", "White-glove worldwide delivery"],
             ].map(([n, t]) => (
-              <div
-                key={n}
-                className="flex items-center gap-6 border-b border-[color:var(--ivory)]/10 pb-4"
-              >
-                <span className="font-serif italic text-[color:var(--gold-soft)] text-lg">{n}</span>
-                <span className="eyebrow text-[10px]">{t}</span>
+              <div key={n} className="flex items-center gap-6 border-b border-foreground/10 pb-4">
+                <span className="font-serif italic text-[color:var(--maroon)] text-lg">{n}</span>
+                <span className="eyebrow text-[10px] text-foreground/80">{t}</span>
               </div>
             ))}
           </div>
           <Link
             to="/bespoke"
-            className="mt-10 inline-flex items-center gap-3 bg-[color:var(--gold)] hover:bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-10 py-4 eyebrow text-[10.5px] transition-colors"
+            className="mt-10 inline-flex items-center gap-3 bg-[color:var(--maroon)] hover:bg-[color:var(--charcoal)] text-[color:var(--ivory)] px-10 py-4 eyebrow text-[10.5px] transition-colors"
           >
             Book an appointment <ArrowRight className="size-3.5" />
           </Link>
