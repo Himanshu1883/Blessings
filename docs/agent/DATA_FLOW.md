@@ -38,18 +38,18 @@ LoginForm
 → AuthProvider user / isAdmin
 ```
 
-Cart/wishlist mutations require `isAuthenticated`; otherwise toast + navigate `/login?from=`.
+Cart/wishlist: guest cart is local (`guest-cart.ts` / `shop-store`); wishlist still requires login. Checkout requires `isAuthenticated` (login `from=/checkout`); guest lines merge into the server cart after sign-in.
 
 ## Cart
 
 ```
 addToCart (shop-store)
-→ useCartMutations
-→ POST /api/cart/items
-→ cartService (user Cart document)
-→ React Query ["cart"]
+→ if guest: localStorage blessings.guest-cart
+→ if signed in: POST /api/cart/items → cartService
 → CartSheet / header CART (n)
 ```
+
+On login, guest lines are POSTed into the user cart then cleared.
 
 ## Checkout
 

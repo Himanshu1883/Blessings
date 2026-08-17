@@ -174,12 +174,11 @@ function RootComponent() {
         <CurrencyProvider>
           <ShopProvider>
             <ScrollExperienceProvider>
-              <div className="flex min-h-screen flex-col bg-background text-foreground w-full max-w-[100vw]">
+              <div className="flex min-h-screen flex-col bg-white text-foreground w-full max-w-[100vw]">
                 <SiteHeader />
                 <main
                   className={cn(
-                    "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0",
-                    !isHome && "pt-[var(--header-height)]",
+                    "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0 pt-[var(--header-height)]",
                     isAuthPage && "overflow-x-hidden",
                   )}
                 >

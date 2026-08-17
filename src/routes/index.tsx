@@ -176,7 +176,7 @@ function Hero({
 
   return (
     <section
-      className="reveal-ignore relative w-full overflow-hidden"
+      className="reveal-ignore relative w-full overflow-hidden bg-white"
       onMouseEnter={pause}
       onMouseLeave={resume}
       onTouchStart={pause}
@@ -184,7 +184,7 @@ function Hero({
       aria-roledescription="carousel"
       aria-label="Featured collections"
     >
-      <div className="relative h-[calc(100svh-4.25rem)] min-h-[32rem] w-full lg:h-screen lg:min-h-[44rem]">
+      <div className="relative h-[calc(100svh-var(--header-height))] min-h-[32rem] w-full lg:min-h-[44rem]">
         {banners.map((banner, index) => {
           const isActive = index === active;
           return (
@@ -201,7 +201,7 @@ function Hero({
                 width={2560}
                 height={1440}
                 fetchPriority={index === 0 ? "high" : "low"}
-                className="w-full h-full object-cover object-center"
+                className="h-full w-full object-cover object-top"
                 onError={(e) => {
                   console.error(`Failed to load image: ${banner.src}`);
                   e.currentTarget.style.display = "none";
@@ -216,7 +216,7 @@ function Hero({
 
         {/* Gradient overlays */}
         <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-r from-[color:var(--charcoal)]/45 via-[color:var(--charcoal)]/10 to-[color:var(--charcoal)]/25 md:from-[color:var(--charcoal)]/25 md:to-[color:var(--charcoal)]/35" />
-        <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-b from-[color:var(--charcoal)]/12 via-transparent via-35% to-[color:var(--charcoal)]/78 md:from-[color:var(--charcoal)]/20 md:to-[color:var(--charcoal)]/55" />
+        <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-b from-transparent via-transparent via-35% to-[color:var(--charcoal)]/78 md:to-[color:var(--charcoal)]/55" />
 
         {/* Content */}
         <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-start justify-end px-4 pb-20 pt-24 text-left text-[color:var(--ivory)] sm:px-6 sm:pb-24 sm:pt-28 md:items-end md:px-16 md:pb-32 lg:px-24 md:text-right">

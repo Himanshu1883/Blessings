@@ -20,7 +20,7 @@ The git repo root is `blessings/` (workspace folder `Blessings/` wraps it).
 
 | Area | Location | Responsibility |
 |---|---|---|
-| Storefront UI | `src/routes/`, `src/components/site/` | Pages, header/footer, cart/search sheets |
+| Storefront UI | `src/routes/`, `src/components/site/` | Pages, header/footer, cart/search sheets, PDP gallery (`product-gallery.tsx`) |
 | Admin UI | `src/routes/admin/`, `src/components/admin/` | CMS + ops dashboard |
 | Shared UI | `src/components/ui/` | shadcn primitives |
 | Frontend API | `src/lib/api-client.ts`, `catalog-api.ts`, `api-hooks.ts`, `homepage-api.ts` | Fetch + Query hooks |

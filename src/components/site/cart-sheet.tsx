@@ -13,7 +13,7 @@ import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 
 export function CartSheet() {
-  const { panel, closePanel, resolveCartLines, updateCartQuantity, removeFromCart, clearCart, cartSubtotal, isAuthenticated } = useShop();
+  const { panel, closePanel, resolveCartLines, updateCartQuantity, removeFromCart, clearCart, cartSubtotal } = useShop();
   const { format } = useCurrency();
   const lines = resolveCartLines();
   const subtotal = cartSubtotal || lines.reduce((sum, { line, product }) => sum + product.price * line.quantity, 0);

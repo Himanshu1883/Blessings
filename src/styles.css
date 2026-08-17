@@ -68,8 +68,8 @@
   --maroon: oklch(0.26 0.11 25);
   --emerald-deep: oklch(0.28 0.06 165);
 
-  /* Fixed SiteHeader: mobile one-row (py-3.5 + logo/tagline); lg two-row (pt-5/pb-2 + logo/tagline + nav pb-4). */
-  --header-height: 4.25rem;
+  /* Fixed SiteHeader: mobile (menu | logo+wordmark | cart); lg (links | lockup | links). */
+  --header-height: 4.55rem;
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
@@ -521,7 +521,7 @@ html.lenis.lenis-smooth {
 
 @media (min-width: 1024px) {
   :root {
-    --header-height: 8rem;
+    --header-height: 5.5rem;
   }
 
   [data-sonner-toaster][data-y-position="bottom"][data-x-position="right"] {
@@ -530,6 +530,44 @@ html.lenis.lenis-smooth {
 }
 
 @layer components {
+  .pdp-stage {
+    height: min(70vh, calc(100svh - var(--header-height) - 9rem));
+    max-height: 70vh;
+  }
+
+  @media (min-width: 1024px) {
+    .pdp-stage {
+      height: 70vh;
+      max-height: 70vh;
+    }
+  }
+
+  .pdp-info-pane {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--charcoal) 22%, transparent) transparent;
+    overscroll-behavior: contain;
+  }
+
+  .pdp-info-pane::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .pdp-info-pane::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--charcoal) 22%, transparent);
+  }
+
+  .pdp-thumbs {
+    scrollbar-width: none;
+  }
+
+  .pdp-thumbs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pdp-zoom-img {
+    will-change: transform;
+  }
+
   .admin-shell {
     @apply min-h-svh w-full;
   }

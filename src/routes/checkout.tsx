@@ -61,7 +61,9 @@ function CheckoutPage() {
         <h1 className="font-serif italic text-3xl mb-4">Checkout</h1>
         <p className="text-sm text-foreground/60 mb-8">Please sign in to complete your order.</p>
         <Button asChild className="rounded-none">
-          <Link to="/">Return home</Link>
+          <Link to="/login" search={{ from: "/checkout" }}>
+            Sign in to checkout
+          </Link>
         </Button>
       </div>
     );

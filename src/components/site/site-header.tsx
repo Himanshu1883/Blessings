@@ -28,6 +28,7 @@ const STATIC_NAV = [
 ] as const;
 
 const BRAND_TAGLINE = "The Men's Boutique · Delhi";
+const BRAND_LOGO = "/logo-blessings.png";
 
 let navbarCategoriesCache: StoreCategory[] | null = null;
 let navbarCategoriesPromise: Promise<StoreCategory[]> | null = null;
@@ -64,7 +65,6 @@ export function SiteHeader() {
   const [navbarProducts, setNavbarProducts] = useState<StoreProduct[]>(
     () => navbarProductsCache ?? [],
   );
-  const [scrolled, setScrolled] = useState(false);
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const menuCloseTimer = useRef<number | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -97,13 +97,6 @@ export function SiteHeader() {
       navigate({ to: "/login", search: { from: pathname } });
     }
   };
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 40);
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -150,7 +143,7 @@ export function SiteHeader() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [mobileOpen]);
 
-  const solidHeader = scrolled || pathname !== "/" || shopMenuOpen;
+  const solidHeader = true;
 
   return (
     <>
@@ -163,92 +156,9 @@ export function SiteHeader() {
         )}
       >
         <div className="relative w-full" onMouseLeave={scheduleCloseShopMenu}>
-          {/* ── Desktop: two-row header ── */}
-          <div className="hidden lg:block">
-            {/* Top row: utility | logo | utility */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center px-8 xl:px-14 pt-5 pb-2">
-              <div className="flex items-center min-w-0">
-                {UTILITY_LEFT.map((item, i) => (
-                  <span key={item.label} className="inline-flex items-center">
-                    {i > 0 && (
-                      <span
-                        className={cn(
-                          "mx-3 text-[10px] select-none",
-                          solidHeader ? "text-[color:var(--charcoal)]/30" : "text-white/40",
-                        )}
-                        aria-hidden
-                      >
-                        |
-                      </span>
-                    )}
-                    <Link
-                      to={item.to}
-                      className={cn(
-                        "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
-                        solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                      )}
-                    >
-                      {item.label}
-                    </Link>
-                  </span>
-                ))}
-              </div>
-
-              <Link to="/" className="text-center transition-opacity hover:opacity-80">
-                <span
-                  className={cn(
-                    "block text-[26px] xl:text-[28px] font-bold tracking-[0.18em] uppercase",
-                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                  )}
-                >
-                  Blessings
-                </span>
-                <span
-                  className={cn(
-                    "block mt-1.5 text-[8px] xl:text-[8.5px] tracking-[0.36em] uppercase",
-                    solidHeader ? "text-[color:var(--charcoal)]/45" : "text-white/55",
-                  )}
-                >
-                  {BRAND_TAGLINE}
-                </span>
-              </Link>
-
-              <div className="flex items-center justify-end gap-6 xl:gap-7 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => openPanel("search")}
-                  className={cn(
-                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
-                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                  )}
-                >
-                  Search
-                </button>
-                <button
-                  type="button"
-                  onClick={openAccount}
-                  className={cn(
-                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
-                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                  )}
-                >
-                  {isAuthenticated ? "Account" : "Login"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openPanel("cart")}
-                  className={cn(
-                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
-                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                  )}
-                >
-                  Cart ({cartCount})
-                </button>
-              </div>
-            </div>
-
-            {/* Bottom row: nav links grouped with tighter spacing */}
-            <nav className="flex w-full items-center justify-center gap-5 xl:gap-6 px-8 xl:px-14 pb-4">
+          {/* ── Desktop: one-row links | stacked logo | one-row links ── */}
+          <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center gap-4 xl:gap-8 px-8 xl:px-14 py-3">
+            <nav className="flex min-w-0 flex-wrap items-center justify-start gap-x-6 gap-y-1 xl:gap-x-8">
               <NavDropdownTrigger
                 label="Shop All"
                 active={shopMenuOpen}
@@ -258,8 +168,7 @@ export function SiteHeader() {
                 hrefParams={{ category: "all" }}
                 onNavigate={() => setShopMenuOpen(false)}
               />
-
-              {STATIC_NAV.map((item) => (
+              {STATIC_NAV.slice(0, 2).map((item) => (
                 <Link
                   key={item.label}
                   to={item.to}
@@ -272,11 +181,71 @@ export function SiteHeader() {
                   {item.label}
                 </Link>
               ))}
+              {UTILITY_LEFT.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <BrandLogo solidHeader={solidHeader} />
+
+            <nav className="flex min-w-0 flex-wrap items-center justify-end gap-x-6 gap-y-1 xl:gap-x-8">
+              {STATIC_NAV.slice(2).map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className={cn(
+                    "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                    pathname === item.to && "opacity-70",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <button
+                type="button"
+                onClick={() => openPanel("search")}
+                className={cn(
+                  "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                  solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                )}
+              >
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={openAccount}
+                className={cn(
+                  "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                  solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                )}
+              >
+                {isAuthenticated ? "Account" : "Login"}
+              </button>
+              <button
+                type="button"
+                onClick={() => openPanel("cart")}
+                className={cn(
+                  "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
+                  solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                )}
+              >
+                Cart ({cartCount})
+              </button>
             </nav>
           </div>
 
           {/* ── Mobile header ── */}
-          <nav className="lg:hidden px-4 sm:px-6 py-3.5">
+          <nav className="lg:hidden px-4 sm:px-6 py-2.5">
             <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
               <button
                 className={cn(
@@ -289,24 +258,7 @@ export function SiteHeader() {
                 {mobileOpen ? "Close" : "Menu"}
               </button>
 
-              <Link to="/" className="justify-self-center text-center transition-opacity hover:opacity-80">
-                <span
-                  className={cn(
-                    "block text-[20px] sm:text-[22px] font-bold tracking-[0.16em] uppercase",
-                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                  )}
-                >
-                  Blessings
-                </span>
-                <span
-                  className={cn(
-                    "block mt-1 text-[6.5px] sm:text-[7px] tracking-[0.32em] uppercase",
-                    solidHeader ? "text-[color:var(--charcoal)]/45" : "text-white/55",
-                  )}
-                >
-                  {BRAND_TAGLINE}
-                </span>
-              </Link>
+              <BrandLogo solidHeader={solidHeader} compact />
 
               <button
                 type="button"
@@ -341,6 +293,59 @@ export function SiteHeader() {
         />
       )}
     </>
+  );
+}
+
+function BrandLogo({
+  solidHeader,
+  compact = false,
+}: {
+  solidHeader: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <Link
+      to="/"
+      aria-label="Blessings home"
+      className={cn(
+        "group flex shrink-0 items-center",
+        compact ? "justify-self-center gap-2.5" : "gap-3.5",
+      )}
+    >
+      <span
+        className={cn(
+          "relative shrink-0 overflow-hidden rounded-full bg-black ring-1 shadow-[0_2px_10px_rgba(0,0,0,0.25)] transition-transform duration-700 ease-in-out group-hover:rotate-[360deg]",
+          compact ? "size-11" : "size-14 xl:size-16",
+          solidHeader ? "ring-[color:var(--gold)]/50" : "ring-white/50",
+        )}
+      >
+        <img
+          src={BRAND_LOGO}
+          alt=""
+          className="h-full w-full object-contain"
+        />
+      </span>
+      <span className="flex min-w-0 flex-col items-start text-left">
+        <span
+          className={cn(
+            "font-bold uppercase tracking-[0.16em] leading-none",
+            compact ? "text-[15px]" : "text-[20px] xl:text-[22px]",
+            solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+          )}
+        >
+          Blessings
+        </span>
+        <span
+          className={cn(
+            "mt-1.5 uppercase tracking-[0.28em] leading-none",
+            compact ? "text-[6px] sm:text-[6.5px]" : "text-[7.5px] xl:text-[8px]",
+            solidHeader ? "text-[color:var(--charcoal)]/45" : "text-white/55",
+          )}
+        >
+          {BRAND_TAGLINE}
+        </span>
+      </span>
+    </Link>
   );
 }
 
