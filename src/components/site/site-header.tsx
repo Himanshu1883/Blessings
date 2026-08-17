@@ -567,13 +567,13 @@ function MobileDrawer({
     <>
       <button
         type="button"
-        className="lg:hidden fixed inset-0 top-[4.25rem] z-40 bg-black/40"
+        className="lg:hidden fixed inset-0 top-[var(--header-height)] z-40 bg-black/40"
         onClick={onClose}
         aria-label="Close menu"
       />
 
       <div
-        className="lg:hidden fixed inset-x-0 top-[4.25rem] bottom-[calc(62px+env(safe-area-inset-bottom))] z-50 bg-white overflow-y-auto animate-reveal"
+        className="lg:hidden fixed inset-x-0 top-[var(--header-height)] bottom-[calc(62px+env(safe-area-inset-bottom))] z-50 bg-white overflow-y-auto animate-reveal"
         data-lenis-prevent
       >
         <div className="px-6 py-8 space-y-8">

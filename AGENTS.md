@@ -1,3 +1,5 @@
+<!-- Agent context: load docs/agent/README.md first (PROJECT_MAP → CHANGE_MAP), then inspect only the files it names. Keep those docs accurate after architecture/flow changes. -->
+
 <!-- LOVABLE:BEGIN -->
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting

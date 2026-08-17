@@ -68,6 +68,9 @@
   --maroon: oklch(0.26 0.11 25);
   --emerald-deep: oklch(0.28 0.06 165);
 
+  /* Fixed SiteHeader: mobile one-row (py-3.5 + logo/tagline); lg two-row (pt-5/pb-2 + logo/tagline + nav pb-4). */
+  --header-height: 4.25rem;
+
   --background: var(--ivory);
   --foreground: var(--charcoal);
   --card: oklch(1 0 0);
@@ -517,6 +520,10 @@ html.lenis.lenis-smooth {
 }
 
 @media (min-width: 1024px) {
+  :root {
+    --header-height: 8rem;
+  }
+
   [data-sonner-toaster][data-y-position="bottom"][data-x-position="right"] {
     bottom: calc(88px + env(safe-area-inset-bottom)) !important;
   }

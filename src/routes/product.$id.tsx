@@ -43,7 +43,19 @@ function ProductPage() {
   const { format } = useCurrency();
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
   const [size, setSize] = useState(product.sizes[0] ?? "M");
+  const [activeImage, setActiveImage] = useState(0);
   const saved = isInWishlist(product.mongoId);
+  const gallery =
+    product.imageUrls.length > 0
+      ? product.imageUrls
+      : product.imageUrl
+        ? [product.imageUrl]
+        : [];
+  const mainImage = gallery[activeImage] ?? gallery[0] ?? "";
+
+  useEffect(() => {
+    setActiveImage(0);
+  }, [product.slug]);
 
   useEffect(() => {
     addRecentlyViewed({
@@ -67,10 +79,36 @@ function ProductPage() {
       </div>
 
       <div data-reveal-section data-reveal-direction="split" className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10 grid grid-cols-12 gap-6 sm:gap-8 lg:gap-16">
-        <div className="col-span-12 lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <img src={product.imageUrl} alt={product.name} className="w-full aspect-[3/4] object-cover md:col-span-2" />
-          <img src={product.imageUrl} alt="" className="w-full aspect-square object-cover" />
-          <img src={product.imageUrl} alt="" className="w-full aspect-square object-cover" />
+        <div className="col-span-12 lg:col-span-7 space-y-3">
+          {mainImage ? (
+            <img
+              src={mainImage}
+              alt={product.name}
+              className="w-full aspect-[3/4] object-cover object-top bg-[#ececec]"
+            />
+          ) : null}
+
+          {gallery.length > 1 && (
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+              {gallery.map((src, i) => (
+                <button
+                  key={`${src}-${i}`}
+                  type="button"
+                  onClick={() => setActiveImage(i)}
+                  aria-label={`View image ${i + 1}`}
+                  aria-pressed={i === activeImage}
+                  className={cn(
+                    "overflow-hidden bg-[#ececec] border transition-colors",
+                    i === activeImage
+                      ? "border-[color:var(--charcoal)]"
+                      : "border-transparent hover:border-foreground/25",
+                  )}
+                >
+                  <img src={src} alt="" className="w-full aspect-[3/4] object-cover object-top" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="col-span-12 lg:col-span-5">

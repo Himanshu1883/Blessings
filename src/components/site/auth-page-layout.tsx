@@ -16,7 +16,7 @@ export function AuthPageLayout({ mode, children }: AuthPageLayoutProps) {
 
   return (
     <div
-      className="flex min-h-[calc(100dvh-7.25rem)] items-center justify-center px-4 py-8 sm:py-10"
+      className="flex min-h-[calc(100dvh-var(--header-height))] items-center justify-center px-4 py-8 sm:py-10"
       data-lenis-prevent
     >
       <div className="w-full max-w-5xl">

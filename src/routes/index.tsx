@@ -50,9 +50,12 @@ function Index() {
       />
       <CategoryEditorial />
       <NewArrivals />
+      <ExploreMenswear />
+      <ShopByOccasion />
       <StyleSeekersMarquee />
       <BespokeStory />
       <GroomsEdit />
+      <RelatedLooks />
       <ParallaxCraftsmanship />
       <Testimonials cms={homepage.reviews as Record<string, unknown> | undefined} />
       <TrustStrip />
@@ -622,6 +625,11 @@ const STYLE_SEEKER_CATEGORIES = [
     image: "/blessings_4.jpg.jpeg",
   },
   {
+    label: "Shirts",
+    slug: "shirts",
+    image: "/blessings_5.jpg.jpeg",
+  },
+  {
     label: "Occasion Kurtas",
     slug: "occasion-kurtas",
     image: "/blessings_5.jpg.jpeg",
@@ -802,6 +810,233 @@ export function ProductCard({
         </div>
       </Link>
     </div>
+  );
+}
+
+const MENSWEAR_SILHOUETTES = [
+  {
+    slug: "sherwanis",
+    title: "Sherwani",
+    occasion: "The wedding ceremony",
+    copy: "The most famous Indian groomswear silhouette — a long, structured coat worn for the pheras. Blessings cuts it slim on the Delhi last, with zardosi and silk that read as heirloom, not costume.",
+  },
+  {
+    slug: "bandhgalas",
+    title: "Bandhgala",
+    occasion: "Reception & black tie",
+    copy: "The closed-collar jacket that moved from princely courts to every modern reception. Mandarin collar, a clean button line, evening sovereignty — the bandhgala is India’s answer to the tuxedo.",
+  },
+  {
+    slug: "indo-western",
+    title: "Indo Western",
+    occasion: "Sangeet, cocktail, after-party",
+    copy: "Where drape meets tailoring: kurtas, jackets, and statement prints for the nights around the wedding. The silhouette famous street-style menswear made global — Blessings makes it atelier-grade.",
+  },
+  {
+    slug: "shirts",
+    title: "Shirts",
+    occasion: "Everyday & cocktail",
+    copy: "The most famous everyday menswear piece — cut as a Blessings statement: print, embroidery, and cotton that holds its own next to a bandhgala.",
+  },
+] as const;
+
+function ExploreMenswear() {
+  const { categories, products } = Route.useLoaderData();
+
+  return (
+    <section
+      data-reveal-direction="alternate"
+      className="bg-[color:var(--charcoal)] text-[color:var(--ivory)] py-16 sm:py-24 md:py-32"
+    >
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8">
+        <div className="max-w-2xl mb-12 md:mb-20">
+          <p className="eyebrow text-[color:var(--gold-soft)] mb-4">The Wardrobe</p>
+          <h2 className="font-serif italic text-4xl md:text-5xl leading-tight text-balance">
+            Explore famous men’s wear — cut for Blessings.
+          </h2>
+          <p className="mt-6 text-[color:var(--ivory)]/65 text-sm md:text-base leading-relaxed max-w-lg">
+            Three silhouettes every well-dressed Indian man knows — plus the statement shirt.
+            Sherwani, bandhgala, Indo-Western, and shirts from the Delhi atelier.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
+          {MENSWEAR_SILHOUETTES.map((item) => {
+            const cat = categories.find((c) => c.slug === item.slug);
+            const cover =
+              cat?.imageUrl ||
+              products.find((p) => p.categorySlug === item.slug)?.imageUrl ||
+              "/banners/banner-1.jpeg";
+            const count = products.filter((p) => p.categorySlug === item.slug).length;
+            return (
+              <Link
+                key={item.slug}
+                to="/shop/$category"
+                params={{ category: item.slug }}
+                className="group block"
+              >
+                <div className="relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]">
+                  <img
+                    src={cover}
+                    alt={item.title}
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-[1200ms] group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/80 via-transparent to-transparent" />
+                  <span className="absolute top-4 left-4 eyebrow text-[9px] bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-2.5 py-1">
+                    {item.occasion}
+                  </span>
+                </div>
+                <h3 className="mt-5 font-serif italic text-3xl">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-[color:var(--ivory)]/60">
+                  {item.copy}
+                </p>
+                <span className="mt-4 inline-flex items-center gap-2 eyebrow text-[10px] text-[color:var(--gold-soft)] group-hover:gap-3 transition-all">
+                  Shop {count > 0 ? `${count} looks` : "the collection"}{" "}
+                  <ArrowRight className="size-3.5" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const OCCASIONS = [
+  {
+    label: "Wedding",
+    slug: "sherwanis" as const,
+    line: "Pheras & the main ceremony",
+    pick: 0,
+  },
+  {
+    label: "Reception",
+    slug: "bandhgalas" as const,
+    line: "Closed collar, evening light",
+    pick: 0,
+  },
+  {
+    label: "Sangeet",
+    slug: "indo-western" as const,
+    line: "Drape, print, movement",
+    pick: 0,
+  },
+  {
+    label: "Cocktail",
+    slug: "indo-western" as const,
+    line: "After-party statement",
+    pick: 1,
+  },
+] as const;
+
+function ShopByOccasion() {
+  const { products } = Route.useLoaderData();
+
+  return (
+    <section
+      data-reveal-direction="split"
+      className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-32"
+    >
+      <SectionHeader
+        eyebrow="Worn For"
+        title="Shop famous occasions, not just categories."
+        ctaHref="/shop/all"
+        ctaLabel="Shop all →"
+      />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        {OCCASIONS.map((occ) => {
+          const pool = products.filter((p) => p.categorySlug === occ.slug);
+          const cover = pool[occ.pick] ?? pool[0];
+          return (
+            <Link
+              key={occ.label}
+              to="/shop/$category"
+              params={{ category: occ.slug }}
+              className="group relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]"
+            >
+              {cover?.imageUrl ? (
+                <img
+                  src={cover.imageUrl}
+                  alt={occ.label}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-[1200ms] group-hover:scale-105"
+                />
+              ) : null}
+              <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/75 via-[color:var(--charcoal)]/15 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 text-[color:var(--ivory)]">
+                <p className="eyebrow text-[9px] text-[color:var(--gold-soft)] mb-2">{occ.line}</p>
+                <h3 className="font-serif italic text-2xl sm:text-3xl">{occ.label}</h3>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function RelatedLooks() {
+  const { products } = Route.useLoaderData();
+  const scroller = useRef<HTMLDivElement>(null);
+  const core = products.filter((p) =>
+    ["sherwanis", "bandhgalas", "indo-western", "shirts"].includes(p.categorySlug),
+  );
+  const looks = (core.length >= 6 ? core.slice(4) : core).slice(0, 10);
+  if (looks.length < 3) return null;
+
+  const scrollBy = (dx: number) => scroller.current?.scrollBy({ left: dx, behavior: "smooth" });
+
+  return (
+    <section
+      data-reveal-direction="alternate"
+      className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-16 sm:py-24 md:py-32"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-10 sm:mb-14">
+        <div className="max-w-xl">
+          <p className="eyebrow text-[color:var(--gold)] mb-4">(06) Related Looks</p>
+          <h2 className="font-serif italic text-4xl md:text-5xl leading-tight text-balance">
+            More from the atelier.
+          </h2>
+        </div>
+        <div className="flex items-center gap-5 shrink-0">
+          <Link
+            to="/shop/$category"
+            params={{ category: "all" }}
+            className="eyebrow text-[10px] border-b border-foreground/20 pb-1 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] transition-colors"
+          >
+            View all →
+          </Link>
+          <div className="hidden sm:flex gap-3">
+            <button
+              type="button"
+              onClick={() => scrollBy(-360)}
+              aria-label="Previous related looks"
+              className="size-11 border border-foreground/15 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] flex items-center justify-center transition-colors"
+            >
+              <ArrowLeft className="size-4" strokeWidth={1.4} />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollBy(360)}
+              aria-label="Next related looks"
+              className="size-11 border border-foreground/15 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] flex items-center justify-center transition-colors"
+            >
+              <ArrowRight className="size-4" strokeWidth={1.4} />
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        ref={scroller}
+        className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+      >
+        {looks.map((p) => (
+          <ProductCard key={p.id} product={p} layout="carousel" />
+        ))}
+      </div>
+    </section>
   );
 }
 

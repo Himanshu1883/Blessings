@@ -19,6 +19,7 @@ export type StoreProduct = {
   fabric: string;
   price: number;
   imageUrl: string;
+  imageUrls: string[];
   description: string;
   isNew?: boolean;
   bestSeller?: boolean;
@@ -35,6 +36,10 @@ export type StoreCategory = {
 };
 
 function mapApiProduct(p: ApiProduct): StoreProduct {
+  const imageUrls = (p.imageUrls ?? [])
+    .map((u) => resolveMediaUrl(u) ?? "")
+    .filter(Boolean);
+  const imageUrl = resolveMediaUrl(p.imageUrl) ?? imageUrls[0] ?? "";
   return {
     id: p.slug,
     mongoId: p.id,
@@ -43,7 +48,8 @@ function mapApiProduct(p: ApiProduct): StoreProduct {
     categorySlug: p.categorySlug ?? "",
     fabric: p.fabric,
     price: p.price,
-    imageUrl: resolveMediaUrl(p.imageUrl) ?? "",
+    imageUrl,
+    imageUrls: imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : [],
     description: p.description,
     isNew: p.isNew,
     bestSeller: p.bestSeller,
@@ -65,6 +71,7 @@ function mapStaticProduct(p: StaticProduct): StoreProduct {
     fabric: p.fabric,
     price: p.price,
     imageUrl: p.image,
+    imageUrls: [p.image],
     description: p.description,
     isNew: p.isNew,
     bestSeller: p.bestSeller,

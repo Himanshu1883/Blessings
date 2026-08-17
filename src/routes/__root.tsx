@@ -21,6 +21,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
 import { CurrencyProvider } from "@/lib/currency";
 import { ShopProvider } from "@/lib/shop-store";
+import { cn } from "@/lib/utils";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import appCss from "../styles.css?url";
 
@@ -176,11 +177,11 @@ function RootComponent() {
               <div className="flex min-h-screen flex-col bg-background text-foreground w-full max-w-[100vw]">
                 <SiteHeader />
                 <main
-                  className={
-                    isAuthPage
-                      ? "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0 overflow-x-hidden"
-                      : "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0"
-                  }
+                  className={cn(
+                    "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0",
+                    !isHome && "pt-[var(--header-height)]",
+                    isAuthPage && "overflow-x-hidden",
+                  )}
                 >
                   <Outlet />
                 </main>
