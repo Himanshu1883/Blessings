@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
-import { FileUp, Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, FileUp, Package, PackageCheck, PackageX, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPageHeader, StatCard } from "@/components/admin/ui/AdminPageHeader";
-import { AdminCard } from "@/components/admin/ui/AdminCard";
 import { AdminModal } from "@/components/admin/ui/AdminModal";
+import { AdminPagination } from "@/components/admin/ui/AdminPagination";
 import { AdminSkeleton, AdminErrorState } from "@/components/admin/ui/AdminSkeleton";
 import { StockBadge } from "@/components/admin/ui/StatusBadge";
 import { ProductEditModal } from "@/components/admin/ProductEditModal";
@@ -22,6 +22,7 @@ import {
   countStockLevels,
   filterByStock,
   stockLevel,
+  totalStock,
 } from "@/lib/admin/productUtils";
 import type { AdminProduct } from "@/lib/admin/product-form";
 import { useCurrency } from "@/lib/currency";
@@ -45,7 +46,7 @@ function parseCsv(text: string): Array<Record<string, string>> {
 }
 
 export function ProductsTab({ api }: Props) {
-  const { format } = useCurrency();
+  const { formatInr } = useCurrency();
   const {
     data,
     loading,
@@ -63,6 +64,8 @@ export function ProductsTab({ api }: Props) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [stockFilter, setStockFilter] = useState<StockLevel>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
@@ -93,6 +96,17 @@ export function ProductsTab({ api }: Props) {
     }
     return list;
   }, [products, search, categoryFilter, stockFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, categoryFilter, stockFilter, pageSize]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   const csvPreview = useMemo(() => parseCsv(csvText), [csvText]);
 
@@ -150,138 +164,189 @@ export function ProductsTab({ api }: Props) {
     <div>
       <AdminPageHeader
         title="Products"
-        description="Manage catalogue, pricing, stock, and images."
+        description="Catalogue, pricing, stock, and images for the storefront."
         actions={
           <>
-            <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-              <FileUp className="size-3.5 mr-1.5" />
+            <Button
+              variant="outline"
+              className="h-10 gap-1.5 rounded-lg border-foreground/15 bg-white"
+              onClick={() => setImportOpen(true)}
+            >
+              <FileUp className="size-3.5" />
               Import CSV
             </Button>
-            <Button size="sm" onClick={openCreate}>
-              <Plus className="size-3.5 mr-1.5" />
+            <Button
+              className="h-10 gap-1.5 rounded-lg bg-[color:var(--maroon)] hover:bg-[color:var(--maroon)]/90"
+              onClick={openCreate}
+            >
+              <Plus className="size-3.5" />
               Add product
             </Button>
           </>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total products" value={String(stockStats.total)} />
-        <StatCard label="In stock" value={String(stockStats.inStock)} />
-        <StatCard label="Low stock" value={String(stockStats.low)} />
-        <StatCard label="Out of stock" value={String(stockStats.out)} />
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-3 mb-6">
-        <Input
-          placeholder="Search name, SKU, slug…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Total products"
+          value={String(stockStats.total)}
+          icon={<Package className="size-4" strokeWidth={1.6} />}
         />
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {data.categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={stockFilter} onValueChange={(v) => setStockFilter(v as StockLevel)}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All stock</SelectItem>
-            <SelectItem value="in">In stock</SelectItem>
-            <SelectItem value="low">Low stock</SelectItem>
-            <SelectItem value="out">Out of stock</SelectItem>
-          </SelectContent>
-        </Select>
+        <StatCard
+          label="In stock"
+          value={String(stockStats.inStock)}
+          icon={<PackageCheck className="size-4" strokeWidth={1.6} />}
+        />
+        <StatCard
+          label="Low stock"
+          value={String(stockStats.low)}
+          icon={<AlertTriangle className="size-4" strokeWidth={1.6} />}
+        />
+        <StatCard
+          label="Out of stock"
+          value={String(stockStats.out)}
+          icon={<PackageX className="size-4" strokeWidth={1.6} />}
+        />
       </div>
 
-      <AdminCard padding="none">
-        <div className="overflow-x-auto">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>SKU</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Status</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => {
-                const cat = data.categories.find((c) => c.id === p.categoryId);
-                return (
-                  <tr key={p.id}>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        {p.imageUrl && (
-                          <img
-                            src={resolveMediaUrl(p.imageUrl) ?? ""}
-                            alt=""
-                            className="size-10 rounded object-cover border border-border"
-                          />
-                        )}
-                        <div>
-                          <p className="font-medium">{p.name}</p>
-                          <p className="text-xs text-muted-foreground">{p.fabric}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="font-mono text-xs">{p.sku ?? "—"}</td>
-                    <td className="text-muted-foreground">{cat?.name ?? p.categorySlug}</td>
-                    <td className="tabular-nums">{format(p.price)}</td>
-                    <td>
-                      <StockBadge level={stockLevel(p)} />
-                    </td>
-                    <td>
-                      {!p.isActive && (
-                        <span className="text-[10px] uppercase text-destructive">Inactive</span>
-                      )}
-                      {p.isNew && (
-                        <span className="text-[10px] uppercase text-primary ml-1">New</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => setDeleteTarget(p)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center text-muted-foreground py-8">
-                    No products found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <div className="overflow-hidden rounded-2xl border border-foreground/8 bg-white shadow-[0_8px_28px_rgba(40,16,10,0.04)]">
+        <div className="flex flex-col gap-3 border-b border-foreground/8 p-4 sm:flex-row sm:items-center lg:p-5">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-foreground/35" />
+            <Input
+              placeholder="Search name, SKU, slug…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-11 rounded-lg pl-9"
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="h-11 w-full rounded-lg sm:w-48">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {data.categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={stockFilter} onValueChange={(v) => setStockFilter(v as StockLevel)}>
+            <SelectTrigger className="h-11 w-full rounded-lg sm:w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All stock</SelectItem>
+              <SelectItem value="in">In stock</SelectItem>
+              <SelectItem value="low">Low stock</SelectItem>
+              <SelectItem value="out">Out of stock</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </AdminCard>
+
+        {filtered.length === 0 ? (
+          <div className="flex min-h-56 flex-col items-center justify-center px-6 py-16 text-center">
+            <Package className="mb-4 size-14 text-foreground/15" strokeWidth={1.1} />
+            <p className="text-sm font-medium text-foreground/70">No products found.</p>
+            <p className="mt-1 text-xs text-foreground/45">Try another search, or add a new piece.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {pageItems.map((p) => {
+                  const cat = data.categories.find((c) => c.id === p.categoryId);
+                  return (
+                    <tr key={p.id}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          {p.imageUrl ? (
+                            <img
+                              src={resolveMediaUrl(p.imageUrl) ?? ""}
+                              alt=""
+                              className="size-12 rounded-lg object-cover bg-muted"
+                            />
+                          ) : (
+                            <div className="size-12 rounded-lg bg-muted" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-medium text-[color:var(--charcoal)]">{p.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{p.fabric || p.slug}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="font-mono text-xs">{p.sku ?? "—"}</td>
+                      <td className="text-muted-foreground">{cat?.name ?? p.categorySlug}</td>
+                      <td className="tabular-nums">{formatInr(p.price)}</td>
+                      <td>
+                        <div className="flex flex-col gap-1">
+                          <StockBadge level={stockLevel(p)} />
+                          <span className="text-[10px] tabular-nums text-foreground/40">{totalStock(p)} units</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex flex-wrap gap-1">
+                          {!p.isActive ? (
+                            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-destructive">
+                              Inactive
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-emerald-700/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-800">
+                              Live
+                            </span>
+                          )}
+                          {p.isNew ? (
+                            <span className="rounded-full bg-[color:var(--gold)]/20 px-2 py-0.5 text-[10px] uppercase tracking-wider text-[color:var(--charcoal)]">
+                              New
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="size-9 rounded-lg" onClick={() => openEdit(p)}>
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-9 rounded-lg text-destructive"
+                            onClick={() => setDeleteTarget(p)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <AdminPagination
+          page={page}
+          pageCount={pageCount}
+          total={filtered.length}
+          pageSize={pageSize}
+          onPage={setPage}
+          onPageSize={setPageSize}
+        />
+      </div>
 
       <ProductEditModal
         open={modalOpen}
@@ -302,10 +367,10 @@ export function ProductsTab({ api }: Props) {
         title="Delete product"
         footer={
           <>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+            <Button variant="outline" className="rounded-lg" onClick={() => setDeleteTarget(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+            <Button variant="destructive" className="rounded-lg" onClick={confirmDelete} disabled={deleting}>
               Delete
             </Button>
           </>
@@ -323,10 +388,14 @@ export function ProductsTab({ api }: Props) {
         size="xl"
         footer={
           <>
-            <Button variant="outline" onClick={() => setImportOpen(false)}>
+            <Button variant="outline" className="rounded-lg" onClick={() => setImportOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={runImport} disabled={importing || csvPreview.length === 0}>
+            <Button
+              className="rounded-lg bg-[color:var(--maroon)] hover:bg-[color:var(--maroon)]/90"
+              onClick={runImport}
+              disabled={importing || csvPreview.length === 0}
+            >
               Import {csvPreview.length > 0 ? `(${csvPreview.length} rows)` : ""}
             </Button>
           </>
@@ -334,17 +403,18 @@ export function ProductsTab({ api }: Props) {
       >
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Paste CSV with headers: <code className="text-xs">name, slug, sku, categorySlug, fabric, price, description</code>
+            Paste CSV with headers:{" "}
+            <code className="text-xs">name, slug, sku, categorySlug, fabric, price, description</code>
           </p>
           <Textarea
             value={csvText}
             onChange={(e) => setCsvText(e.target.value)}
             rows={8}
             placeholder="name,slug,categorySlug,price&#10;Silk Saree,silk-saree,sarees,4999"
-            className="font-mono text-xs"
+            className="rounded-xl font-mono text-xs"
           />
           {csvPreview.length > 0 && (
-            <div className="overflow-x-auto border border-border rounded-lg">
+            <div className="overflow-x-auto rounded-lg border border-border">
               <table className="admin-table text-xs">
                 <thead>
                   <tr>
@@ -364,9 +434,7 @@ export function ProductsTab({ api }: Props) {
                 </tbody>
               </table>
               {csvPreview.length > 5 && (
-                <p className="text-xs text-muted-foreground px-3 py-2">
-                  +{csvPreview.length - 5} more rows
-                </p>
+                <p className="px-3 py-2 text-xs text-muted-foreground">+{csvPreview.length - 5} more rows</p>
               )}
             </div>
           )}

@@ -23,6 +23,22 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/[\s-]/g, "");
 }
 
+export function normalizeIndianMobile(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
+  return digits;
+}
+
+export function isIndianMobile(phone: string): boolean {
+  return /^[6-9]\d{9}$/.test(normalizeIndianMobile(phone));
+}
+
+export function isPlaceholderEmail(email?: string | null): boolean {
+  if (!email) return true;
+  return /@(?:mobile\.)?zenmen\.local$/i.test(email) || /noreply/i.test(email);
+}
+
 export function generateOrderNumber(): string {
   const date = new Date();
   const y = date.getFullYear();

@@ -151,7 +151,7 @@ export function AdminShell({
   );
 
   return (
-    <div className="admin-shell flex min-h-svh bg-muted/30">
+    <div className="admin-shell flex min-h-svh bg-[color:var(--ivory)]">
       {mobileOpen && (
         <button
           type="button"
@@ -179,7 +179,12 @@ export function AdminShell({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="admin-topbar sticky top-0 z-30 bg-card border-b border-border px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <header
+          className={cn(
+            "admin-topbar sticky top-0 z-30 bg-[color:var(--ivory)]/95 border-b border-border px-4 sm:px-6 py-3 flex items-center justify-between gap-4",
+            activeTab === "dashboard" && "lg:hidden",
+          )}
+        >
           <div className="flex items-center gap-3 min-w-0">
             <Button
               variant="ghost"

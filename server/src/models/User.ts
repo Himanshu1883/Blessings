@@ -26,6 +26,8 @@ export interface IUser extends Document {
   phoneVerified: boolean;
   refreshTokenHash?: string;
   refreshTokenExpiry?: Date;
+  oauthExchangeHash?: string;
+  oauthExchangeExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +59,8 @@ const userSchema = new Schema<IUser>(
     phoneVerified: { type: Boolean, default: false },
     refreshTokenHash: { type: String, select: false },
     refreshTokenExpiry: { type: Date, select: false },
+    oauthExchangeHash: { type: String, select: false },
+    oauthExchangeExpiry: { type: Date, select: false },
   },
   { timestamps: true },
 );
@@ -64,15 +68,25 @@ const userSchema = new Schema<IUser>(
 export const User = mongoose.model<IUser>("User", userSchema);
 
 export function toPublicUser(user: IUser) {
+  const rawEmail = user.email ?? null;
+  const email =
+    rawEmail && /@(?:mobile\.)?zenmen\.local$/i.test(rawEmail) ? null : rawEmail;
+  const hasPassword =
+    typeof (user as IUser & { passwordHash?: string }).passwordHash === "string" &&
+    Boolean((user as IUser & { passwordHash?: string }).passwordHash);
   return {
     id: user._id.toString(),
     name: user.name,
-    email: user.email ?? null,
+    email,
     phone: user.phone ?? null,
     avatarUrl: user.avatarUrl ?? null,
     role: user.role,
     addresses: user.addresses,
     emailVerified: user.emailVerified,
     phoneVerified: user.phoneVerified,
+    hasPassword,
+    hasGoogle: Boolean(user.googleId),
+    createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : new Date().toISOString(),
+    updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : new Date().toISOString(),
   };
 }

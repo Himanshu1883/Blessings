@@ -50,10 +50,10 @@ Product/order money is INR. `currency.tsx` converts for display with hardcoded r
 Checkout/Razorpay and admin inventory stay on one currency.
 
 ### Consequence
-Displayed USD/GBP/etc. are approximate. Orders remain INR.
+Displayed USD/GBP/etc. are approximate. Razorpay is always charged in INR paise.
 
 ### Do Not Change Without Considering
-Do not send converted amounts to Razorpay without a full FX/order-currency design.
+Do not send converted display amounts to Razorpay. Do not skip payment or webhook HMAC.
 
 ---
 

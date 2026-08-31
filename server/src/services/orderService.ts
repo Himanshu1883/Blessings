@@ -1,26 +1,238 @@
 import Razorpay from "razorpay";
-import crypto from "crypto";
-import { Order, toPublicOrder, type OrderStatus } from "../models/Order.js";
+import { Order, toPublicOrder, canCancelOrder, getAllowedNextStatuses, canAdminDirectCancel, wasStockTaken, type OrderStatus } from "../models/Order.js";
 import { Product } from "../models/Product.js";
 import { User } from "../models/User.js";
 import { Return } from "../models/Return.js";
 import { getCartForOrder, clearCart } from "./cartService.js";
 import { AppError } from "../utils/apiResponse.js";
-import { generateOrderNumber, sanitizeText } from "../utils/sanitize.js";
+import { generateOrderNumber, sanitizeText, isPlaceholderEmail } from "../utils/sanitize.js";
 import { env } from "../config/env.js";
 import type { IAddress } from "../models/User.js";
-import type { PaymentMethod } from "../models/Order.js";
+import type { PaymentMethod, IOrder } from "../models/Order.js";
+import { noticeTypeForStatus, notifyUser } from "./userNotificationService.js";
+import { mailKindForStatus, sendOrderEmail } from "./emailService.js";
+import { hmacSha256Hex, inrPaise, timingSafeEqualHex } from "../utils/razorpayCrypto.js";
+import { getReturnsByOrderIds, returnStateForOrder } from "./returnService.js";
 
 const SHIPPING_FEE = 0;
 
-function getRazorpay() {
+async function customerEmail(userId: string) {
+  const user = await User.findById(userId);
+  const email = user?.email;
+  if (!email || isPlaceholderEmail(email)) return null;
+  return email;
+}
+
+async function notifyOrder(order: IOrder, status: string) {
+  const notice = noticeTypeForStatus(status);
+  const mail = mailKindForStatus(status);
+  if (notice) {
+    await notifyUser({
+      userId: order.userId.toString(),
+      type: notice,
+      orderNumber: order.orderNumber,
+      orderId: order._id.toString(),
+    });
+  }
+  if (mail) {
+    await sendOrderEmail(await customerEmail(order.userId.toString()), mail, order.orderNumber);
+  }
+}
+
+async function decrementProductStock(order: IOrder) {
+  for (const item of order.items) {
+    const product = await Product.findById(item.productId);
+    if (!product) continue;
+    const current = product.stock.get(item.size) ?? 99;
+    product.stock.set(item.size, Math.max(0, current - item.quantity));
+    await product.save();
+  }
+}
+
+async function claimAndDeductStock(orderId: IOrder["_id"]) {
+  const claimed = await Order.findOneAndUpdate(
+    { _id: orderId, stockDeducted: { $ne: true } },
+    { $set: { stockDeducted: true } },
+    { new: true },
+  );
+  if (!claimed) return false;
+  try {
+    await decrementProductStock(claimed);
+    return true;
+  } catch (err) {
+    claimed.stockDeducted = false;
+    await claimed.save();
+    throw err;
+  }
+}
+
+async function restoreStock(order: IOrder) {
+  if (!wasStockTaken(order)) return;
+  for (const item of order.items) {
+    const product = await Product.findById(item.productId);
+    if (!product) continue;
+    const current = product.stock.get(item.size) ?? 0;
+    product.stock.set(item.size, current + item.quantity);
+    await product.save();
+  }
+  order.stockDeducted = false;
+}
+
+async function applyForwardStatus(order: IOrder, status: OrderStatus, actor: string, note?: string) {
+  const allowed = getAllowedNextStatuses(order);
+  if (!allowed.includes(status)) {
+    throw new AppError(400, "That status step is not allowed from the current order");
+  }
+  order.orderStatus = status;
+  order.statusHistory.push({ status, note: note || actor, actor, at: new Date() });
+  if (status === "delivered" && order.paymentMethod === "cod") {
+    order.paymentStatus = "paid";
+  }
+  await order.save();
+  await notifyOrder(order, status);
+  return toPublicOrder(order);
+}
+
+function requireRazorpayKeys() {
   if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
     throw new AppError(503, "Online payments are not configured");
   }
+  return { keyId: env.RAZORPAY_KEY_ID, keySecret: env.RAZORPAY_KEY_SECRET };
+}
+
+function getRazorpay() {
+  const { keyId, keySecret } = requireRazorpayKeys();
   return new Razorpay({
-    key_id: env.RAZORPAY_KEY_ID,
-    key_secret: env.RAZORPAY_KEY_SECRET,
+    key_id: keyId,
+    key_secret: keySecret,
   });
+}
+
+function checkoutPayload(order: IOrder) {
+  const { keyId } = requireRazorpayKeys();
+  if (!order.razorpayOrderId) throw new AppError(500, "Missing Razorpay order");
+  const amount = inrPaise(order.total);
+  if (amount < 100) throw new AppError(400, "Order total must be at least ₹1");
+  return {
+    keyId,
+    razorpayOrderId: order.razorpayOrderId,
+    amount,
+    currency: "INR" as const,
+    orderId: order._id.toString(),
+  };
+}
+
+async function startRazorpayOrder(order: IOrder) {
+  const amount = inrPaise(order.total);
+  if (amount < 100) throw new AppError(400, "Order total must be at least ₹1");
+  try {
+    const razorpay = getRazorpay();
+    const rzOrder = await razorpay.orders.create({
+      amount,
+      currency: "INR",
+      receipt: order.orderNumber,
+      notes: { shopOrderId: order._id.toString() },
+    });
+    order.razorpayOrderId = rzOrder.id;
+    order.paymentStatus = "pending";
+    await order.save();
+    return checkoutPayload(order);
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    order.paymentStatus = "failed";
+    await order.save();
+    throw new AppError(502, "Could not start online payment");
+  }
+}
+
+function formatInrCharged(total: number) {
+  return `₹${Math.round(total).toLocaleString("en-IN")}`;
+}
+
+async function afterPaidSideEffects(order: IOrder) {
+  try {
+    await clearCart(order.userId.toString());
+  } catch (err) {
+    console.error("Could not clear cart after payment:", err);
+  }
+  void sendOrderEmail(
+    await customerEmail(order.userId.toString()),
+    "confirmed",
+    order.orderNumber,
+    formatInrCharged(order.total),
+  );
+}
+
+async function finalizePaidOrder(
+  order: IOrder,
+  data: { razorpayPaymentId: string; razorpaySignature?: string },
+) {
+  let current = await Order.findById(order._id);
+  if (!current) throw new AppError(404, "Order not found");
+
+  if (current.paymentStatus === "paid" && current.stockDeducted === true) {
+    return toPublicOrder(current);
+  }
+
+  if (current.paymentStatus !== "paid") {
+    const claimed = await Order.findOneAndUpdate(
+      { _id: current._id, paymentStatus: { $ne: "paid" } },
+      {
+        $set: {
+          paymentStatus: "paid",
+          orderStatus: "confirmed",
+          razorpayPaymentId: data.razorpayPaymentId,
+          ...(data.razorpaySignature ? { razorpaySignature: data.razorpaySignature } : {}),
+        },
+        $push: {
+          statusHistory: {
+            status: "confirmed",
+            note: "Payment received",
+            actor: "system",
+            at: new Date(),
+          },
+        },
+      },
+      { new: true },
+    );
+    current = claimed ?? (await Order.findById(order._id));
+    if (!current) throw new AppError(404, "Order not found");
+    if (current.paymentStatus === "paid" && current.stockDeducted === true) {
+      return toPublicOrder(current);
+    }
+  }
+
+  try {
+    const tookStock = await claimAndDeductStock(current._id);
+    if (tookStock) {
+      const paid = await Order.findById(current._id);
+      if (paid) await afterPaidSideEffects(paid);
+    }
+  } catch {
+    await Order.findByIdAndUpdate(current._id, {
+      $set: { paymentStatus: "pending", orderStatus: "placed", stockDeducted: false },
+    });
+    throw new AppError(500, "Could not reserve stock for this payment");
+  }
+
+  const result = await Order.findById(current._id);
+  if (!result) throw new AppError(404, "Order not found");
+  return toPublicOrder(result);
+}
+
+async function refundOnlineIfPaid(order: IOrder) {
+  if (order.paymentMethod !== "razorpay") return;
+  if (order.paymentStatus !== "paid" && order.paymentStatus !== "refunded") return;
+  if (!order.razorpayPaymentId) return;
+  if (order.paymentStatus === "refunded") return;
+  try {
+    const razorpay = getRazorpay();
+    await razorpay.payments.refund(order.razorpayPaymentId, {
+      amount: inrPaise(order.total),
+    });
+  } catch (err) {
+    console.error("Razorpay refund failed:", err);
+  }
 }
 
 export async function createOrder(
@@ -45,8 +257,10 @@ export async function createOrder(
     return {
       productId: product._id,
       name: product.name,
+      slug: product.slug,
       imageUrl,
       size: line.size,
+      color: product.colors?.length === 1 ? product.colors[0] : undefined,
       quantity: line.quantity,
       unitPrice: product.price,
     };
@@ -65,6 +279,13 @@ export async function createOrder(
     isDefault: false,
   };
 
+  const now = new Date();
+  const isCod = data.paymentMethod === "cod";
+  if (!isCod) {
+    requireRazorpayKeys();
+    if (inrPaise(total) < 100) throw new AppError(400, "Order total must be at least ₹1");
+  }
+
   const order = await Order.create({
     orderNumber: generateOrderNumber(),
     userId,
@@ -74,22 +295,32 @@ export async function createOrder(
     shippingFee: SHIPPING_FEE,
     total,
     paymentMethod: data.paymentMethod,
-    paymentStatus: data.paymentMethod === "cod" ? "pending" : "pending",
-    orderStatus: data.paymentMethod === "cod" ? "placed" : "placed",
-    statusHistory: [{ status: "placed", at: new Date() }],
+    paymentStatus: "pending",
+    orderStatus: isCod ? "confirmed" : "placed",
+    stockDeducted: isCod,
+    statusHistory: isCod
+      ? [
+          { status: "placed", note: "ordered", actor: "system", at: now },
+          { status: "confirmed", note: "COD confirmed", actor: "system", at: now },
+        ]
+      : [{ status: "placed", note: "ordered", actor: "system", at: now }],
   });
 
-  for (const item of items) {
-    const product = productMap.get(item.productId.toString());
-    if (product) {
-      const current = product.stock.get(item.size) ?? 99;
-      product.stock.set(item.size, Math.max(0, current - item.quantity));
-      await product.save();
+  if (isCod) {
+    for (const item of items) {
+      const product = productMap.get(item.productId.toString());
+      if (product) {
+        const current = product.stock.get(item.size) ?? 99;
+        product.stock.set(item.size, Math.max(0, current - item.quantity));
+        await product.save();
+      }
     }
+    await clearCart(userId);
+    return { ...toPublicOrder(order), razorpay: null };
   }
 
-  await clearCart(userId);
-  return toPublicOrder(order);
+  const razorpay = await startRazorpayOrder(order);
+  return { ...toPublicOrder(order), razorpay };
 }
 
 export async function createRazorpayOrder(orderId: string, userId: string) {
@@ -97,24 +328,8 @@ export async function createRazorpayOrder(orderId: string, userId: string) {
   if (!order) throw new AppError(404, "Order not found");
   if (order.paymentMethod !== "razorpay") throw new AppError(400, "Invalid payment method");
   if (order.paymentStatus === "paid") throw new AppError(400, "Order already paid");
-
-  const razorpay = getRazorpay();
-  const rzOrder = await razorpay.orders.create({
-    amount: order.total * 100,
-    currency: "INR",
-    receipt: order.orderNumber,
-  });
-
-  order.razorpayOrderId = rzOrder.id;
-  await order.save();
-
-  return {
-    razorpayOrderId: rzOrder.id,
-    amount: order.total * 100,
-    currency: "INR",
-    keyId: env.RAZORPAY_KEY_ID,
-    order: toPublicOrder(order),
-  };
+  if (order.orderStatus === "cancelled") throw new AppError(400, "Order is cancelled");
+  return startRazorpayOrder(order);
 }
 
 export async function verifyRazorpayPayment(
@@ -122,48 +337,97 @@ export async function verifyRazorpayPayment(
   userId: string,
   data: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string },
 ) {
-  if (!env.RAZORPAY_KEY_SECRET) throw new AppError(503, "Payments not configured");
-
-  const body = `${data.razorpayOrderId}|${data.razorpayPaymentId}`;
-  const expected = crypto
-    .createHmac("sha256", env.RAZORPAY_KEY_SECRET)
-    .update(body)
-    .digest("hex");
-
-  if (expected !== data.razorpaySignature) {
-    throw new AppError(400, "Payment verification failed");
-  }
+  const { keySecret } = requireRazorpayKeys();
 
   const order = await Order.findOne({ _id: orderId, userId });
   if (!order) throw new AppError(404, "Order not found");
+  if (order.paymentMethod !== "razorpay") throw new AppError(400, "Invalid payment method");
+  if (!order.razorpayOrderId || order.razorpayOrderId !== data.razorpayOrderId) {
+    throw new AppError(400, "Payment does not match this order");
+  }
 
-  order.paymentStatus = "paid";
-  order.orderStatus = "confirmed";
-  order.razorpayPaymentId = data.razorpayPaymentId;
-  order.razorpaySignature = data.razorpaySignature;
-  order.statusHistory.push({ status: "confirmed", note: "Payment received", at: new Date() });
-  await order.save();
+  const expected = hmacSha256Hex(keySecret, `${data.razorpayOrderId}|${data.razorpayPaymentId}`);
+  if (!timingSafeEqualHex(expected, data.razorpaySignature)) {
+    throw new AppError(400, "Payment verification failed");
+  }
 
-  return toPublicOrder(order);
+  return finalizePaidOrder(order, {
+    razorpayPaymentId: data.razorpayPaymentId,
+    razorpaySignature: data.razorpaySignature,
+  });
 }
 
 export async function handleRazorpayWebhook(rawBody: Buffer, signature: string) {
-  if (!env.RAZORPAY_WEBHOOK_SECRET) return;
-  const expected = crypto
-    .createHmac("sha256", env.RAZORPAY_WEBHOOK_SECRET)
-    .update(rawBody)
-    .digest("hex");
-  if (expected !== signature) throw new AppError(400, "Invalid webhook signature");
+  if (!env.RAZORPAY_WEBHOOK_SECRET) {
+    throw new AppError(400, "Invalid webhook");
+  }
+  const raw = rawBody.toString("utf8");
+  const expected = hmacSha256Hex(env.RAZORPAY_WEBHOOK_SECRET, raw);
+  if (!timingSafeEqualHex(expected, signature)) {
+    throw new AppError(400, "Invalid webhook signature");
+  }
 
-  const payload = JSON.parse(rawBody.toString());
+  let payload: {
+    event?: string;
+    payload?: {
+      payment?: { entity?: { id?: string; order_id?: string } };
+      refund?: { entity?: { payment_id?: string; status?: string } };
+    };
+  };
+  try {
+    payload = JSON.parse(raw) as typeof payload;
+  } catch {
+    throw new AppError(400, "Invalid webhook");
+  }
+
   if (payload.event === "payment.captured") {
-    const payment = payload.payload.payment.entity;
+    const payment = payload.payload?.payment?.entity;
+    if (!payment?.order_id) return;
+    const order = await Order.findOne({ razorpayOrderId: payment.order_id });
+    if (!order) return;
+    await finalizePaidOrder(order, { razorpayPaymentId: payment.id ?? "" });
+    return;
+  }
+
+  if (payload.event === "payment.failed") {
+    const payment = payload.payload?.payment?.entity;
+    if (!payment?.order_id) return;
     const order = await Order.findOne({ razorpayOrderId: payment.order_id });
     if (order && order.paymentStatus !== "paid") {
-      order.paymentStatus = "paid";
-      order.orderStatus = "confirmed";
-      order.razorpayPaymentId = payment.id;
-      order.statusHistory.push({ status: "confirmed", note: "Webhook payment", at: new Date() });
+      order.paymentStatus = "failed";
+      await order.save();
+    }
+    return;
+  }
+
+  if (payload.event === "refund.processed") {
+    const refund = payload.payload?.refund?.entity;
+    if (!refund?.payment_id) return;
+    const order = await Order.findOne({ razorpayPaymentId: refund.payment_id });
+    if (order && order.paymentStatus === "paid") {
+      order.paymentStatus = "refunded";
+      order.statusHistory.push({
+        status: order.orderStatus,
+        note: "Refund processed",
+        actor: "system",
+        at: new Date(),
+      });
+      await order.save();
+    }
+    return;
+  }
+
+  if (payload.event === "refund.failed") {
+    const refund = payload.payload?.refund?.entity;
+    if (!refund?.payment_id) return;
+    const order = await Order.findOne({ razorpayPaymentId: refund.payment_id });
+    if (order) {
+      order.statusHistory.push({
+        status: order.orderStatus,
+        note: "Refund failed",
+        actor: "system",
+        at: new Date(),
+      });
       await order.save();
     }
   }
@@ -172,7 +436,19 @@ export async function handleRazorpayWebhook(rawBody: Buffer, signature: string) 
 export async function listOrders(userId: string, isAdmin = false) {
   const filter = isAdmin ? {} : { userId };
   const orders = await Order.find(filter).sort({ createdAt: -1 });
-  if (!isAdmin) return orders.map(toPublicOrder);
+  const returns = await getReturnsByOrderIds(orders.map((o) => o._id.toString()));
+  const latestByOrder = new Map<string, (typeof returns)[number]>();
+  for (const r of returns) {
+    const key = r.orderId.toString();
+    if (!latestByOrder.has(key)) latestByOrder.set(key, r);
+  }
+
+  if (!isAdmin) {
+    return orders.map((o) => ({
+      ...toPublicOrder(o),
+      ...returnStateForOrder(o, latestByOrder.get(o._id.toString()) ?? null),
+    }));
+  }
 
   const userIds = [...new Set(orders.map((o) => o.userId.toString()))];
   const users = await User.find({ _id: { $in: userIds } });
@@ -180,6 +456,7 @@ export async function listOrders(userId: string, isAdmin = false) {
 
   return orders.map((o) => ({
     ...toPublicOrder(o),
+    ...returnStateForOrder(o, latestByOrder.get(o._id.toString()) ?? null),
     customerName: userMap.get(o.userId.toString()) ?? "Guest",
   }));
 }
@@ -188,7 +465,11 @@ export async function getOrder(orderId: string, userId: string, isAdmin = false)
   const filter = isAdmin ? { _id: orderId } : { _id: orderId, userId };
   const order = await Order.findOne(filter);
   if (!order) throw new AppError(404, "Order not found");
-  return toPublicOrder(order);
+  const [existing] = await getReturnsByOrderIds([order._id.toString()]);
+  return {
+    ...toPublicOrder(order),
+    ...returnStateForOrder(order, existing ?? null),
+  };
 }
 
 export async function updateOrderStatus(
@@ -198,10 +479,7 @@ export async function updateOrderStatus(
 ) {
   const order = await Order.findById(orderId);
   if (!order) throw new AppError(404, "Order not found");
-  order.orderStatus = status;
-  order.statusHistory.push({ status, note, at: new Date() });
-  await order.save();
-  return toPublicOrder(order);
+  return applyForwardStatus(order, status, "admin", note);
 }
 
 export async function updateOrderAdmin(
@@ -210,7 +488,7 @@ export async function updateOrderAdmin(
     orderStatus?: OrderStatus;
     trackingNumber?: string;
     note?: string;
-    cancelAction?: "approve" | "reject";
+    cancelAction?: "approve" | "reject" | "direct";
   },
 ) {
   const order = await Order.findById(orderId);
@@ -222,16 +500,100 @@ export async function updateOrderAdmin(
 
   if (data.cancelAction === "approve" && order.orderStatus === "cancel_requested") {
     order.orderStatus = "cancelled";
-    order.statusHistory.push({ status: "cancelled", note: "Cancel approved", at: new Date() });
-  } else if (data.cancelAction === "reject" && order.orderStatus === "cancel_requested") {
+    order.statusHistory.push({ status: "cancelled", note: "Cancel approved", actor: "admin", at: new Date() });
+    await restoreStock(order);
+    await refundOnlineIfPaid(order);
+    await order.save();
+    await notifyOrder(order, "cancelled");
+    return toPublicOrder(order);
+  }
+  if (data.cancelAction === "reject" && order.orderStatus === "cancel_requested") {
     order.orderStatus = "confirmed";
-    order.statusHistory.push({ status: "confirmed", note: "Cancel rejected", at: new Date() });
-  } else if (data.orderStatus) {
-    order.orderStatus = data.orderStatus;
-    order.statusHistory.push({ status: data.orderStatus, note: data.note, at: new Date() });
+    order.statusHistory.push({ status: "confirmed", note: "Cancel rejected", actor: "admin", at: new Date() });
+    await order.save();
+    await notifyUser({
+      userId: order.userId.toString(),
+      type: "cancel_rejected",
+      orderNumber: order.orderNumber,
+      orderId: order._id.toString(),
+    });
+    await sendOrderEmail(
+      await customerEmail(order.userId.toString()),
+      "cancel_rejected",
+      order.orderNumber,
+    );
+    return toPublicOrder(order);
+  }
+  if (data.cancelAction === "direct") {
+    if (!canAdminDirectCancel(order)) {
+      throw new AppError(400, "This order cannot be cancelled");
+    }
+    order.orderStatus = "cancelled";
+    order.statusHistory.push({
+      status: "cancelled",
+      note: data.note || "Cancelled by atelier",
+      actor: "admin",
+      at: new Date(),
+    });
+    await restoreStock(order);
+    await refundOnlineIfPaid(order);
+    await order.save();
+    await notifyOrder(order, "cancelled");
+    return toPublicOrder(order);
+  }
+  if (data.orderStatus) {
+    return applyForwardStatus(order, data.orderStatus, "admin", data.note);
   }
 
   await order.save();
+  return toPublicOrder(order);
+}
+
+const CANCEL_REASONS = [
+  "changed_mind",
+  "ordered_by_mistake",
+  "delivery_too_slow",
+  "found_better_price",
+  "other",
+] as const;
+
+export async function cancelOrder(
+  orderId: string,
+  userId: string,
+  data: { reason: (typeof CANCEL_REASONS)[number]; note?: string },
+) {
+  const order = await Order.findOne({ _id: orderId, userId });
+  if (!order) throw new AppError(404, "Order not found");
+
+  const { allowed, instant } = canCancelOrder(order);
+  if (!allowed) throw new AppError(400, "This order cannot be cancelled");
+
+  const reasonLabel: Record<(typeof CANCEL_REASONS)[number], string> = {
+    changed_mind: "Changed my mind",
+    ordered_by_mistake: "Ordered by mistake",
+    delivery_too_slow: "Delivery too slow",
+    found_better_price: "Found a better price",
+    other: data.note?.trim() || "Other",
+  };
+  const note = [reasonLabel[data.reason], data.note?.trim()].filter(Boolean).join(" — ");
+
+  order.cancelReason = note;
+  order.cancelRequestedAt = new Date();
+
+  if (instant) {
+    order.orderStatus = "cancelled";
+    order.statusHistory.push({ status: "cancelled", note, actor: "customer", at: new Date() });
+    await restoreStock(order);
+    await refundOnlineIfPaid(order);
+    await order.save();
+    await notifyOrder(order, "cancelled");
+  } else {
+    order.orderStatus = "cancel_requested";
+    order.statusHistory.push({ status: "cancel_requested", note, actor: "customer", at: new Date() });
+    await order.save();
+    await notifyOrder(order, "cancel_requested");
+  }
+
   return toPublicOrder(order);
 }
 
@@ -273,7 +635,7 @@ export async function getDashboardMetrics() {
     Order.aggregate([{ $group: { _id: "$orderStatus", count: { $sum: 1 } } }]),
     Product.find({ isActive: true }).limit(200),
     Order.countDocuments({ orderStatus: { $in: ["placed", "confirmed", "processing"] } }),
-    Return.countDocuments({ status: "pending" }),
+    Return.countDocuments({ status: { $nin: ["refunded", "rejected"] } }),
     Order.aggregate([
       {
         $match: {

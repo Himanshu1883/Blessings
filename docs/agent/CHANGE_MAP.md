@@ -6,7 +6,7 @@ Inspect **Primary** first. Do not scan the repo.
 
 | Request | Primary | Related |
 |---|---|---|
-| Header / navbar / mega menu | `src/components/site/site-header.tsx` | `catalog-api.ts` `fetchNavbarCategories`; Category `showOnNavbar` |
+| Header / navbar / mega menu | `src/components/site/site-header.tsx` | `currency-switcher.tsx`; `catalog-api.ts` `fetchNavbarCategories`; Category `showOnNavbar` |
 | Footer | `src/components/site/site-footer.tsx` | |
 | Homepage / hero / banners | `src/routes/index.tsx` | `homepage-api.ts`, admin HomepageTab. Extra storefront blocks: `ExploreMenswear`, `ShopByOccasion`, `RelatedLooks` |
 | Shop grid / filters | `src/routes/shop.$category.tsx` | `catalog-api.ts` |
@@ -15,6 +15,7 @@ Inspect **Primary** first. Do not scan the repo.
 | Cart drawer | `src/components/site/cart-sheet.tsx` | `shop-store.tsx`, `api-hooks.ts` |
 | Wishlist | `src/components/site/wishlist-sheet.tsx` | |
 | Account sheet | `src/components/site/account-sheet.tsx` | `auth-context.tsx` |
+| Customer profile | `src/routes/profile.tsx` | `profile-member-card.tsx`, `profile-order-card.tsx`, `profile-notifications.tsx`, `profile-recent-carousel.tsx`; invoice `orders.$id.invoice.tsx` |
 | Mobile bottom nav | `src/components/site/mobile-bottom-nav.tsx` | |
 | WhatsApp / Instagram | `whatsapp-link.tsx`, `instagram-link.tsx` | `src/lib/whatsapp.ts`, `social.ts` |
 | About / Bespoke / Contact / Journal | `src/routes/{about,bespoke,contact,journal}.tsx` | `journal-posts.ts` (static) |
@@ -35,11 +36,11 @@ Inspect **Primary** first. Do not scan the repo.
 
 | Request | Primary | Related |
 |---|---|---|
-| Checkout page | `src/routes/checkout.tsx` | `useCreateOrder` in `api-hooks.ts` |
-| Order list / detail | `src/routes/orders.tsx`, `orders.$id.tsx` | |
-| Order / Razorpay logic | `server/src/services/orderService.ts` | `routes/orders.ts`, `routes/webhooks.ts` |
-| Order schema | `server/src/models/Order.ts` | |
-| Returns | `server/src/services/returnService.ts` | admin `ReturnsTab.tsx` |
+| Checkout page | `src/routes/checkout.tsx` | `razorpay-checkout.ts`, thank-you `checkout.success.tsx`, `useCreateOrder` |
+| Order list / detail | `src/routes/orders.tsx`, `orders.$id.tsx` | Profile Pay now: `profile-order-card.tsx` |
+| Order / Razorpay logic | `server/src/services/orderService.ts` | `routes/orders.ts`, `routes/webhooks.ts`, `utils/razorpayCrypto.ts`, `emailService.ts` |
+| Order schema | `server/src/models/Order.ts` | Fulfilment: confirmed → packed (`processing`) → shipped → out for delivery (`in_transit`) → delivered. Admin next-step only. |
+| Returns | `ReturnsTab.tsx` | `returnService.ts`; customer `POST /api/orders/:id/return`; admin `POST /api/admin/returns`; next-step only |
 | Coupons | `server/src/services/couponService.ts` | admin `CouponsTab.tsx` |
 
 ## Catalog / media
@@ -59,11 +60,13 @@ Inspect **Primary** first. Do not scan the repo.
 |---|---|---|
 | Admin nav / tabs | `src/components/admin/adminNav.ts` | `src/routes/admin/$tab.tsx` |
 | Admin API client | `src/hooks/useAdminApi.ts` | `server/src/routes/admin.ts` |
-| Products admin | `ProductsTab.tsx`, `ProductEditModal.tsx` | `useAdminProductCatalog.ts` |
+| Products admin | `ProductsTab.tsx`, `ProductEditModal.tsx` | pagination `AdminPagination.tsx`; `useAdminProductCatalog.ts` |
 | Categories admin | `CategoriesTab.tsx` | |
-| Homepage CMS | `HomepageTab.tsx` + `homepage/*Panel.tsx` | `homepageService.ts` |
+| Homepage CMS | `HomepageTab.tsx` + `homepage/*Panel.tsx` | section nav + hero preview; `homepageService.ts` |
 | Inventory | `InventoryTab.tsx` | `patchProductStock` |
 | Dashboard stats | `DashboardTab.tsx` | `getDashboardMetrics` |
+| Orders admin | `OrdersTab.tsx` | next-status buttons, cancel approve/reject/direct, start return |
+| Returns admin | `ReturnsTab.tsx` | `returnService.ts`; customer `POST /api/orders/:id/return`; admin `POST /api/admin/returns` |
 | Admin login page | `src/routes/admin/login.tsx` | |
 
 ## Database / env / deploy
@@ -83,5 +86,5 @@ Inspect **Primary** first. Do not scan the repo.
 |---|---|---|
 | Cart calculations | `cartService.ts` + `shop-store` `cartSubtotal` | `guest-cart.ts` (local bag until login) |
 | Checkout totals / shipping | `orderService.createOrder` | |
-| Currency display | `src/lib/currency.tsx` | |
+| Currency display | `src/lib/currency.tsx` | `currency-switcher.tsx` in header; localStorage `blessings.currency` |
 | Navbar which collections | `showOnNavbar` + `listNavbarCategories` | `site-header.tsx` |

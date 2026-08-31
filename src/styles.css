@@ -172,6 +172,10 @@
   font-family: var(--font-sans-family);
 }
 
+@utility profile-display {
+  font-family: "Playfair Display", "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+}
+
 @utility eyebrow {
   font-size: 0.65rem;
   letter-spacing: 0.3em;

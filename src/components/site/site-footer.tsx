@@ -16,31 +16,38 @@ const SHOP_LINKS = [
 const HOUSE_LINKS = [
   { label: "Our Story", to: "/about" as const },
   { label: "The Bespoke Process", to: "/bespoke" as const },
-  { label: "Book a Consultation", to: "/contact" as const },
-  { label: "Visit the Delhi Atelier", to: "/contact" as const },
+  { label: "Book a Consultation", to: "/contact" as const, hash: "contact" },
+  { label: "Visit the Delhi Atelier", to: "/contact" as const, hash: "atelier" },
   { label: "Press", to: "/journal" as const },
 ] as const;
 
 const CARE_LINKS = [
-  "Worldwide Shipping",
-  "Size Guide",
-  "Returns & Exchange",
-  "Fabric & Care",
-  "Track Order",
-  "FAQs",
+  { label: "Worldwide Shipping", hash: "shipping" },
+  { label: "Size Guide", hash: "help" },
+  { label: "Returns & Exchange", hash: "returns" },
+  { label: "Fabric & Care", hash: "help" },
+  { label: "Track Order", to: "/profile" as const, hash: "orders" },
+  { label: "FAQs", hash: "help" },
 ] as const;
 
 function FooterLink({
   label,
   to,
   params,
+  hash,
 }: {
   label: string;
   to: "/bespoke" | "/about" | "/contact" | "/journal" | "/shop/$category";
   params?: { category: string };
+  hash?: string;
 }) {
   return (
-    <Link to={to} params={params} className="hover:text-[color:var(--gold-soft)] transition-colors duration-300">
+    <Link
+      to={to}
+      params={params}
+      hash={hash}
+      className="hover:text-[color:var(--gold-soft)] transition-colors duration-300"
+    >
       {label}
     </Link>
   );
@@ -104,7 +111,7 @@ export function SiteFooter() {
             <ul className="space-y-2 text-xs lg:text-sm">
               {HOUSE_LINKS.map((link) => (
                 <li key={link.label}>
-                  <FooterLink label={link.label} to={link.to} />
+                  <FooterLink label={link.label} to={link.to} hash={"hash" in link ? link.hash : undefined} />
                 </li>
               ))}
             </ul>
@@ -113,16 +120,24 @@ export function SiteFooter() {
           <div className="lg:col-span-2">
             <div className="text-[9px] tracking-[0.32em] uppercase text-[color:var(--gold)] mb-3">Care</div>
             <ul className="space-y-2 text-xs lg:text-sm">
-              {CARE_LINKS.map((label) => (
-                <li key={label}>
-                  {label === "Track Order" ? (
-                    <Link to="/orders" className="hover:text-[color:var(--gold-soft)] transition-colors duration-300">
-                      {label}
+              {CARE_LINKS.map((link) => (
+                <li key={link.label}>
+                  {"to" in link ? (
+                    <Link
+                      to={link.to}
+                      hash={"hash" in link ? link.hash : undefined}
+                      className="hover:text-[color:var(--gold-soft)] transition-colors duration-300"
+                    >
+                      {link.label}
                     </Link>
                   ) : (
-                    <a href="#" className="hover:text-[color:var(--gold-soft)] transition-colors duration-300">
-                      {label}
-                    </a>
+                    <Link
+                      to="/contact"
+                      hash={link.hash}
+                      className="hover:text-[color:var(--gold-soft)] transition-colors duration-300"
+                    >
+                      {link.label}
+                    </Link>
                   )}
                 </li>
               ))}

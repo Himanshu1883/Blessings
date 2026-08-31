@@ -153,7 +153,9 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isHome = pathname === "/";
   const isAdmin = pathname.startsWith("/admin");
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
+  const isInvoice = pathname.includes("/invoice");
+  const isAuthPage =
+    pathname === "/login" || pathname === "/signup" || pathname === "/auth/callback";
 
   if (isAdmin) {
     return (
@@ -175,15 +177,19 @@ function RootComponent() {
           <ShopProvider>
             <ScrollExperienceProvider>
               <div className="flex min-h-screen flex-col bg-white text-foreground w-full max-w-[100vw]">
-                <SiteHeader />
+                <div className={isInvoice ? "print:hidden" : undefined}>
+                  <SiteHeader />
+                </div>
                 <main
                   className={cn(
                     "flex-1 w-full min-w-0 pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0 pt-[var(--header-height)]",
                     isAuthPage && "overflow-x-hidden",
+                    isInvoice && "print:pt-0 print:pb-0",
                   )}
                 >
                   <Outlet />
                 </main>
+                <div className={isInvoice ? "print:hidden" : undefined}>
                 {isHome || isAuthPage ? (
                   <SiteFooter />
                 ) : (
@@ -191,10 +197,13 @@ function RootComponent() {
                     <SiteFooter />
                   </PreFooterBanner>
                 )}
+                </div>
               </div>
+              <div className={isInvoice ? "print:hidden" : undefined}>
               <ShopPanels />
               <MobileBottomNav />
               <FloatingWhatsApp />
+              </div>
               <Toaster position="bottom-right" />
             </ScrollExperienceProvider>
           </ShopProvider>

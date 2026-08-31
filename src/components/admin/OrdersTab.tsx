@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/admin/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ import { useCurrency } from "@/lib/currency";
 import type { AdminOrder } from "@/lib/admin/types";
 import type { OrderStatus } from "@/components/admin/ui/StatusBadge";
 import type { useAdminApi } from "@/hooks/useAdminApi";
+import { ADMIN_NEXT_LABELS, adminNextStatuses, adminCanDirectCancel } from "@/lib/order-ui";
 
 const ORDER_STATUSES: OrderStatus[] = [
   "placed",
@@ -34,11 +36,32 @@ const ORDER_STATUSES: OrderStatus[] = [
   "returned",
 ];
 
+const FILTER_LABELS: Record<string, string> = {
+  placed: "Waiting for payment",
+  confirmed: "Confirmed",
+  processing: "Packed",
+  shipped: "Shipped",
+  in_transit: "Out for delivery",
+  delivered: "Delivered",
+  cancel_requested: "Cancel requested",
+  cancelled: "Cancelled",
+  returned: "Returned",
+};
+
+const RETURN_REASONS = [
+  { value: "size_fit", label: "Size or fit issue" },
+  { value: "damaged", label: "Item arrived damaged" },
+  { value: "wrong_item", label: "Wrong item received" },
+  { value: "quality", label: "Quality not as expected" },
+  { value: "changed_mind", label: "Changed my mind" },
+  { value: "other", label: "Other" },
+] as const;
+
 type Props = { api: ReturnType<typeof useAdminApi> };
 
 export function OrdersTab({ api }: Props) {
   const { format } = useCurrency();
-  const { data, loading, error, reload, updateOrder, updateOrderStatus } = api;
+  const { data, loading, error, reload, updateOrder, updateOrderStatus, createReturn } = api;
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
@@ -48,6 +71,10 @@ export function OrdersTab({ api }: Props) {
   const [savingTracking, setSavingTracking] = useState<string | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<AdminOrder | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const [returnOrder, setReturnOrder] = useState<AdminOrder | null>(null);
+  const [returnReason, setReturnReason] = useState<(typeof RETURN_REASONS)[number]["value"]>("size_fit");
+  const [returnNote, setReturnNote] = useState("");
+  const [startingReturn, setStartingReturn] = useState(false);
 
   const stats = useMemo(() => {
     const pending = data.orders.filter((o) =>
@@ -98,12 +125,36 @@ export function OrdersTab({ api }: Props) {
     }
   };
 
+  const handleDirectCancel = async (o: AdminOrder) => {
+    try {
+      await updateOrder(o.id, { cancelAction: "direct" });
+      toast.success("Order cancelled");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Cancel failed");
+    }
+  };
+
   const handleCancelAction = async (o: AdminOrder, action: "approve" | "reject") => {
     try {
       await updateOrder(o.id, { cancelAction: action });
       toast.success(action === "approve" ? "Cancellation approved" : "Cancellation rejected");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
+    }
+  };
+
+  const submitReturn = async () => {
+    if (!returnOrder) return;
+    setStartingReturn(true);
+    try {
+      await createReturn(returnOrder.id, returnReason, returnNote.trim() || undefined);
+      toast.success("Return opened — process it in Returns");
+      setReturnOrder(null);
+      setReturnNote("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not start return");
+    } finally {
+      setStartingReturn(false);
     }
   };
 
@@ -152,7 +203,7 @@ export function OrdersTab({ api }: Props) {
             <SelectItem value="all">All statuses</SelectItem>
             {ORDER_STATUSES.map((s) => (
               <SelectItem key={s} value={s}>
-                {s.replace(/_/g, " ")}
+                {FILTER_LABELS[s] ?? s}
               </SelectItem>
             ))}
           </SelectContent>
@@ -276,23 +327,39 @@ export function OrdersTab({ api }: Props) {
                                 </div>
                               </div>
                               <div className="space-y-2">
-                                <Label>Order status</Label>
-                                <Select
-                                  value={o.orderStatus}
-                                  onValueChange={(v) => changeStatus(o.id, v)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {ORDER_STATUSES.map((s) => (
-                                      <SelectItem key={s} value={s}>
-                                        {s.replace(/_/g, " ")}
-                                      </SelectItem>
+                                <Label>Next status</Label>
+                                {o.orderStatus === "cancel_requested" ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    Status is locked while a cancel request is under review.
+                                  </p>
+                                ) : (o.allowedNextStatuses ?? adminNextStatuses(o)).length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    No further status steps. Fulfilment is locked for this order.
+                                  </p>
+                                ) : (
+                                  <div className="flex flex-wrap gap-2">
+                                    {(o.allowedNextStatuses ?? adminNextStatuses(o)).map((s) => (
+                                      <Button
+                                        key={s}
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => changeStatus(o.id, s)}
+                                      >
+                                        Mark {ADMIN_NEXT_LABELS[s] ?? s}
+                                      </Button>
                                     ))}
-                                  </SelectContent>
-                                </Select>
+                                  </div>
+                                )}
                               </div>
+                              {(o.canAdminCancel ?? adminCanDirectCancel(o)) ? (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDirectCancel(o)}
+                                >
+                                  Cancel order
+                                </Button>
+                              ) : null}
                               {o.orderStatus === "cancel_requested" && (
                                 <div className="flex gap-2">
                                   <Button
@@ -316,6 +383,24 @@ export function OrdersTab({ api }: Props) {
                                   )}
                                 </div>
                               )}
+                              {o.returnStatus ? (
+                                <p className="text-xs text-muted-foreground">
+                                  Return: <StatusBadge status={o.returnStatus} kind="return" />
+                                </p>
+                              ) : null}
+                              {o.canReturn ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setReturnOrder(o);
+                                    setReturnReason("size_fit");
+                                    setReturnNote("");
+                                  }}
+                                >
+                                  Start return
+                                </Button>
+                              ) : null}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -413,6 +498,48 @@ export function OrdersTab({ api }: Props) {
             </div>
           </div>
         )}
+      </AdminModal>
+
+      <AdminModal
+        open={!!returnOrder}
+        onOpenChange={(open) => !open && setReturnOrder(null)}
+        title={`Return ${returnOrder?.orderNumber ?? ""}`}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setReturnOrder(null)}>
+              Cancel
+            </Button>
+            <Button onClick={submitReturn} disabled={startingReturn}>
+              {startingReturn ? "Opening…" : "Start return"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Opens a pending return for this delivered order. Process pickup, restock, and refund on the Returns tab.
+          </p>
+          <Label>Reason</Label>
+          <div className="space-y-2">
+            {RETURN_REASONS.map((r) => (
+              <label key={r.value} className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="admin-return-reason"
+                  checked={returnReason === r.value}
+                  onChange={() => setReturnReason(r.value)}
+                />
+                {r.label}
+              </label>
+            ))}
+          </div>
+          <Label>Note (optional)</Label>
+          <Textarea
+            value={returnNote}
+            onChange={(e) => setReturnNote(e.target.value)}
+            className="min-h-20"
+          />
+        </div>
       </AdminModal>
     </div>
   );

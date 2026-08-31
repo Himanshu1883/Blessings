@@ -12,7 +12,7 @@ function OrderDetailPage() {
   const { id } = Route.useParams();
   const { isAuthenticated } = useAuth();
   const { data: order, isLoading } = useOrder(id);
-  const { format } = useCurrency();
+  const { formatInr } = useCurrency();
 
   if (!isAuthenticated) {
     return <div className="py-24 text-center">Please sign in.</div>;
@@ -24,8 +24,8 @@ function OrderDetailPage() {
 
   return (
     <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
-      <Link to="/orders" className="eyebrow text-[10px] text-foreground/50 hover:text-foreground mb-6 inline-block">
-        ← All orders
+      <Link to="/profile" hash="orders" className="eyebrow text-[10px] text-foreground/50 hover:text-foreground mb-6 inline-block">
+        ← Your orders
       </Link>
       <h1 className="font-serif italic text-3xl">{order.orderNumber}</h1>
       <p className="mt-2 text-sm text-foreground/60 capitalize">
@@ -44,7 +44,7 @@ function OrderDetailPage() {
                 <div>
                   <p className="font-serif">{item.name}</p>
                   <p className="text-xs text-foreground/50">Size {item.size} × {item.quantity}</p>
-                  <p className="text-sm mt-1 tabular-nums">{format(item.lineTotal)}</p>
+                  <p className="text-sm mt-1 tabular-nums">{formatInr(item.lineTotal)}</p>
                 </div>
               </li>
             ))}
@@ -61,7 +61,7 @@ function OrderDetailPage() {
           <div className="mt-8 border-t border-foreground/10 pt-6">
             <div className="flex justify-between font-serif text-xl">
               <span>Total</span>
-              <span className="tabular-nums">{format(order.total)}</span>
+              <span className="tabular-nums">{formatInr(order.total)}</span>
             </div>
           </div>
         </div>

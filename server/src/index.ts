@@ -15,7 +15,8 @@ import wishlistRoutes from "./routes/wishlist.js";
 import orderRoutes from "./routes/orders.js";
 import adminRoutes from "./routes/admin.js";
 import homepageRoutes from "./routes/homepage.js";
-import webhookRoutes from "./routes/webhooks.js";
+import accountRoutes from "./routes/account.js";
+import { razorpayWebhookHandler } from "./routes/webhooks.js";
 
 const app = express();
 
@@ -27,10 +28,13 @@ app.use(
   }),
 );
 
-app.use("/api/webhooks/razorpay", express.raw({ type: "application/json" }), (req, _res, next) => {
+function attachRawBody(req: express.Request, _res: express.Response, next: express.NextFunction) {
   (req as express.Request & { rawBody?: Buffer }).rawBody = req.body as Buffer;
   next();
-});
+}
+
+app.post("/api/webhook/razorpay", express.raw({ type: "*/*", limit: "1mb" }), attachRawBody, razorpayWebhookHandler);
+app.post("/api/webhooks/razorpay", express.raw({ type: "*/*", limit: "1mb" }), attachRawBody, razorpayWebhookHandler);
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -44,16 +48,20 @@ app.get("/api/health", (_req, res) => {
   res.json({ success: true, status: "ok", timestamp: new Date().toISOString() });
 });
 
-app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/google/token", authLimiter);
+app.use("/api/auth/google/exchange", authLimiter);
+app.use("/api/auth", authRoutes);
 app.use("/api", apiLimiter);
 app.use("/api", catalogRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/account", accountRoutes);
 app.use("/api/homepage", homepageRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/webhooks", webhookRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

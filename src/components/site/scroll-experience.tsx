@@ -118,6 +118,7 @@ export function ScrollExperienceProvider({ children }: { children: ReactNode }) 
   const lenisRef = useRef<Lenis | null>(null);
   const [lenis, setLenis] = useState<Lenis | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const hash = useRouterState({ select: (s) => s.location.hash });
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -156,7 +157,8 @@ export function ScrollExperienceProvider({ children }: { children: ReactNode }) 
 
   useEffect(() => {
     const lenis = lenisRef.current;
-    const isAuthPage = pathname === "/login" || pathname === "/signup";
+    const isAuthPage =
+      pathname === "/login" || pathname === "/signup" || pathname === "/auth/callback";
 
     if (lenis) {
       if (isAuthPage) {
@@ -164,9 +166,11 @@ export function ScrollExperienceProvider({ children }: { children: ReactNode }) 
         window.scrollTo(0, 0);
       } else {
         lenis.start();
-        lenis.scrollTo(0, { immediate: true, force: true });
+        if (!hash) {
+          lenis.scrollTo(0, { immediate: true, force: true });
+        }
       }
-    } else {
+    } else if (!hash) {
       window.scrollTo(0, 0);
     }
 
@@ -181,7 +185,39 @@ export function ScrollExperienceProvider({ children }: { children: ReactNode }) 
       cancelAnimationFrame(frame);
       cleanup();
     };
-  }, [pathname]);
+  }, [pathname, hash]);
+
+  useEffect(() => {
+    const id = hash.replace(/^#/, "");
+    if (!id) return;
+
+    let cancelled = false;
+    let tries = 0;
+
+    const attempt = () => {
+      if (cancelled) return;
+      const el = document.getElementById(id);
+      if (el) {
+        const instance = lenisRef.current;
+        if (instance) {
+          instance.scrollTo(el, { offset: -96, duration: 0.85 });
+        } else {
+          const top = el.getBoundingClientRect().top + window.scrollY - 96;
+          window.scrollTo({ top, behavior: "smooth" });
+        }
+        return;
+      }
+      if (tries++ < 24) {
+        window.setTimeout(attempt, 80);
+      }
+    };
+
+    const frame = window.requestAnimationFrame(attempt);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [pathname, hash, lenis]);
 
   return (
     <ScrollExperienceContext.Provider value={{ lenis }}>

@@ -1,13 +1,15 @@
 import { ChevronDownIcon } from "@/components/icons/site-icons";
 import { WhatsAppLink } from "@/components/site/whatsapp-link";
 import { useAuth } from "@/lib/auth-context";
+import { loginSearch } from "@/lib/login-search";
 import {
   fetchNavbarCategories,
   fetchProducts,
   type StoreCategory,
   type StoreProduct,
 } from "@/lib/catalog-api";
-import { CURRENCIES, useCurrency, type CurrencyCode } from "@/lib/currency";
+import { CurrencySwitcher } from "@/components/site/currency-switcher";
+import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
@@ -15,15 +17,15 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const UTILITY_LEFT = [
-  { label: "RETURNS", to: "/contact" as const },
-  { label: "SHIPPING", to: "/contact" as const },
-  { label: "HELP", to: "/contact" as const },
+  { label: "RETURNS", to: "/contact" as const, hash: "returns" },
+  { label: "SHIPPING", to: "/contact" as const, hash: "shipping" },
+  { label: "HELP", to: "/contact" as const, hash: "help" },
 ] as const;
 
 const STATIC_NAV = [
   { label: "ABOUT", to: "/about" as const },
-  { label: "BLOG", to: "/journal" as const },
-  { label: "BESPOKE", to: "/bespoke" as const },
+  // { label: "BLOG", to: "/journal" as const },
+  // { label: "BESPOKE", to: "/bespoke" as const },
   { label: "CONTACT", to: "/contact" as const },
 ] as const;
 
@@ -69,7 +71,7 @@ export function SiteHeader() {
   const menuCloseTimer = useRef<number | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { openPanel, cartCount } = useShop();
 
   const visibleCategories = useMemo(
@@ -91,10 +93,11 @@ export function SiteHeader() {
   }, []);
 
   const openAccount = () => {
+    if (isLoading) return;
     if (isAuthenticated) {
-      openPanel("account");
+      navigate({ to: "/profile" });
     } else {
-      navigate({ to: "/login", search: { from: pathname } });
+      navigate({ to: "/login", search: loginSearch(pathname) });
     }
   };
 
@@ -185,6 +188,7 @@ export function SiteHeader() {
                 <Link
                   key={item.label}
                   to={item.to}
+                  hash={item.hash}
                   className={cn(
                     "text-[11px] font-medium tracking-[0.14em] uppercase transition-opacity hover:opacity-70",
                     solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
@@ -211,6 +215,7 @@ export function SiteHeader() {
                   {item.label}
                 </Link>
               ))}
+              <CurrencySwitcher variant="nav" />
               <button
                 type="button"
                 onClick={() => openPanel("search")}
@@ -260,16 +265,19 @@ export function SiteHeader() {
 
               <BrandLogo solidHeader={solidHeader} compact />
 
-              <button
-                type="button"
-                onClick={() => openPanel("cart")}
-                className={cn(
-                  "justify-self-end text-[11px] font-medium tracking-[0.14em] uppercase min-h-11 px-1 transition-opacity hover:opacity-70",
-                  solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                )}
-              >
-                Cart ({cartCount})
-              </button>
+              <div className="justify-self-end flex items-center gap-1">
+                <CurrencySwitcher variant="compact" />
+                <button
+                  type="button"
+                  onClick={() => openPanel("cart")}
+                  className={cn(
+                    "text-[11px] font-medium tracking-[0.14em] uppercase min-h-11 px-1 transition-opacity hover:opacity-70",
+                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
+                  )}
+                >
+                  Cart ({cartCount})
+                </button>
+              </div>
             </div>
           </nav>
 
@@ -398,7 +406,7 @@ function ShopAllMegaMenu({
   onClose: () => void;
   onMouseEnter: () => void;
 }) {
-  const { format, currency } = useCurrency();
+  const { format } = useCurrency();
 
   const featuredProducts = useMemo(() => {
     const slugs = new Set(categories.map((c) => c.slug));
@@ -430,7 +438,6 @@ function ShopAllMegaMenu({
                 key={product.id}
                 product={product}
                 formatPrice={format}
-                currency={currency}
                 onClose={onClose}
               />
             ))}
@@ -513,12 +520,10 @@ function CategoryColumn({
 function MegaMenuProductCard({
   product,
   formatPrice,
-  currency,
   onClose,
 }: {
   product: StoreProduct;
   formatPrice: (price: number) => string;
-  currency: CurrencyCode;
   onClose: () => void;
 }) {
   return (
@@ -544,7 +549,7 @@ function MegaMenuProductCard({
         {product.name}
       </h4>
       <p className="mt-0.5 shrink-0 text-[12px] text-[color:var(--charcoal)]">
-        From {formatPrice(product.price)} {currency}
+        From {formatPrice(product.price)}
       </p>
     </Link>
   );
@@ -584,7 +589,7 @@ function MobileDrawer({
         <div className="px-6 py-8 space-y-8">
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-medium tracking-[0.14em] uppercase text-[color:var(--charcoal)]/60">
             {UTILITY_LEFT.map((item) => (
-              <Link key={item.label} to={item.to} onClick={onClose}>
+              <Link key={item.label} to={item.to} hash={item.hash} onClick={onClose}>
                 {item.label}
               </Link>
             ))}
@@ -673,7 +678,7 @@ function MobileDrawer({
           </div>
 
           <div className="border-t border-black/8 pt-6">
-            <CurrencyDropdownMobile />
+            <CurrencySwitcher variant="drawer" />
           </div>
 
           <WhatsAppLink
@@ -685,33 +690,5 @@ function MobileDrawer({
         </div>
       </div>
     </>
-  );
-}
-
-function CurrencyDropdownMobile() {
-  const { currency, setCurrency } = useCurrency();
-
-  return (
-    <div>
-      <p className="text-[10px] font-medium tracking-[0.2em] uppercase text-[color:var(--charcoal)]/45 mb-3">
-        Currency
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
-          <button
-            key={code}
-            onClick={() => setCurrency(code)}
-            className={cn(
-              "px-3 py-1.5 text-[11px] font-medium tracking-[0.1em] uppercase border transition-colors",
-              currency === code
-                ? "border-[color:var(--charcoal)] bg-[color:var(--charcoal)] text-white"
-                : "border-black/15 text-[color:var(--charcoal)]/70 hover:border-[color:var(--charcoal)]",
-            )}
-          >
-            {code}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }

@@ -58,7 +58,7 @@ The git repo root is `blessings/` (workspace folder `Blessings/` wraps it).
 
 - Storefront → `api` (`credentials: include`) → Express `/api/*` → service → Mongo
 - `ShopProvider` → `useCart` / `useWishlist` (auth required) → `/api/cart`, `/api/wishlist`
-- Checkout → `POST /api/orders` → Razorpay order/verify or COD → Order
+- Checkout → signed-in `POST /api/orders` → Razorpay Checkout.js / verify + webhook finalize (INR paise) or COD → Order
 - Navbar: `fetchNavbarCategories()` → `GET /api/categories/navbar` (`isActive` + `showOnNavbar`)
 - Homepage: loader `fetchHomepageContent()` → `GET /api/homepage`; admin writes `/api/admin/homepage/*`
 - Media URLs: `/api/media/:fileId` (GridFS)

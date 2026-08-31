@@ -65,7 +65,16 @@ export function AccountSheet() {
 
           <div className="mt-8 space-y-2">
             <Link
-              to="/orders"
+              to="/profile"
+              onClick={handleClose}
+              className="flex items-center gap-3 border border-foreground/10 px-4 py-3 text-sm hover:bg-[color:var(--muted)]/40 transition-colors"
+            >
+              <UserIcon className="size-4" />
+              Your profile
+            </Link>
+            <Link
+              to="/profile"
+              hash="orders"
               onClick={handleClose}
               className="flex items-center gap-3 border border-foreground/10 px-4 py-3 text-sm hover:bg-[color:var(--muted)]/40 transition-colors"
             >

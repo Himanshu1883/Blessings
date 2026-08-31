@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { AdminCard } from "@/components/admin/ui/AdminCard";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,9 +58,11 @@ export function GenericCmsPanel({ section, hook, hint }: Props) {
   };
 
   return (
-    <AdminCard>
-      <h3 className="font-serif italic text-lg mb-2">{SECTION_LABELS[section]}</h3>
-      {hint && <p className="text-sm text-muted-foreground mb-4">{hint}</p>}
+    <div className="rounded-2xl border border-foreground/8 bg-white p-5 shadow-[0_8px_28px_rgba(40,16,10,0.04)] sm:p-7">
+      <div className="mb-6">
+        <h3 className="profile-display text-2xl text-[color:var(--charcoal)]">{SECTION_LABELS[section]}</h3>
+        {hint ? <p className="mt-1 text-sm text-foreground/50">{hint}</p> : null}
+      </div>
       <div className="space-y-2">
         <Label htmlFor={`cms-${section}`}>Section JSON</Label>
         <Textarea
@@ -72,17 +73,21 @@ export function GenericCmsPanel({ section, hook, hint }: Props) {
             setParseError(null);
           }}
           rows={16}
-          className="font-mono text-xs"
+          className="rounded-xl font-mono text-xs"
           spellCheck={false}
         />
-        {parseError && <p className="text-xs text-destructive">{parseError}</p>}
+        {parseError ? <p className="text-xs text-destructive">{parseError}</p> : null}
       </div>
-      <div className="mt-4">
-        <Button onClick={save} disabled={hook.saving}>
-          {hook.saving && <Loader2 className="size-4 mr-2 animate-spin" />}
+      <div className="mt-6">
+        <Button
+          onClick={save}
+          disabled={hook.saving}
+          className="h-11 rounded-lg bg-[color:var(--maroon)] px-6 hover:bg-[color:var(--maroon)]/90"
+        >
+          {hook.saving && <Loader2 className="mr-2 size-4 animate-spin" />}
           Save {SECTION_LABELS[section].toLowerCase()}
         </Button>
       </div>
-    </AdminCard>
+    </div>
   );
 }

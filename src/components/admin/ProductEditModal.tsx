@@ -24,7 +24,7 @@ import {
   type AdminProduct,
   type ProductForm,
 } from "@/lib/admin/product-form";
-import { slugify } from "@/lib/admin/productUtils";
+import { slugify, skuify, isAutoSlug, isAutoSku } from "@/lib/admin/productUtils";
 import type { ApiCategory, ApiProduct } from "@/lib/api-types";
 
 type ProductEditModalProps = {
@@ -50,6 +50,7 @@ export function ProductEditModal({
 }: ProductEditModalProps) {
   const [form, setForm] = useState<ProductForm>(emptyForm(defaultCategoryId));
   const [slugManual, setSlugManual] = useState(false);
+  const [skuManual, setSkuManual] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -59,11 +60,18 @@ export function ProductEditModal({
   useEffect(() => {
     if (!open) return;
     if (product) {
-      setForm(fromProduct(product));
-      setSlugManual(true);
+      const next = fromProduct(product);
+      const slugAuto = isAutoSlug(product.name, product.slug);
+      const skuAuto = isAutoSku(product.name, product.sku ?? "");
+      if (slugAuto && !next.slug.trim()) next.slug = slugify(product.name);
+      if (skuAuto && !next.sku.trim()) next.sku = skuify(product.name);
+      setForm(next);
+      setSlugManual(!slugAuto);
+      setSkuManual(!skuAuto);
     } else {
       setForm(emptyForm(defaultCategoryId));
       setSlugManual(false);
+      setSkuManual(false);
     }
   }, [open, product, defaultCategoryId]);
 
@@ -72,6 +80,7 @@ export function ProductEditModal({
       ...f,
       name,
       slug: slugManual ? f.slug : slugify(name),
+      sku: skuManual ? f.sku : skuify(name),
     }));
   };
 
@@ -191,19 +200,42 @@ export function ProductEditModal({
               <Input
                 id="prod-slug"
                 value={form.slug}
+                placeholder="Generated from name"
                 onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value.trim()) {
+                    setSlugManual(false);
+                    setForm((f) => ({ ...f, slug: slugify(f.name) }));
+                    return;
+                  }
                   setSlugManual(true);
-                  setForm((f) => ({ ...f, slug: e.target.value }));
+                  setForm((f) => ({ ...f, slug: value }));
                 }}
               />
+              <p className="text-[11px] text-muted-foreground">
+                {slugManual ? "Edited manually." : "Auto-filled from the name. You can change it."}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="prod-sku">SKU</Label>
               <Input
                 id="prod-sku"
                 value={form.sku}
-                onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
+                placeholder="Generated from name"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value.trim()) {
+                    setSkuManual(false);
+                    setForm((f) => ({ ...f, sku: skuify(f.name) }));
+                    return;
+                  }
+                  setSkuManual(true);
+                  setForm((f) => ({ ...f, sku: value }));
+                }}
               />
+              <p className="text-[11px] text-muted-foreground">
+                {skuManual ? "Edited manually." : "Auto-filled from the name. You can change it."}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="prod-price">Price (₹)</Label>

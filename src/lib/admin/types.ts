@@ -45,6 +45,20 @@ export type AdminReturn = {
   status: ReturnStatus;
   statusHistory: Array<{ status: ReturnStatus; note?: string; at: string }>;
   createdAt: string;
+  items?: Array<{ name: string; size: string; quantity: number; lineTotal: number }>;
+  pickupAddress: {
+    name: string;
+    line1: string;
+    city: string;
+    state: string;
+    pincode: string;
+    phone: string;
+  } | null;
+  paymentMethod: string | null;
+  paymentStatus: string | null;
+  total: number | null;
+  allowedNextStatuses: ReturnStatus[];
+  stockRestored: boolean;
 };
 
 export type AdminNotification = {
@@ -60,6 +74,10 @@ export type AdminOrder = ApiOrder & {
   trackingNumber?: string | null;
   cancelReason?: string | null;
   customerName?: string;
+  allowedNextStatuses?: string[];
+  canAdminCancel?: boolean;
+  canReturn?: boolean;
+  returnStatus?: string | null;
 };
 
 export type DashboardMetrics = {

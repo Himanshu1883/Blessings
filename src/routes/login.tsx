@@ -1,28 +1,46 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AuthPageLayout, authInputClass } from "@/components/site/auth-page-layout";
+import { GoogleAuthButton } from "@/components/site/google-auth-button";
 import { useAuth } from "@/lib/auth-context";
+import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): {
+    from: string;
+    identifier?: string;
+    auth?: string;
+  } => ({
     from: typeof search.from === "string" ? search.from : "/",
+    ...(typeof search.identifier === "string" ? { identifier: search.identifier } : {}),
+    ...(typeof search.auth === "string" ? { auth: search.auth } : {}),
   }),
   component: LoginPage,
 });
 
 function LoginPage() {
-  const { from } = Route.useSearch();
+  const { from, identifier: prefill, auth } = Route.useSearch();
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading, isAdmin, googleLoginUrl } = useAuth();
+  const { login, isAuthenticated, isLoading, isAdmin, googleEnabled, getGoogleLoginUrl } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [loginId, setLoginId] = useState("");
+  const [loginId, setLoginId] = useState(prefill ?? "");
   const [loginPassword, setLoginPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (prefill) setLoginId(prefill);
+  }, [prefill]);
+
+  useEffect(() => {
+    if (auth === "failed") {
+      toast.error("Google sign-in did not complete. Please try again.");
+    }
+  }, [auth]);
 
   if (!isLoading && isAuthenticated) {
     if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
@@ -37,7 +55,11 @@ function LoginPage() {
       toast.success("Welcome back.");
       navigate({ to: user.role === "admin" ? "/admin/dashboard" : from });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Login failed");
+      if (err instanceof ApiError && err.code === "GOOGLE_ONLY") {
+        toast.error(err.message);
+      } else {
+        toast.error(err instanceof Error ? err.message : "Login failed");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -47,18 +69,19 @@ function LoginPage() {
     <AuthPageLayout mode="login">
       <h1 className="font-serif text-4xl sm:text-5xl italic text-foreground mb-3">Login</h1>
       <p className="text-sm text-muted-foreground leading-relaxed mb-8">
-        Welcome back! Log in to your account to access your order history and enjoy faster checkout.
+        Welcome back. Sign in to track orders, save favourites, and check out faster.
       </p>
 
       <form onSubmit={handleLogin} className="space-y-6">
         <Input
           id="login-id"
-          type="email"
-          placeholder="Email address *"
+          type="text"
+          inputMode="email"
+          placeholder="Email or phone *"
           value={loginId}
           onChange={(e) => setLoginId(e.target.value)}
           required
-          autoComplete="email"
+          autoComplete="username"
           className={authInputClass}
         />
         <div className="relative">
@@ -81,7 +104,7 @@ function LoginPage() {
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
-        <Link to="/contact" className="inline-block text-sm font-medium hover:text-primary transition-colors">
+        <Link to="/contact" hash="help" className="inline-block text-sm font-medium hover:text-primary transition-colors">
           Forgot your password?
         </Link>
         <Button
@@ -89,9 +112,15 @@ function LoginPage() {
           disabled={submitting}
           className="w-full h-12 rounded-none bg-foreground text-background hover:bg-foreground/90 eyebrow text-[11px] tracking-[0.18em]"
         >
-          Sign in
+          {submitting ? "Signing in…" : "Sign in"}
         </Button>
       </form>
+
+      {googleEnabled && (
+        <div className="mt-6 pt-6 border-t border-border">
+          <GoogleAuthButton href={getGoogleLoginUrl(from)} />
+        </div>
+      )}
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
         New customer?{" "}
@@ -99,15 +128,6 @@ function LoginPage() {
           Create an account
         </Link>
       </p>
-
-      <div className="mt-6 pt-6 border-t border-border">
-        <a
-          href={googleLoginUrl}
-          className="flex w-full items-center justify-center gap-2 border border-foreground/15 py-3 text-sm hover:bg-muted/40 transition-colors"
-        >
-          Continue with Google
-        </a>
-      </div>
     </AuthPageLayout>
   );
 }

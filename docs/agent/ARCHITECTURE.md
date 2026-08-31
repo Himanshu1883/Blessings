@@ -46,7 +46,7 @@ Two processes in local dev: `vite dev` (frontend) + `server` (`tsx watch src/ind
 | `/api/wishlist` | `routes/wishlist.ts` | `requireAuth` |
 | `/api/orders` | `routes/orders.ts` | `requireAuth` |
 | `/api/admin` | `routes/admin.ts` | `requireAuth` + `requireAdmin` |
-| `/api/webhooks/razorpay` | `routes/webhooks.ts` | signature; **raw body** |
+| `/api/webhook/razorpay` and `/api/webhooks/razorpay` | `routes/webhooks.ts` | HMAC on **raw body**; no session |
 
 Pattern: route (Zod validate) → service → model. Errors via `AppError` + `errorHandler`. Success: `{ success: true, data }`.
 
@@ -68,7 +68,18 @@ Models in `server/src/models/`: User, Category, Product, Cart, Wishlist, Order, 
 
 ## Payments
 
-Checkout page loads Razorpay.js → `POST /api/orders` → `POST /api/orders/:id/razorpay` → client checkout → `POST /api/orders/:id/verify`. Webhook confirms independently. COD skips Razorpay.
+Standard Indian merchant checkout (Key ID + Key Secret). Not Partner OAuth / Route.
+
+- Charge is always INR paise (`total × 100`). Display currency (USD/EUR/GBP) is never sent to Razorpay.
+- Server re-prices the cart from the DB. Client totals are not trusted.
+- Signed-in `POST /api/orders` creates the shop order, then `razorpay.orders.create`. Response includes public `keyId`, `razorpayOrderId`, amount, `currency: "INR"`.
+- Browser loads `checkout.razorpay.com/v1/checkout.js` with the public Key ID only. Key Secret and webhook secret never leave the server.
+- Checkout handler → `POST /api/orders/:id/verify` (session + HMAC `order_id|payment_id`). Webhook `payment.captured` is the backup. Both call the same idempotent finalize (stock once, one confirmation email).
+- Webhook HMAC on the raw body string vs `X-Razorpay-Signature`. Missing webhook secret → 400, do not process. Events: `payment.captured`, `payment.failed`, `refund.processed`, `refund.failed`.
+- Fail closed if keys/secrets are missing. Do not skip HMAC in production.
+- Modal dismiss leaves `pending` / `placed`; no stock drop. Thank-you uses `location.replace` (`/checkout/success`).
+- COD does not talk to Razorpay; COD is marked paid on Delivered.
+- Cancel of a paid online order refunds via the secret key; webhook updates refund status.
 
 ## Deployment
 

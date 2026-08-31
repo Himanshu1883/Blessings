@@ -1,4 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 import { useAuth } from "@/lib/auth-context";
@@ -77,6 +78,7 @@ function ProductPage() {
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
   const router = useRouter();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const adminCatalog = useAdminProductCatalog(isAdmin);
   const [related, setRelated] = useState(relatedFromLoader);
   const [size, setSize] = useState(product.sizes[0] ?? "M");
@@ -105,11 +107,12 @@ function ProductPage() {
   useEffect(() => {
     addRecentlyViewed({
       slug: product.slug,
+      productId: product.mongoId,
       name: product.name,
       price: product.price,
       imageUrl: product.imageUrl,
     });
-  }, [product.slug, product.name, product.price, product.imageUrl]);
+  }, [product.slug, product.mongoId, product.name, product.price, product.imageUrl]);
 
   useEffect(() => {
     const el = ctaRef.current;
@@ -132,19 +135,27 @@ function ProductPage() {
     toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
   };
 
-  const handleAdminEdit = (storeProduct: StoreProduct) => {
-    const adminProduct = adminCatalog.products.find((p) => p.id === storeProduct.mongoId);
-    if (!adminProduct) {
-      toast.error("Product details are still loading. Please try again.");
-      return;
+  const handleAdminEdit = async (storeProduct: StoreProduct) => {
+    try {
+      const adminProduct = await adminCatalog.ensureProduct(
+        storeProduct.mongoId,
+        storeProduct.slug,
+      );
+      setEditingProduct(adminProduct);
+      setEditOpen(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not open product editor.");
     }
-    setEditingProduct(adminProduct);
-    setEditOpen(true);
   };
 
   const handleProductSaved = async (saved: ApiProduct) => {
     const mapped = storeProductFromApi(saved);
-    if (editingProduct?.id === product.mongoId && mapped.slug !== product.slug) {
+    setEditingProduct(null);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["products"] }),
+      queryClient.invalidateQueries({ queryKey: ["product"] }),
+    ]);
+    if (mapped.slug !== product.slug) {
       await navigate({ to: "/product/$id", params: { id: mapped.slug } });
       return;
     }
@@ -222,7 +233,6 @@ function ProductPage() {
                 {isAdmin && (
                   <AdminProductActions
                     layout="row"
-                    disabled={!adminCatalog.ready}
                     onEdit={() => handleAdminEdit(product)}
                     onDelete={() => setDeleteTarget(product)}
                   />
@@ -400,7 +410,6 @@ function ProductPage() {
                 product={p}
                 onAdminEdit={isAdmin ? handleAdminEdit : undefined}
                 onAdminDelete={isAdmin ? setDeleteTarget : undefined}
-                adminEditReady={adminCatalog.ready}
               />
             ))}
           </div>

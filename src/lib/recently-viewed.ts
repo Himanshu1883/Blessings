@@ -1,8 +1,9 @@
 const STORAGE_KEY = "blessings_recently_viewed";
-const MAX_ITEMS = 6;
+const MAX_ITEMS = 8;
 
 export type RecentProduct = {
   slug: string;
+  productId?: string;
   name: string;
   price: number;
   imageUrl: string | null;

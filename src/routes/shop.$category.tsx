@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import type { StoreCategory, StoreProduct } from "@/lib/catalog-api";
 import { fetchCategories, fetchCategory, fetchProducts, storeProductFromApi } from "@/lib/catalog-api";
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUpDown, Check, ChevronDown, Loader2, Plus, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ProductEditModal } from "@/components/admin/ProductEditModal";
@@ -49,7 +50,7 @@ function getFilterGroups(cat: StoreCategory) {
 }
 
 export const Route = createFileRoute("/shop/$category")({
-  head: ({ loaderData }) => {
+  head: ({ loaderData }: { loaderData?: { cat?: StoreCategory } }) => {
     const cat = loaderData?.cat;
     const title = cat ? `${cat.name} — Blessings Men's Boutique` : "Shop — Blessings";
     const desc = cat?.tagline ?? "Shop bespoke menswear at Blessings.";
@@ -92,6 +93,7 @@ function ShopCategory() {
 
   const { isAdmin } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const adminCatalog = useAdminProductCatalog(isAdmin);
 
   const [products, setProducts] = useState(loaderData.products);
@@ -135,14 +137,17 @@ function ShopCategory() {
     return Number(!!b.isNew) - Number(!!a.isNew);
   });
 
-  const handleAdminEdit = (storeProduct: StoreProduct) => {
-    const adminProduct = adminCatalog.products.find((p) => p.id === storeProduct.mongoId);
-    if (!adminProduct) {
-      toast.error("Product details are still loading. Please try again.");
-      return;
+  const handleAdminEdit = async (storeProduct: StoreProduct) => {
+    try {
+      const adminProduct = await adminCatalog.ensureProduct(
+        storeProduct.mongoId,
+        storeProduct.slug,
+      );
+      setEditingProduct(adminProduct);
+      setEditOpen(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not open product editor.");
     }
-    setEditingProduct(adminProduct);
-    setEditOpen(true);
   };
 
   const openAddProduct = () => {
@@ -150,17 +155,30 @@ function ShopCategory() {
     setEditOpen(true);
   };
 
-  const handleProductSaved = (saved: ApiProduct) => {
+  const handleProductSaved = async (saved: ApiProduct) => {
     const mapped = storeProductFromApi(saved);
-    if (editingProduct) {
-      setProducts((prev) =>
-        prev.map((p) => (p.mongoId === saved.id ? mapped : p)),
+    const belongsHere = cat.slug === "all" || saved.categorySlug === cat.slug;
+    setProducts((prev) => {
+      const isExisting = prev.some(
+        (p) => p.mongoId === saved.id || p.slug === saved.slug,
       );
-      return;
-    }
-    if (cat.slug === "all" || saved.categorySlug === cat.slug) {
-      setProducts((prev) => [...prev, mapped]);
-    }
+      if (isExisting) {
+        if (!belongsHere) {
+          return prev.filter((p) => p.mongoId !== saved.id && p.slug !== saved.slug);
+        }
+        return prev.map((p) =>
+          p.mongoId === saved.id || p.slug === saved.slug ? mapped : p,
+        );
+      }
+      if (belongsHere) return [mapped, ...prev];
+      return prev;
+    });
+    setEditingProduct(null);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["products"] }),
+      queryClient.invalidateQueries({ queryKey: ["product"] }),
+      router.invalidate(),
+    ]);
   };
 
   const handleAdminDelete = (storeProduct: StoreProduct) => {
@@ -312,7 +330,6 @@ function ShopCategory() {
                 product={p}
                 onAdminEdit={isAdmin ? handleAdminEdit : undefined}
                 onAdminDelete={isAdmin ? handleAdminDelete : undefined}
-                adminEditReady={adminCatalog.ready}
               />
             ))}
           </div>

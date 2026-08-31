@@ -16,6 +16,14 @@ export default defineConfig({
         "/api": {
           target: "http://localhost:4000",
           changeOrigin: true,
+          cookieDomainRewrite: "",
+          configure(proxy) {
+            proxy.on("proxyReq", (proxyReq, req) => {
+              const host = req.headers.host;
+              if (host) proxyReq.setHeader("x-forwarded-host", String(host));
+              proxyReq.setHeader("x-forwarded-proto", "http");
+            });
+          },
         },
       },
     },

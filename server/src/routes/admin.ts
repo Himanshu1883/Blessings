@@ -8,6 +8,7 @@ import {
   updateCategory,
   deleteCategory,
   listProducts,
+  getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -22,7 +23,7 @@ import {
   getDashboardMetrics,
 } from "../services/orderService.js";
 import { listCoupons, createCoupon, updateCoupon, deleteCoupon } from "../services/couponService.js";
-import { listReturns, updateReturnStatus } from "../services/returnService.js";
+import { listReturns, updateReturnStatus, createAdminReturn } from "../services/returnService.js";
 import { listNotifications, createNotification } from "../services/notificationService.js";
 import {
   getAllHomepageContent,
@@ -153,6 +154,18 @@ router.get("/products", async (_req, res, next) => {
   }
 });
 
+router.get(
+  "/products/:id",
+  validateParams(z.object({ id: z.string().min(1) })),
+  async (req, res, next) => {
+    try {
+      sendSuccess(res, await getProductById(paramId(req.params.id)));
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
 router.post(
   "/products",
   validateBody(
@@ -203,6 +216,7 @@ router.patch(
   validateBody(
     z.object({
       name: z.string().optional(),
+      slug: z.string().min(2).optional(),
       sku: z.string().optional(),
       categoryId: z.string().optional(),
       fabric: z.string().optional(),
@@ -297,7 +311,7 @@ router.patch(
       orderStatus: orderStatusEnum.optional(),
       trackingNumber: z.string().optional(),
       note: z.string().optional(),
-      cancelAction: z.enum(["approve", "reject"]).optional(),
+      cancelAction: z.enum(["approve", "reject", "direct"]).optional(),
     }),
   ),
   async (req, res, next) => {
@@ -380,6 +394,31 @@ router.get("/returns", async (_req, res, next) => {
     next(e);
   }
 });
+
+router.post(
+  "/returns",
+  validateBody(
+    z.object({
+      orderId: z.string(),
+      reason: z.enum([
+        "size_fit",
+        "damaged",
+        "wrong_item",
+        "quality",
+        "changed_mind",
+        "other",
+      ]),
+      note: z.string().max(400).optional(),
+    }),
+  ),
+  async (req, res, next) => {
+    try {
+      sendSuccess(res, await createAdminReturn(req.body.orderId, req.body), 201);
+    } catch (e) {
+      next(e);
+    }
+  },
+);
 
 router.patch(
   "/returns/:id",

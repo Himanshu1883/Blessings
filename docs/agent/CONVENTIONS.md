@@ -18,7 +18,7 @@
 - Validate with Zod (`validateBody` / `validateQuery` / `validateParams`).
 - Respond with `sendSuccess(res, data)`. Throw `AppError(status, message)`.
 - Auth middleware: `requireAuth`, `requireAdmin`, `attachRefreshedCookie`.
-- Razorpay webhook must keep **raw body** — do not JSON-parse that path.
+- Razorpay webhook must keep **raw body** (`/api/webhook/razorpay` and `/api/webhooks/razorpay`) — HMAC the utf8 string, never re-JSON-stringify. Missing webhook secret is invalid.
 - ESM: import with `.js` extensions in `server/src` (TypeScript nodenext).
 
 ## Database

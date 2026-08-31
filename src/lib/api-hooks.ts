@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api-client";
-import type { ApiCart, ApiProduct, ApiCategory, ApiOrder } from "./api-types";
+import type { ApiCart, ApiProduct, ApiCategory, ApiOrder, ApiUserNotification, CreateOrderResult, RazorpayCheckoutSession } from "./api-types";
 import { useAuth } from "./auth-context";
 
 export function useCategories() {
@@ -143,10 +143,68 @@ export function useCreateOrder() {
         phone: string;
       };
       paymentMethod: "razorpay" | "cod";
-    }) => api.post<ApiOrder>("/api/orders", data),
+    }) => api.post<CreateOrderResult>("/api/orders", data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      if (!result.razorpay) {
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+      }
+    },
+  });
+}
+
+export function useStartRazorpay() {
+  return useMutation({
+    mutationFn: (orderId: string) => api.post<RazorpayCheckoutSession>(`/api/orders/${orderId}/razorpay`),
+  });
+}
+
+export function useCancelOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      id: string;
+      reason: "changed_mind" | "ordered_by_mistake" | "delivery_too_slow" | "found_better_price" | "other";
+      note?: string;
+    }) => api.post<ApiOrder>(`/api/orders/${data.id}/cancel`, { reason: data.reason, note: data.note }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["account-notifications"] });
+    },
+  });
+}
+
+export function useRequestReturn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      id: string;
+      reason: "size_fit" | "damaged" | "wrong_item" | "quality" | "changed_mind" | "other";
+      note?: string;
+    }) => api.post(`/api/orders/${data.id}/return`, { reason: data.reason, note: data.note }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["account-notifications"] });
+    },
+  });
+}
+
+export function useAccountNotifications() {
+  const { isAuthenticated } = useAuth();
+  return useQuery({
+    queryKey: ["account-notifications"],
+    queryFn: () => api.get<ApiUserNotification[]>("/api/account/notifications"),
+    enabled: isAuthenticated,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useMarkNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.patch<ApiUserNotification[]>("/api/account/notifications/read-all"),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["account-notifications"], data);
     },
   });
 }

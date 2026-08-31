@@ -65,7 +65,10 @@ export async function getProductBySlug(slug: string) {
 }
 
 export async function getProductById(id: string) {
-  const product = await Product.findById(id);
+  const isObjectId = /^[a-f\d]{24}$/i.test(id);
+  const product = isObjectId
+    ? await Product.findById(id)
+    : await Product.findOne({ slug: id.toLowerCase() });
   if (!product) throw new AppError(404, "Product not found");
   const cat = await Category.findById(product.categoryId);
   const imageUrls = product.imageIds.map((id) => `/api/media/${id}`);
@@ -190,6 +193,7 @@ export async function createProduct(data: {
 
 export async function updateProduct(id: string, data: Partial<{
   name: string;
+  slug: string;
   sku: string;
   categoryId: string;
   fabric: string;
@@ -217,6 +221,7 @@ export async function updateProduct(id: string, data: Partial<{
   if (!product) throw new AppError(404, "Product not found");
 
   if (data.name) product.name = sanitizeText(data.name);
+  if (data.slug !== undefined) product.slug = data.slug.toLowerCase().trim();
   if (data.sku !== undefined) product.sku = data.sku || undefined;
   if (data.categoryId) product.categoryId = data.categoryId as unknown as Types.ObjectId;
   if (data.fabric !== undefined) product.fabric = sanitizeText(data.fabric);

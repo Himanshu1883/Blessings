@@ -2,63 +2,88 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "./api-client";
+import { api, ApiError } from "./api-client";
 import type { ApiUser } from "./api-types";
-import { ApiError } from "./api-client";
 
 type AuthContextValue = {
   user: ApiUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  googleEnabled: boolean;
   login: (identifier: string, password: string) => Promise<ApiUser>;
   register: (data: {
     name: string;
     email?: string;
     phone?: string;
     password: string;
-  }) => Promise<void>;
+  }) => Promise<ApiUser>;
+  completeGoogleSession: (token: string) => Promise<ApiUser>;
+  updateAccount: (data: {
+    name?: string;
+    email?: string | null;
+    phone?: string | null;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => Promise<{ user: ApiUser; requiresRelogin: boolean }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  googleLoginUrl: string;
+  getGoogleLoginUrl: (from?: string) => string;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function fetchSession(): Promise<ApiUser | null> {
+  try {
+    return await api.get<ApiUser>("/api/auth/me");
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) return null;
+    throw e;
+  }
+}
+
+function applySession(
+  queryClient: ReturnType<typeof useQueryClient>,
+  user: ApiUser,
+) {
+  queryClient.setQueryData(["auth", "me"], user);
+  void queryClient.invalidateQueries({ queryKey: ["cart"] });
+  void queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+  void queryClient.invalidateQueries({ queryKey: ["orders"] });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [bootstrapped, setBootstrapped] = useState(false);
+  const isBrowser = typeof window !== "undefined";
 
-  const { data: user, isLoading, refetch } = useQuery({
+  const { data: user, isPending, isFetching, refetch } = useQuery({
     queryKey: ["auth", "me"],
-    queryFn: async () => {
-      try {
-        return await api.get<ApiUser>("/api/auth/me");
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 401) return null;
-        throw e;
-      }
-    },
+    queryFn: fetchSession,
+    enabled: isBrowser,
+    staleTime: 60_000,
+    gcTime: 30 * 60 * 1000,
     retry: false,
-    staleTime: 5 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
-  useEffect(() => {
-    if (!isLoading) setBootstrapped(true);
-  }, [isLoading]);
+  const { data: providers } = useQuery({
+    queryKey: ["auth", "providers"],
+    queryFn: () => api.get<{ google: boolean }>("/api/auth/providers"),
+    enabled: isBrowser,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
   const login = useCallback(
     async (identifier: string, password: string) => {
       const loggedInUser = await api.post<ApiUser>("/api/auth/login", { identifier, password });
-      queryClient.setQueryData(["auth", "me"], loggedInUser);
-      await queryClient.invalidateQueries({ queryKey: ["cart"] });
-      await queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      applySession(queryClient, loggedInUser);
       return loggedInUser;
     },
     [queryClient],
@@ -66,8 +91,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (data: { name: string; email?: string; phone?: string; password: string }) => {
-      await api.post<ApiUser>("/api/auth/register", data);
-      await queryClient.invalidateQueries({ queryKey: ["auth"] });
+      const created = await api.post<ApiUser>("/api/auth/register", data);
+      applySession(queryClient, created);
+      return created;
+    },
+    [queryClient],
+  );
+
+  const completeGoogleSession = useCallback(
+    async (token: string) => {
+      const loggedInUser = await api.post<ApiUser>("/api/auth/google/exchange", { token });
+      applySession(queryClient, loggedInUser);
+      return loggedInUser;
+    },
+    [queryClient],
+  );
+
+  const updateAccount = useCallback(
+    async (data: {
+      name?: string;
+      email?: string | null;
+      phone?: string | null;
+      currentPassword?: string;
+      newPassword?: string;
+    }) => {
+      const result = await api.patch<{ user: ApiUser; requiresRelogin: boolean }>(
+        "/api/auth/profile",
+        data,
+      );
+      if (result.requiresRelogin) {
+        queryClient.setQueryData(["auth", "me"], null);
+        queryClient.removeQueries({ queryKey: ["cart"] });
+        queryClient.removeQueries({ queryKey: ["wishlist"] });
+        queryClient.removeQueries({ queryKey: ["orders"] });
+      } else {
+        queryClient.setQueryData(["auth", "me"], result.user);
+      }
+      return result;
     },
     [queryClient],
   );
@@ -75,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await api.post("/api/auth/logout");
+    } catch {
+      // Clear local session even if the API call fails.
     } finally {
       queryClient.setQueryData(["auth", "me"], null);
       queryClient.removeQueries({ queryKey: ["cart"] });
@@ -87,27 +149,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refetch();
   }, [refetch]);
 
-  const googleLoginUrl = useMemo(() => {
-    const base =
-      import.meta.env.DEV && import.meta.env.VITE_API_URL
-        ? import.meta.env.VITE_API_URL.replace(/\/$/, "")
-        : "";
-    return `${base}/api/auth/google`;
+  const getGoogleLoginUrl = useCallback((from = "/") => {
+    const params = new URLSearchParams();
+    if (from && from !== "/") params.set("from", from);
+    const qs = params.toString();
+    return qs ? `/api/auth/google?${qs}` : "/api/auth/google";
   }, []);
+
+  const waitingForClientSession = isBrowser && isPending && isFetching;
+  const isLoading = !isBrowser || waitingForClientSession;
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user: user ?? null,
-      isLoading: isLoading || !bootstrapped,
+      isLoading,
       isAuthenticated: !!user,
       isAdmin: user?.role === "admin",
+      googleEnabled: providers?.google === true,
       login,
       register,
+      completeGoogleSession,
+      updateAccount,
       logout,
       refreshUser,
-      googleLoginUrl,
+      getGoogleLoginUrl,
     }),
-    [user, isLoading, bootstrapped, login, register, logout, refreshUser, googleLoginUrl],
+    [
+      user,
+      isLoading,
+      providers?.google,
+      login,
+      register,
+      completeGoogleSession,
+      updateAccount,
+      logout,
+      refreshUser,
+      getGoogleLoginUrl,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

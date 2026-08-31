@@ -29,6 +29,7 @@ type AdminApiState = {
   updateCoupon: (id: string, body: Record<string, unknown>) => Promise<AdminCoupon>;
   deleteCoupon: (id: string) => Promise<void>;
   updateReturn: (id: string, status: string, note?: string) => Promise<AdminReturn>;
+  createReturn: (orderId: string, reason: string, note?: string) => Promise<AdminReturn>;
   sendNotification: (body: { title: string; message: string; channel?: string }) => Promise<AdminNotification>;
   uploadMedia: (file: File, alt?: string) => Promise<{ gridFsId: string; url: string }>;
 };
@@ -108,6 +109,8 @@ export function useAdminApi(): AdminApiState {
       deleteCoupon: (id) => mutate(() => api.delete(`/api/admin/coupons/${id}`)),
       updateReturn: (id, status, note) =>
         mutate(() => api.patch<AdminReturn>(`/api/admin/returns/${id}`, { status, note })),
+      createReturn: (orderId, reason, note) =>
+        mutate(() => api.post<AdminReturn>("/api/admin/returns", { orderId, reason, note })),
       sendNotification: (body) =>
         mutate(() => api.post<AdminNotification>("/api/admin/notifications", body)),
       uploadMedia: async (file, alt) => {

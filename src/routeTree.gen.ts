@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JournalRouteImport } from './routes/journal'
@@ -24,8 +25,11 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ShopCategoryRouteImport } from './routes/shop.$category'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminTabRouteImport } from './routes/admin/$tab'
+import { Route as OrdersIdInvoiceRouteImport } from './routes/orders.$id.invoice'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -35,6 +39,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -102,6 +111,16 @@ const OrdersIdRoute = OrdersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => OrdersRoute,
 } as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/success',
+  path: '/success',
+  getParentRoute: () => CheckoutRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -112,43 +131,56 @@ const AdminTabRoute = AdminTabRouteImport.update({
   path: '/$tab',
   getParentRoute: () => AdminRoute,
 } as any)
+const OrdersIdInvoiceRoute = OrdersIdInvoiceRouteImport.update({
+  id: '/invoice',
+  path: '/invoice',
+  getParentRoute: () => OrdersIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/bespoke': typeof BespokeRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/$tab': typeof AdminTabRoute
   '/admin/login': typeof AdminLoginRoute
-  '/orders/$id': typeof OrdersIdRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
+  '/orders/$id': typeof OrdersIdRouteWithChildren
   '/product/$id': typeof ProductIdRoute
   '/shop/$category': typeof ShopCategoryRoute
   '/admin/': typeof AdminIndexRoute
+  '/orders/$id/invoice': typeof OrdersIdInvoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/bespoke': typeof BespokeRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/$tab': typeof AdminTabRoute
   '/admin/login': typeof AdminLoginRoute
-  '/orders/$id': typeof OrdersIdRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
+  '/orders/$id': typeof OrdersIdRouteWithChildren
   '/product/$id': typeof ProductIdRoute
   '/shop/$category': typeof ShopCategoryRoute
   '/admin': typeof AdminIndexRoute
+  '/orders/$id/invoice': typeof OrdersIdInvoiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -156,19 +188,23 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/bespoke': typeof BespokeRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/contact': typeof ContactRoute
   '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/$tab': typeof AdminTabRoute
   '/admin/login': typeof AdminLoginRoute
-  '/orders/$id': typeof OrdersIdRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
+  '/orders/$id': typeof OrdersIdRouteWithChildren
   '/product/$id': typeof ProductIdRoute
   '/shop/$category': typeof ShopCategoryRoute
   '/admin/': typeof AdminIndexRoute
+  '/orders/$id/invoice': typeof OrdersIdInvoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -182,14 +218,18 @@ export interface FileRouteTypes {
     | '/journal'
     | '/login'
     | '/orders'
+    | '/profile'
     | '/signup'
     | '/sitemap.xml'
     | '/admin/$tab'
     | '/admin/login'
+    | '/auth/callback'
+    | '/checkout/success'
     | '/orders/$id'
     | '/product/$id'
     | '/shop/$category'
     | '/admin/'
+    | '/orders/$id/invoice'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -200,14 +240,18 @@ export interface FileRouteTypes {
     | '/journal'
     | '/login'
     | '/orders'
+    | '/profile'
     | '/signup'
     | '/sitemap.xml'
     | '/admin/$tab'
     | '/admin/login'
+    | '/auth/callback'
+    | '/checkout/success'
     | '/orders/$id'
     | '/product/$id'
     | '/shop/$category'
     | '/admin'
+    | '/orders/$id/invoice'
   id:
     | '__root__'
     | '/'
@@ -219,14 +263,18 @@ export interface FileRouteTypes {
     | '/journal'
     | '/login'
     | '/orders'
+    | '/profile'
     | '/signup'
     | '/sitemap.xml'
     | '/admin/$tab'
     | '/admin/login'
+    | '/auth/callback'
+    | '/checkout/success'
     | '/orders/$id'
     | '/product/$id'
     | '/shop/$category'
     | '/admin/'
+    | '/orders/$id/invoice'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -234,13 +282,15 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
   BespokeRoute: typeof BespokeRoute
-  CheckoutRoute: typeof CheckoutRoute
+  CheckoutRoute: typeof CheckoutRouteWithChildren
   ContactRoute: typeof ContactRoute
   JournalRoute: typeof JournalRoute
   LoginRoute: typeof LoginRoute
   OrdersRoute: typeof OrdersRouteWithChildren
+  ProfileRoute: typeof ProfileRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   ProductIdRoute: typeof ProductIdRoute
   ShopCategoryRoute: typeof ShopCategoryRoute
 }
@@ -259,6 +309,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -352,6 +409,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersIdRouteImport
       parentRoute: typeof OrdersRoute
     }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof CheckoutRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/login'
@@ -365,6 +436,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/$tab'
       preLoaderRoute: typeof AdminTabRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/orders/$id/invoice': {
+      id: '/orders/$id/invoice'
+      path: '/invoice'
+      fullPath: '/orders/$id/invoice'
+      preLoaderRoute: typeof OrdersIdInvoiceRouteImport
+      parentRoute: typeof OrdersIdRoute
     }
   }
 }
@@ -383,12 +461,36 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CheckoutRouteChildren {
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
+}
+
+const CheckoutRouteChildren: CheckoutRouteChildren = {
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
+}
+
+const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
+  CheckoutRouteChildren,
+)
+
+interface OrdersIdRouteChildren {
+  OrdersIdInvoiceRoute: typeof OrdersIdInvoiceRoute
+}
+
+const OrdersIdRouteChildren: OrdersIdRouteChildren = {
+  OrdersIdInvoiceRoute: OrdersIdInvoiceRoute,
+}
+
+const OrdersIdRouteWithChildren = OrdersIdRoute._addFileChildren(
+  OrdersIdRouteChildren,
+)
+
 interface OrdersRouteChildren {
-  OrdersIdRoute: typeof OrdersIdRoute
+  OrdersIdRoute: typeof OrdersIdRouteWithChildren
 }
 
 const OrdersRouteChildren: OrdersRouteChildren = {
-  OrdersIdRoute: OrdersIdRoute,
+  OrdersIdRoute: OrdersIdRouteWithChildren,
 }
 
 const OrdersRouteWithChildren =
@@ -399,13 +501,15 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   BespokeRoute: BespokeRoute,
-  CheckoutRoute: CheckoutRoute,
+  CheckoutRoute: CheckoutRouteWithChildren,
   ContactRoute: ContactRoute,
   JournalRoute: JournalRoute,
   LoginRoute: LoginRoute,
   OrdersRoute: OrdersRouteWithChildren,
+  ProfileRoute: ProfileRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   ProductIdRoute: ProductIdRoute,
   ShopCategoryRoute: ShopCategoryRoute,
 }

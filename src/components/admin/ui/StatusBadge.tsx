@@ -13,6 +13,18 @@ const orderStyles: Record<string, string> = {
   returned: "bg-muted text-muted-foreground",
 };
 
+const ORDER_LABELS: Record<string, string> = {
+  placed: "Waiting for payment",
+  confirmed: "Confirmed",
+  processing: "Packed",
+  shipped: "Shipped",
+  in_transit: "Out for delivery",
+  delivered: "Delivered",
+  cancel_requested: "Cancel requested",
+  cancelled: "Cancelled",
+  returned: "Returned",
+};
+
 const returnStyles: Record<string, string> = {
   pending: "bg-accent/20 text-accent-foreground",
   approved: "bg-primary/10 text-primary",
@@ -24,6 +36,17 @@ const returnStyles: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive",
 };
 
+const RETURN_LABELS: Record<string, string> = {
+  pending: "Pending",
+  approved: "Approved",
+  pickup_scheduled: "Pickup scheduled",
+  picked_up: "Picked up",
+  received: "Received",
+  refund_initiated: "Refund initiated",
+  refunded: "Refunded",
+  rejected: "Rejected",
+};
+
 export function StatusBadge({
   status,
   kind = "order",
@@ -32,7 +55,10 @@ export function StatusBadge({
   kind?: "order" | "return";
 }) {
   const styles = kind === "return" ? returnStyles : orderStyles;
-  const label = status.replace(/_/g, " ");
+  const label =
+    kind === "return"
+      ? (RETURN_LABELS[status] ?? status.replace(/_/g, " "))
+      : (ORDER_LABELS[status] ?? status.replace(/_/g, " "));
   return (
     <span
       className={cn(

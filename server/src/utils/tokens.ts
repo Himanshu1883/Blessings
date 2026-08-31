@@ -28,3 +28,13 @@ export function refreshTokenExpiry(): Date {
   d.setDate(d.getDate() + REFRESH_EXPIRY_DAYS);
   return d;
 }
+
+export type OAuthState = { from: string; origin: string };
+
+export function signOAuthState(payload: OAuthState): string {
+  return jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: "10m" });
+}
+
+export function verifyOAuthState(token: string): OAuthState {
+  return jwt.verify(token, env.JWT_ACCESS_SECRET) as OAuthState;
+}

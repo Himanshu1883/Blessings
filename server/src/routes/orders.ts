@@ -6,7 +6,9 @@ import {
   verifyRazorpayPayment,
   listOrders,
   getOrder,
+  cancelOrder,
 } from "../services/orderService.js";
+import { requestReturn } from "../services/returnService.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import { validateBody, validateParams } from "../middleware/validate.js";
 import { requireAuth, attachRefreshedCookie, type AuthRequest } from "../middleware/auth.js";
@@ -92,6 +94,57 @@ router.post(
     } catch (e) {
       next(e);
   }
+  },
+);
+
+router.post(
+  "/:id/cancel",
+  validateParams(z.object({ id: z.string() })),
+  validateBody(
+    z.object({
+      reason: z.enum([
+        "changed_mind",
+        "ordered_by_mistake",
+        "delivery_too_slow",
+        "found_better_price",
+        "other",
+      ]),
+      note: z.string().max(400).optional(),
+    }),
+  ),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const order = await cancelOrder(paramId(req.params.id), req.userId!, req.body);
+      sendSuccess(res, order);
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+router.post(
+  "/:id/return",
+  validateParams(z.object({ id: z.string() })),
+  validateBody(
+    z.object({
+      reason: z.enum([
+        "size_fit",
+        "damaged",
+        "wrong_item",
+        "quality",
+        "changed_mind",
+        "other",
+      ]),
+      note: z.string().max(400).optional(),
+    }),
+  ),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const ret = await requestReturn(paramId(req.params.id), req.userId!, req.body);
+      sendSuccess(res, ret, 201);
+    } catch (e) {
+      next(e);
+    }
   },
 );
 

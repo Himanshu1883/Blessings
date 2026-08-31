@@ -16,6 +16,10 @@ export type ApiUser = {
   }>;
   emailVerified: boolean;
   phoneVerified: boolean;
+  hasPassword: boolean;
+  hasGoogle: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ApiCategory = {
@@ -80,8 +84,10 @@ export type ApiOrder = {
   items: Array<{
     productId: string;
     name: string;
+    slug: string | null;
     imageUrl: string | null;
     size: string;
+    color: string | null;
     quantity: number;
     unitPrice: number;
     lineTotal: number;
@@ -95,10 +101,39 @@ export type ApiOrder = {
   orderStatus: string;
   trackingNumber?: string | null;
   cancelReason?: string | null;
+  cancelRequestedAt?: string | null;
+  canCancel: boolean;
+  cancelInstant: boolean;
+  canReturn?: boolean;
+  returnStatus?: string | null;
   customerName?: string;
-  statusHistory: Array<{ status: string; note?: string; at: string }>;
+  statusHistory: Array<{ status: string; note?: string; actor?: string; at: string }>;
+  allowedNextStatuses?: string[];
+  canAdminCancel?: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type RazorpayCheckoutSession = {
+  keyId: string;
+  razorpayOrderId: string;
+  amount: number;
+  currency: "INR";
+  orderId: string;
+};
+
+export type CreateOrderResult = ApiOrder & {
+  razorpay: RazorpayCheckoutSession | null;
+};
+
+export type ApiUserNotification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  orderId: string | null;
+  read: boolean;
+  createdAt: string;
 };
 
 export type ApiMedia = {
@@ -111,4 +146,6 @@ export type ApiMedia = {
   url: string;
 };
 
-export type ApiResponse<T> = { success: true; data: T } | { success: false; message: string };
+export type ApiResponse<T> =
+  | { success: true; data: T }
+  | { success: false; message: string; code?: string; data?: unknown };

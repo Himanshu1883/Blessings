@@ -114,13 +114,13 @@ async function safeApiGet<T>(path: string): Promise<T | null> {
 
 export async function fetchCategories(): Promise<StoreCategory[]> {
   const data = await safeApiGet<ApiCategory[]>("/api/categories");
-  if (data?.length) return data.map(mapApiCategory);
+  if (data) return data.map(mapApiCategory);
   return CATEGORIES.map(mapStaticCategory);
 }
 
 export async function fetchNavbarCategories(): Promise<StoreCategory[]> {
   const data = await safeApiGet<ApiCategory[]>("/api/categories/navbar");
-  if (data?.length) return data.map(mapApiCategory);
+  if (data) return data.map(mapApiCategory);
   return CATEGORIES.map(mapStaticCategory);
 }
 
@@ -137,7 +137,7 @@ export async function fetchProducts(category?: string, sort?: string): Promise<S
   if (sort) params.set("sort", sort);
   const qs = params.toString();
   const data = await safeApiGet<ApiProduct[]>(`/api/products${qs ? `?${qs}` : ""}`);
-  if (data?.length) return data.map(mapApiProduct);
+  if (data) return data.map(mapApiProduct);
   if (category) return staticProductsByCategory(category).map(mapStaticProduct);
   return PRODUCTS.map(mapStaticProduct);
 }

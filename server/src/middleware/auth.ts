@@ -4,24 +4,31 @@ import { verifyAccessToken } from "../utils/tokens.js";
 import { ACCESS_COOKIE, REFRESH_COOKIE, authCookieOptions } from "../utils/cookies.js";
 import { User } from "../models/User.js";
 import { hashToken, signAccessToken } from "../utils/tokens.js";
-import { setAuthCookies } from "../utils/cookies.js";
 
 export interface AuthRequest extends Request {
   userId?: string;
   userRole?: "user" | "admin";
 }
 
+function readAccessPayload(token: string) {
+  try {
+    return verifyAccessToken(token);
+  } catch {
+    return null;
+  }
+}
+
 export async function requireAuth(req: AuthRequest, _res: Response, next: NextFunction) {
   try {
-    const accessToken = req.cookies?.[ACCESS_COOKIE];
-    if (accessToken) {
-      const payload = verifyAccessToken(accessToken);
-      req.userId = payload.sub;
-      req.userRole = payload.role;
+    const accessToken = req.cookies?.[ACCESS_COOKIE] as string | undefined;
+    const access = accessToken ? readAccessPayload(accessToken) : null;
+    if (access) {
+      req.userId = access.sub;
+      req.userRole = access.role;
       return next();
     }
 
-    const refreshToken = req.cookies?.[REFRESH_COOKIE];
+    const refreshToken = req.cookies?.[REFRESH_COOKIE] as string | undefined;
     if (!refreshToken) throw new AppError(401, "Authentication required");
 
     const user = await User.findOne({

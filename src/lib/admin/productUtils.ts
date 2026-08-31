@@ -9,7 +9,24 @@ export function slugify(name: string): string {
     .trim()
     .replace(/[^\w\s-]/g, "")
     .replace(/[\s_]+/g, "-")
-    .replace(/-+/g, "-");
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function skuify(name: string): string {
+  const slug = slugify(name);
+  if (!slug) return "";
+  return `BLS-${slug.toUpperCase()}`;
+}
+
+export function isAutoSlug(name: string, slug: string) {
+  const generated = slugify(name);
+  return !slug.trim() || slug === generated;
+}
+
+export function isAutoSku(name: string, sku: string) {
+  const generated = skuify(name);
+  return !sku.trim() || sku === generated;
 }
 
 export function totalStock(product: ApiProduct): number {

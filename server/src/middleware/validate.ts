@@ -42,6 +42,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
       success: false,
       message: err.message,
       code: err.code,
+      ...(err.details ? { data: err.details } : {}),
     });
   }
 
