@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
 import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 import { useAuth } from "@/lib/auth-context";
@@ -7,7 +7,7 @@ import { Heart, Ruler, Scissors, Truck, Shield, ArrowRight } from "lucide-react"
 import { toast } from "sonner";
 import { ProductCard } from "./index";
 import { cn } from "@/lib/utils";
-import { fetchProduct, fetchProducts } from "@/lib/catalog-api";
+import { fetchProduct, fetchProducts, storeProductFromApi, type StoreProduct } from "@/lib/catalog-api";
 import { addRecentlyViewed } from "@/lib/recently-viewed";
 import { ProductGallery } from "@/components/site/product-gallery";
 import {
@@ -17,6 +17,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { ProductEditModal } from "@/components/admin/ProductEditModal";
+import { AdminModal } from "@/components/admin/ui/AdminModal";
+import { Button } from "@/components/ui/button";
+import { useAdminProductCatalog } from "@/hooks/useAdminProductCatalog";
+import type { AdminProduct } from "@/lib/admin/product-form";
+import type { ApiProduct } from "@/lib/api-types";
+import { AdminProductActions } from "@/components/site/admin-product-actions";
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ loaderData }) => {
@@ -64,14 +71,22 @@ const SIZE_CHART = [
 ];
 
 function ProductPage() {
-  const { product, related } = Route.useLoaderData();
+  const { product, related: relatedFromLoader } = Route.useLoaderData();
   const { format } = useCurrency();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
+  const router = useRouter();
+  const navigate = useNavigate();
+  const adminCatalog = useAdminProductCatalog(isAdmin);
+  const [related, setRelated] = useState(relatedFromLoader);
   const [size, setSize] = useState(product.sizes[0] ?? "M");
   const saved = isInWishlist(product.mongoId);
   const ctaRef = useRef<HTMLDivElement>(null);
   const [showSticky, setShowSticky] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<StoreProduct | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const gallery =
     product.imageUrls.length > 0
@@ -84,7 +99,8 @@ function ProductPage() {
 
   useEffect(() => {
     setSize(product.sizes[0] ?? "M");
-  }, [product.slug, product.sizes]);
+    setRelated(relatedFromLoader);
+  }, [product.slug, product.sizes, relatedFromLoader]);
 
   useEffect(() => {
     addRecentlyViewed({
@@ -114,6 +130,49 @@ function ProductPage() {
   const handleWishlist = () => {
     toggleWishlist(product.mongoId);
     if (isAuthenticated) toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
+  };
+
+  const handleAdminEdit = (storeProduct: StoreProduct) => {
+    const adminProduct = adminCatalog.products.find((p) => p.id === storeProduct.mongoId);
+    if (!adminProduct) {
+      toast.error("Product details are still loading. Please try again.");
+      return;
+    }
+    setEditingProduct(adminProduct);
+    setEditOpen(true);
+  };
+
+  const handleProductSaved = async (saved: ApiProduct) => {
+    const mapped = storeProductFromApi(saved);
+    if (editingProduct?.id === product.mongoId && mapped.slug !== product.slug) {
+      await navigate({ to: "/product/$id", params: { id: mapped.slug } });
+      return;
+    }
+    await router.invalidate();
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await adminCatalog.deleteProduct(deleteTarget.mongoId);
+      toast.success("Product deleted");
+      const deletingCurrent = deleteTarget.mongoId === product.mongoId;
+      setDeleteTarget(null);
+      if (deletingCurrent) {
+        await navigate({
+          to: "/shop/$category",
+          params: { category: product.categorySlug || "all" },
+        });
+      } else {
+        setRelated((prev) => prev.filter((p) => p.mongoId !== deleteTarget.mongoId));
+        await router.invalidate();
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -156,9 +215,19 @@ function ProductPage() {
                   </span>
                 )}
               </div>
-              <h1 className="font-serif text-3xl leading-tight text-balance sm:text-4xl xl:text-[2.75rem]">
-                {product.name}
-              </h1>
+              <div className="flex items-start justify-between gap-4">
+                <h1 className="font-serif text-3xl leading-tight text-balance sm:text-4xl xl:text-[2.75rem]">
+                  {product.name}
+                </h1>
+                {isAdmin && (
+                  <AdminProductActions
+                    layout="row"
+                    disabled={!adminCatalog.ready}
+                    onEdit={() => handleAdminEdit(product)}
+                    onDelete={() => setDeleteTarget(product)}
+                  />
+                )}
+              </div>
               {product.fabric ? (
                 <p className="mt-4 eyebrow text-[10px] text-foreground/55">{product.fabric}</p>
               ) : null}
@@ -326,7 +395,13 @@ function ProductPage() {
           </div>
           <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
             {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard
+                key={p.id}
+                product={p}
+                onAdminEdit={isAdmin ? handleAdminEdit : undefined}
+                onAdminDelete={isAdmin ? setDeleteTarget : undefined}
+                adminEditReady={adminCatalog.ready}
+              />
             ))}
           </div>
         </section>
@@ -353,6 +428,44 @@ function ProductPage() {
           </button>
         </div>
       </div>
+
+      {isAdmin && (
+        <ProductEditModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          product={editingProduct}
+          categories={adminCatalog.categories}
+          defaultCategoryId={
+            adminCatalog.categories.find((c) => c.slug === product.categorySlug)?.id ?? ""
+          }
+          onSave={async (id, body) => {
+            if (id) return adminCatalog.updateProduct(id, body);
+            return adminCatalog.createProduct(body);
+          }}
+          uploadMedia={adminCatalog.uploadMedia}
+          onSaved={handleProductSaved}
+        />
+      )}
+
+      <AdminModal
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}
+        title="Delete product"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm">
+          Delete <strong>{deleteTarget?.name}</strong>? This cannot be undone.
+        </p>
+      </AdminModal>
     </div>
   );
 }

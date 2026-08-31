@@ -1,6 +1,7 @@
 import bespokeImg from "@/assets/bespoke.jpg";
 import craftImg from "@/assets/craft.jpg";
-import { BagIcon, EditIcon, HeartIcon } from "@/components/icons/site-icons";
+import { BagIcon, HeartIcon } from "@/components/icons/site-icons";
+import { AdminProductActions } from "@/components/site/admin-product-actions";
 import { InstagramReelsSection } from "@/components/site/instagram-reels-section";
 import { ParallaxScroll } from "@/components/site/parallax-scroll";
 import { PreFooterBanner } from "@/components/site/pre-footer-banner";
@@ -702,12 +703,14 @@ export function ProductCard({
   dark = false,
   layout = "grid",
   onAdminEdit,
+  onAdminDelete,
   adminEditReady = true,
 }: {
   product: StoreProduct;
   dark?: boolean;
   layout?: "grid" | "carousel";
   onAdminEdit?: (product: StoreProduct) => void;
+  onAdminDelete?: (product: StoreProduct) => void;
   adminEditReady?: boolean;
 }) {
   const { format } = useCurrency();
@@ -736,20 +739,14 @@ export function ProductCard({
               New
             </span>
           )}
-          {onAdminEdit && (
-            <button
-              type="button"
-              aria-label="Edit product"
-              disabled={!adminEditReady}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onAdminEdit(product);
-              }}
-              className="absolute top-4 right-4 z-10 size-10 bg-[color:var(--charcoal)] text-[color:var(--ivory)] flex items-center justify-center hover:bg-[color:var(--maroon)] transition-colors disabled:opacity-50"
-            >
-              <EditIcon className="size-4" />
-            </button>
+          {(onAdminEdit || onAdminDelete) && (
+            <div className="absolute top-3 right-3 z-10">
+              <AdminProductActions
+                disabled={!adminEditReady}
+                onEdit={onAdminEdit ? () => onAdminEdit(product) : undefined}
+                onDelete={onAdminDelete ? () => onAdminDelete(product) : undefined}
+              />
+            </div>
           )}
           <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-100 translate-x-0 md:opacity-0 md:translate-x-2 md:group-hover:opacity-100 md:group-hover:translate-x-0 transition-all duration-500">
             <button

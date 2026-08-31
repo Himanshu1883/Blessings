@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Star, Upload } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AdminModal } from "@/components/admin/ui/AdminModal";
 import { ProductCustomFieldsEditor } from "@/components/admin/ProductCustomFieldsEditor";
@@ -118,6 +119,19 @@ export function ProductEditModal({
       imageIds: f.imageIds.filter((_, i) => i !== index),
       imagePreviews: f.imagePreviews.filter((_, i) => i !== index),
     }));
+  };
+
+  const setPrimary = (index: number) => {
+    if (index <= 0) return;
+    setForm((f) => {
+      const imageIds = [...f.imageIds];
+      const imagePreviews = [...f.imagePreviews];
+      const [id] = imageIds.splice(index, 1);
+      const [preview] = imagePreviews.splice(index, 1);
+      if (id) imageIds.unshift(id);
+      if (preview) imagePreviews.unshift(preview);
+      return { ...f, imageIds, imagePreviews };
+    });
   };
 
   const save = async () => {
@@ -302,8 +316,13 @@ export function ProductEditModal({
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Images</Label>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label>Images</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  The primary image is the main photo on shop cards and the product page.
+                </p>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -321,24 +340,53 @@ export function ProductEditModal({
                 )}
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {form.imagePreviews.map((url, i) => (
-                <div key={i} className="relative group">
-                  <img
-                    src={resolveMediaUrl(url) ?? ""}
-                    alt=""
-                    className="size-20 rounded object-cover border border-border"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="absolute -top-1 -right-1 size-5 rounded-full bg-destructive text-destructive-foreground text-xs opacity-0 group-hover:opacity-100"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
+            {form.imagePreviews.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No images yet.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {form.imagePreviews.map((url, i) => {
+                  const isPrimary = i === 0;
+                  return (
+                    <div
+                      key={form.imageIds[i] ?? `${url}-${i}`}
+                      className={cn(
+                        "relative overflow-hidden rounded border bg-muted",
+                        isPrimary ? "border-primary ring-1 ring-primary/30" : "border-border",
+                      )}
+                    >
+                      <img
+                        src={resolveMediaUrl(url) ?? ""}
+                        alt=""
+                        className="aspect-square w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute top-1.5 right-1.5 size-6 rounded-full bg-background/90 text-foreground text-sm leading-none shadow-sm hover:bg-destructive hover:text-destructive-foreground"
+                        aria-label="Remove image"
+                      >
+                        ×
+                      </button>
+                      {isPrimary ? (
+                        <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary-foreground">
+                          <Star className="size-2.5 fill-current" />
+                          Primary
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPrimary(i)}
+                          className="absolute inset-x-1.5 bottom-1.5 inline-flex items-center justify-center gap-1 rounded-sm bg-background/95 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-foreground shadow-sm hover:bg-primary hover:text-primary-foreground"
+                        >
+                          <Star className="size-2.5" />
+                          Set as primary
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <ProductCustomFieldsEditor

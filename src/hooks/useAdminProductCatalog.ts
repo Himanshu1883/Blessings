@@ -55,6 +55,11 @@ export function useAdminProductCatalog(enabled: boolean) {
     return created;
   }, []);
 
+  const deleteProduct = useCallback(async (id: string) => {
+    await api.delete(`/api/admin/products/${id}`);
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
   const uploadMedia = useCallback(async (file: File, alt?: string) => {
     const form = new FormData();
     form.append("file", file);
@@ -72,8 +77,9 @@ export function useAdminProductCatalog(enabled: boolean) {
       reload,
       updateProduct,
       createProduct,
+      deleteProduct,
       uploadMedia,
     }),
-    [products, categories, loading, ready, error, reload, updateProduct, createProduct, uploadMedia],
+    [products, categories, loading, ready, error, reload, updateProduct, createProduct, deleteProduct, uploadMedia],
   );
 }

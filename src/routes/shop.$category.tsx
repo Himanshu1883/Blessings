@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
 import type { StoreCategory, StoreProduct } from "@/lib/catalog-api";
 import { fetchCategories, fetchCategory, fetchProducts, storeProductFromApi } from "@/lib/catalog-api";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { ArrowUpDown, Check, ChevronDown, Loader2, Plus, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ProductEditModal } from "@/components/admin/ProductEditModal";
+import { AdminModal } from "@/components/admin/ui/AdminModal";
+import { Button } from "@/components/ui/button";
 import { useAdminProductCatalog } from "@/hooks/useAdminProductCatalog";
 import { useAuth } from "@/lib/auth-context";
 import type { AdminProduct } from "@/lib/admin/product-form";
@@ -89,6 +91,7 @@ function ShopCategory() {
   const { cat, categories } = loaderData;
 
   const { isAdmin } = useAuth();
+  const router = useRouter();
   const adminCatalog = useAdminProductCatalog(isAdmin);
 
   const [products, setProducts] = useState(loaderData.products);
@@ -97,6 +100,8 @@ function ShopCategory() {
   const [mobileSheet, setMobileSheet] = useState<"filter" | "sort" | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<StoreProduct | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setProducts(loaderData.products);
@@ -155,6 +160,26 @@ function ShopCategory() {
     }
     if (cat.slug === "all" || saved.categorySlug === cat.slug) {
       setProducts((prev) => [...prev, mapped]);
+    }
+  };
+
+  const handleAdminDelete = (storeProduct: StoreProduct) => {
+    setDeleteTarget(storeProduct);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await adminCatalog.deleteProduct(deleteTarget.mongoId);
+      setProducts((prev) => prev.filter((p) => p.mongoId !== deleteTarget.mongoId));
+      toast.success("Product deleted");
+      setDeleteTarget(null);
+      await router.invalidate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -286,6 +311,7 @@ function ShopCategory() {
                 key={p.id}
                 product={p}
                 onAdminEdit={isAdmin ? handleAdminEdit : undefined}
+                onAdminDelete={isAdmin ? handleAdminDelete : undefined}
                 adminEditReady={adminCatalog.ready}
               />
             ))}
@@ -403,6 +429,26 @@ function ShopCategory() {
           onSaved={handleProductSaved}
         />
       )}
+
+      <AdminModal
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}
+        title="Delete product"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm">
+          Delete <strong>{deleteTarget?.name}</strong>? This cannot be undone.
+        </p>
+      </AdminModal>
     </div>
   );
 }
