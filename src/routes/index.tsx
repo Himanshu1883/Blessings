@@ -1,7 +1,6 @@
 import bespokeImg from "@/assets/bespoke.jpg";
 import craftImg from "@/assets/craft.jpg";
-import { BagIcon, HeartIcon } from "@/components/icons/site-icons";
-import { AdminProductActions } from "@/components/site/admin-product-actions";
+import { ProductCard } from "@/components/site/product-card";
 import { InstagramReelsSection } from "@/components/site/instagram-reels-section";
 import { ParallaxScroll } from "@/components/site/parallax-scroll";
 import { PreFooterBanner } from "@/components/site/pre-footer-banner";
@@ -10,7 +9,6 @@ import type { StoreCategory, StoreProduct } from "@/lib/catalog-api";
 import { fetchCategories, fetchProducts } from "@/lib/catalog-api";
 import { useCurrency } from "@/lib/currency";
 import { fetchHomepageContent } from "@/lib/homepage-api";
-import { useShop } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -27,7 +25,6 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -698,117 +695,7 @@ function StyleSeekersMarquee() {
   );
 }
 
-export function ProductCard({
-  product,
-  dark = false,
-  layout = "grid",
-  onAdminEdit,
-  onAdminDelete,
-  adminEditReady = true,
-}: {
-  product: StoreProduct;
-  dark?: boolean;
-  layout?: "grid" | "carousel";
-  onAdminEdit?: (product: StoreProduct) => void;
-  onAdminDelete?: (product: StoreProduct) => void;
-  adminEditReady?: boolean;
-}) {
-  const { format } = useCurrency();
-  const { toggleWishlist, isInWishlist, addToCart } = useShop();
-  const saved = isInWishlist(product.mongoId);
-
-  return (
-    <div
-      className={cn(
-        "group min-w-0",
-        layout === "carousel"
-          ? "min-w-[min(280px,85vw)] md:min-w-[340px] snap-start shrink-0"
-          : "w-full",
-      )}
-    >
-      <Link to="/product/$id" params={{ id: product.id }} className="block">
-        <div className="relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]">
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            loading="lazy"
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
-          />
-          {product.isNew && (
-            <span className="absolute top-4 left-4 eyebrow text-[9px] bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-2.5 py-1">
-              New
-            </span>
-          )}
-          {(onAdminEdit || onAdminDelete) && (
-            <div className="absolute top-3 right-3 z-10">
-              <AdminProductActions
-                disabled={!adminEditReady}
-                onEdit={onAdminEdit ? () => onAdminEdit(product) : undefined}
-                onDelete={onAdminDelete ? () => onAdminDelete(product) : undefined}
-              />
-            </div>
-          )}
-          <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-100 translate-x-0 md:opacity-0 md:translate-x-2 md:group-hover:opacity-100 md:group-hover:translate-x-0 transition-all duration-500">
-            <button
-              type="button"
-              aria-label="Wishlist"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleWishlist(product.mongoId);
-                toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
-              }}
-              className="size-10 bg-[color:var(--ivory)] text-[color:var(--charcoal)] flex items-center justify-center hover:bg-[color:var(--gold)]"
-            >
-              <HeartIcon className={cn("size-4", saved && "text-[color:var(--maroon)]")} />
-            </button>
-            <button
-              type="button"
-              aria-label="Add to bag"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart(product.mongoId);
-                toast.success("Added to your bag.");
-              }}
-              className="size-10 bg-[color:var(--ivory)] text-[color:var(--charcoal)] flex items-center justify-center hover:bg-[color:var(--gold)]"
-            >
-              <BagIcon className="size-4" />
-            </button>
-          </div>
-        </div>
-        <div className="mt-5 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h4
-              className={cn(
-                "font-serif text-lg leading-tight truncate",
-                dark ? "text-[color:var(--ivory)]" : "text-foreground",
-              )}
-            >
-              {product.name}
-            </h4>
-            <p
-              className={cn(
-                "eyebrow text-[9px] mt-1.5",
-                dark ? "text-[color:var(--ivory)]/50" : "text-foreground/50",
-              )}
-            >
-              {product.fabric}
-            </p>
-          </div>
-          <p
-            className={cn(
-              "text-sm font-medium tabular-nums shrink-0",
-              dark ? "text-[color:var(--gold-soft)]" : "text-[color:var(--maroon)]",
-            )}
-          >
-            {format(product.price)}
-          </p>
-        </div>
-      </Link>
-    </div>
-  );
-}
+export { ProductCard } from "@/components/site/product-card";
 
 const MENSWEAR_SILHOUETTES = [
   {
@@ -1115,7 +1002,7 @@ function GroomsEdit() {
         ctaHref="/shop/sherwanis"
         ctaLabel="View all →"
       />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
         {groomProducts.map((p) => (
           <ProductCard key={p.id} product={p} />
         ))}

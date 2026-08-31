@@ -305,7 +305,7 @@ function ShopCategory() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8 min-w-0">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 min-w-0">
             {sorted.map((p) => (
               <ProductCard
                 key={p.id}
