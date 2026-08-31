@@ -1,5 +1,5 @@
 import { useEffect, useState, type MouseEvent } from "react";
-import { ArrowUpRight, Heart, ShoppingBag } from "lucide-react";
+import { Heart, ShoppingBag } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AdminProductActions } from "@/components/site/admin-product-actions";
@@ -59,7 +59,7 @@ export function ProductCard({
         layout === "carousel" && "w-[min(280px,85vw)] shrink-0 snap-start md:w-[300px]",
       )}
     >
-      <div className="relative aspect-[3/4] max-h-[40vh] w-full overflow-hidden bg-[color:var(--muted)]">
+      <div className="relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]">
         <Link to="/product/$id" params={{ id: product.id }} className="absolute inset-0 block">
           {activeSrc ? (
             <img
@@ -124,30 +124,30 @@ export function ProductCard({
         )}
       </div>
 
-      <div className="flex max-h-[40vh] shrink-0 flex-col gap-3 border-t border-foreground/8 bg-[color:var(--ivory)] px-3.5 py-3 sm:px-4">
+      <div className="flex flex-1 flex-col gap-4 bg-white px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <Link to="/product/$id" params={{ id: product.id }} className="block">
-              <h4 className="truncate text-[15px] font-medium leading-snug text-[color:var(--charcoal)] sm:text-base">
+            <Link to="/product/$id" params={{ id: product.id }}>
+              <h4 className="font-serif text-lg leading-snug text-balance text-[color:var(--charcoal)] sm:text-xl">
                 {product.name}
               </h4>
             </Link>
             {product.fabric ? (
-              <p className="mt-1 eyebrow truncate text-[8px] tracking-[0.2em] text-[color:var(--gold)]">
+              <p className="mt-2 eyebrow text-[9px] tracking-[0.22em] text-[color:var(--gold)]">
                 {product.fabric}
               </p>
             ) : null}
           </div>
-          <p className="shrink-0 pt-0.5 text-[15px] font-medium tabular-nums text-[color:var(--maroon)] sm:text-base">
+          <p className="shrink-0 font-serif text-lg tabular-nums text-[color:var(--maroon)] sm:text-xl">
             {format(product.price)}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="mt-auto grid grid-cols-[1.4fr_1fr] gap-2">
           <button
             type="button"
             onClick={handleAdd}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-[color:var(--gold)] px-3 eyebrow text-[8px] tracking-[0.18em] text-[color:var(--charcoal)] transition-colors hover:bg-[color:var(--gold-soft)]"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[color:var(--charcoal)] px-3 eyebrow text-[9px] tracking-[0.16em] text-[color:var(--ivory)] shadow-sm transition-colors hover:bg-[color:var(--maroon)]"
           >
             <ShoppingBag className="size-3.5" strokeWidth={1.6} />
             Add to bag
@@ -155,10 +155,9 @@ export function ProductCard({
           <Link
             to="/product/$id"
             params={{ id: product.id }}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-foreground/12 bg-white px-3 eyebrow text-[8px] tracking-[0.18em] text-[color:var(--charcoal)] transition-colors hover:border-[color:var(--gold)] hover:text-[color:var(--maroon)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-foreground/15 bg-[color:var(--ivory)] px-3 eyebrow text-[9px] tracking-[0.16em] text-[color:var(--charcoal)] transition-colors hover:border-[color:var(--gold)] hover:text-[color:var(--maroon)]"
           >
             View details
-            <ArrowUpRight className="size-3.5" strokeWidth={1.6} />
           </Link>
         </div>
       </div>

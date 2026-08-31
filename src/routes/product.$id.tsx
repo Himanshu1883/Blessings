@@ -73,7 +73,7 @@ const SIZE_CHART = [
 function ProductPage() {
   const { product, related: relatedFromLoader } = Route.useLoaderData();
   const { format } = useCurrency();
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
   const router = useRouter();
   const navigate = useNavigate();
@@ -129,7 +129,7 @@ function ProductPage() {
 
   const handleWishlist = () => {
     toggleWishlist(product.mongoId);
-    if (isAuthenticated) toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
+    toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
   };
 
   const handleAdminEdit = (storeProduct: StoreProduct) => {

@@ -8,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
@@ -23,6 +22,12 @@ import {
   writeGuestCart,
   type GuestCartLine,
 } from "@/lib/guest-cart";
+import {
+  readGuestWishlist,
+  removeGuestWishlistId,
+  toggleGuestWishlist,
+  writeGuestWishlist,
+} from "@/lib/guest-wishlist";
 
 export type ShopPanel = "search" | "cart" | "wishlist" | "account" | null;
 
@@ -47,11 +52,6 @@ type ShopContextValue = {
 
 const ShopContext = createContext<ShopContextValue | null>(null);
 
-function requireAuthToast(navigate: ReturnType<typeof useNavigate>, from: string) {
-  toast.error("Please sign in to continue.");
-  navigate({ to: "/login", search: { from } });
-}
-
 function withMedia(product: ApiProduct): ApiProduct {
   return {
     ...product,
@@ -63,9 +63,9 @@ function withMedia(product: ApiProduct): ApiProduct {
 export function ShopProvider({ children }: { children: ReactNode }) {
   const [panel, setPanel] = useState<ShopPanel>(null);
   const [guestLines, setGuestLines] = useState<GuestCartLine[]>([]);
+  const [guestWishlist, setGuestWishlist] = useState<string[]>([]);
   const mergedGuestCart = useRef(false);
-  const navigate = useNavigate();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const mergedGuestWishlist = useRef(false);
   const { isAuthenticated } = useAuth();
   const { data: cart } = useCart();
   const { data: wishlist = [] } = useWishlist();
@@ -75,12 +75,13 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const { data: catalogProducts = [] } = useQuery({
     queryKey: ["products"],
     queryFn: () => api.get<ApiProduct[]>("/api/products"),
-    enabled: !isAuthenticated && guestLines.length > 0,
+    enabled: !isAuthenticated && (guestLines.length > 0 || guestWishlist.length > 0),
     staleTime: 60_000,
   });
 
   useEffect(() => {
     setGuestLines(readGuestCart());
+    setGuestWishlist(readGuestWishlist());
   }, []);
 
   useEffect(() => {
@@ -109,9 +110,40 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     })();
   }, [isAuthenticated, addItem]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      mergedGuestWishlist.current = false;
+      return;
+    }
+    if (mergedGuestWishlist.current) return;
+    const pending = readGuestWishlist();
+    if (pending.length === 0) {
+      mergedGuestWishlist.current = true;
+      return;
+    }
+    mergedGuestWishlist.current = true;
+    void (async () => {
+      try {
+        for (const productId of pending) {
+          await addWishlist.mutateAsync(productId);
+        }
+        writeGuestWishlist([]);
+        setGuestWishlist([]);
+      } catch (e) {
+        mergedGuestWishlist.current = false;
+        toast.error(e instanceof Error ? e.message : "Could not save your wishlist.");
+      }
+    })();
+  }, [isAuthenticated, addWishlist]);
+
   const persistGuest = useCallback((next: GuestCartLine[]) => {
     writeGuestCart(next);
     setGuestLines(next);
+  }, []);
+
+  const persistGuestSaved = useCallback((next: string[]) => {
+    writeGuestWishlist(next);
+    setGuestWishlist(next);
   }, []);
 
   const openPanel = useCallback((next: Exclude<ShopPanel, null>) => setPanel(next), []);
@@ -168,7 +200,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const toggleWishlist = useCallback(
     (productId: string) => {
       if (!isAuthenticated) {
-        requireAuthToast(navigate, pathname);
+        persistGuestSaved(toggleGuestWishlist(guestWishlist, productId));
         return;
       }
       const exists = wishlist.some((p) => p.id === productId);
@@ -178,20 +210,26 @@ export function ShopProvider({ children }: { children: ReactNode }) {
         addWishlist.mutate(productId);
       }
     },
-    [isAuthenticated, wishlist, addWishlist, removeWishlist, navigate, pathname],
+    [isAuthenticated, wishlist, addWishlist, removeWishlist, guestWishlist, persistGuestSaved],
   );
 
   const isInWishlist = useCallback(
-    (productId: string) => wishlist.some((p) => p.id === productId),
-    [wishlist],
+    (productId: string) =>
+      isAuthenticated
+        ? wishlist.some((p) => p.id === productId)
+        : guestWishlist.includes(productId),
+    [isAuthenticated, wishlist, guestWishlist],
   );
 
   const removeFromWishlist = useCallback(
     (productId: string) => {
-      if (!isAuthenticated) return;
+      if (!isAuthenticated) {
+        persistGuestSaved(removeGuestWishlistId(guestWishlist, productId));
+        return;
+      }
       removeWishlist.mutate(productId);
     },
-    [isAuthenticated, removeWishlist],
+    [isAuthenticated, removeWishlist, guestWishlist, persistGuestSaved],
   );
 
   const resolveCartLines = useCallback(() => {
@@ -210,10 +248,14 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     });
   }, [isAuthenticated, cart, guestLines, catalogProducts]);
 
-  const resolveWishlistProducts = useCallback(
-    () => wishlist.map((p) => withMedia(p)),
-    [wishlist],
-  );
+  const resolveWishlistProducts = useCallback(() => {
+    if (isAuthenticated) return wishlist.map((p) => withMedia(p));
+    return guestWishlist.flatMap((id) => {
+      const product = catalogProducts.find((p) => p.id === id);
+      if (!product) return [];
+      return [withMedia(product)];
+    });
+  }, [isAuthenticated, wishlist, guestWishlist, catalogProducts]);
 
   const resolvedGuestLines = isAuthenticated ? [] : resolveCartLines();
   const cartCount = isAuthenticated
@@ -222,7 +264,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const cartSubtotal = isAuthenticated
     ? (cart?.subtotal ?? 0)
     : resolvedGuestLines.reduce((sum, { line, product }) => sum + product.price * line.quantity, 0);
-  const wishlistCount = wishlist.length;
+  const wishlistCount = isAuthenticated ? wishlist.length : guestWishlist.length;
 
   const value = useMemo<ShopContextValue>(
     () => ({
