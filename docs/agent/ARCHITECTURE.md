@@ -19,7 +19,7 @@ Two processes in local dev: `vite dev` (frontend) + `server` (`tsx watch src/ind
 - **Storefront** (`__root.tsx` non-admin): `AuthProvider` → `CurrencyProvider` → `ShopProvider` → `SiteHeader` + `<Outlet />` + `ShopPanels` + `MobileBottomNav`.
 - **Admin** (`pathname.startsWith("/admin")`): no site header/footer; `AdminProtected` + `AdminShell` + tab components.
 - **API** is a separate Express app. Frontend never talks to Mongo directly.
-- **Static catalog fallback** in `src/lib/catalog.ts` if catalog API is down (storefront only).
+- **Static catalog fallback** in `src/lib/catalog.ts` is **dev-only** if the catalog API is down. Production loaders never serve seed products.
 
 ## Frontend modules
 
@@ -29,7 +29,7 @@ Two processes in local dev: `vite dev` (frontend) + `server` (`tsx watch src/ind
 | `src/components/site/` | Store chrome (header, footer, sheets) |
 | `src/components/admin/` | Admin tabs + shell |
 | `src/lib/api-client.ts` | `api.get/post/patch/delete/upload`, cookie credentials, `{ success, data }` unwrap |
-| `src/lib/catalog-api.ts` | Catalog fetch + static fallback |
+| `src/lib/catalog-api.ts` | Catalog fetch; static fallback in dev only |
 | `src/lib/api-hooks.ts` | React Query for catalog/cart/wishlist/orders |
 | `src/hooks/useAdminApi.ts` | Admin dashboard data aggregation |
 

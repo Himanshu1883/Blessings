@@ -7,7 +7,7 @@ export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
     queryFn: () => api.get<ApiCategory[]>("/api/categories"),
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }
 
@@ -15,7 +15,7 @@ export function useNavbarCategories() {
   return useQuery({
     queryKey: ["navbar-categories"],
     queryFn: () => api.get<ApiCategory[]>("/api/categories/navbar"),
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }
 
@@ -27,7 +27,7 @@ export function useProducts(category?: string, sort?: string) {
   return useQuery({
     queryKey: ["products", category, sort],
     queryFn: () => api.get<ApiProduct[]>(`/api/products${qs ? `?${qs}` : ""}`),
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }
 

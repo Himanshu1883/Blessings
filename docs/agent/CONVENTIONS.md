@@ -30,6 +30,6 @@
 ## General
 
 - Preserve API contracts (`{ success, data }`, cookie auth) unless the task is to change them.
-- Do not duplicate catalog logic: mutate `catalogService`, not a second copy (except the intentional static fallback).
+- Do not duplicate catalog logic: mutate `catalogService`, not a second copy (except the intentional **dev-only** static fallback).
 - Do not add Vite plugins already provided by `@lovable.dev/vite-tanstack-config`.
-- Frontend `fetchNavbarCategories` caches in-module; a running tab may not see admin navbar flag changes until reload.
+- Production catalog loaders use `cache: "no-store"` and never the seed `catalog.ts`.

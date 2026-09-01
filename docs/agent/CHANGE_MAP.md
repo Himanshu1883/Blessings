@@ -47,7 +47,7 @@ Inspect **Primary** first. Do not scan the repo.
 
 | Request | Primary | Related |
 |---|---|---|
-| Public catalog API | `server/src/routes/catalog.ts` | `services/catalogService.ts` |
+| Public catalog API | `server/src/routes/catalog.ts` | `services/catalogService.ts`; storefront `catalog-api.ts` (no seed fallback in prod) |
 | Product schema | `server/src/models/Product.ts` | |
 | Category / navbar flag | `server/src/models/Category.ts` | `listNavbarCategories()` |
 | Static fallback products | `src/lib/catalog.ts` | `catalog-api.ts` |

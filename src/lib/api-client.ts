@@ -14,7 +14,28 @@ export class ApiError extends Error {
 
 export function getApiBase(): string {
   if (typeof window !== "undefined") return "";
-  return process.env.API_URL?.replace(/\/$/, "") ?? "http://localhost:4000";
+
+  const explicit = process.env.API_URL?.replace(/\/$/, "");
+  if (explicit) return explicit;
+
+  if (import.meta.env.PROD) return "https://blessings-production.up.railway.app";
+
+  const vercel = process.env.VERCEL_URL?.replace(/\/$/, "");
+  if (vercel) return vercel.startsWith("http") ? vercel : `https://${vercel}`;
+
+  return "http://localhost:4000";
+}
+
+function liveFetchInit(extra?: RequestInit): RequestInit {
+  return {
+    credentials: "include",
+    ...extra,
+    cache: extra?.cache ?? "no-store",
+    headers: {
+      ...(extra?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+      ...extra?.headers,
+    },
+  };
 }
 
 export function resolveMediaUrl(url: string | null | undefined): string | null {
@@ -63,14 +84,7 @@ export async function apiFetch<T>(
   const base = getApiBase();
   const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
 
-  const res = await fetch(url, {
-    ...options,
-    credentials: "include",
-    headers: {
-      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...options.headers,
-    },
-  });
+  const res = await fetch(url, liveFetchInit(options));
 
   if (
     res.status === 401 &&

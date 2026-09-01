@@ -32,41 +32,10 @@ const STATIC_NAV = [
 const BRAND_TAGLINE = "The Men's Boutique";
 const BRAND_LOGO = "/logo-blessings.png";
 
-let navbarCategoriesCache: StoreCategory[] | null = null;
-let navbarCategoriesPromise: Promise<StoreCategory[]> | null = null;
-let navbarProductsCache: StoreProduct[] | null = null;
-let navbarProductsPromise: Promise<StoreProduct[]> | null = null;
-
-function getNavbarCategories(): Promise<StoreCategory[]> {
-  if (navbarCategoriesCache) return Promise.resolve(navbarCategoriesCache);
-  if (!navbarCategoriesPromise) {
-    navbarCategoriesPromise = fetchNavbarCategories().then((cats) => {
-      navbarCategoriesCache = cats;
-      return cats;
-    });
-  }
-  return navbarCategoriesPromise;
-}
-
-function getNavbarProducts(): Promise<StoreProduct[]> {
-  if (navbarProductsCache) return Promise.resolve(navbarProductsCache);
-  if (!navbarProductsPromise) {
-    navbarProductsPromise = fetchProducts().then((products) => {
-      navbarProductsCache = products;
-      return products;
-    });
-  }
-  return navbarProductsPromise;
-}
-
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [navbarCategories, setNavbarCategories] = useState<StoreCategory[]>(
-    () => navbarCategoriesCache ?? [],
-  );
-  const [navbarProducts, setNavbarProducts] = useState<StoreProduct[]>(
-    () => navbarProductsCache ?? [],
-  );
+  const [navbarCategories, setNavbarCategories] = useState<StoreCategory[]>([]);
+  const [navbarProducts, setNavbarProducts] = useState<StoreProduct[]>([]);
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const menuCloseTimer = useRef<number | null>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -84,10 +53,10 @@ export function SiteHeader() {
 
   useEffect(() => {
     let mounted = true;
-    getNavbarCategories().then((cats) => {
+    fetchNavbarCategories().then((cats) => {
       if (mounted) setNavbarCategories(cats);
     });
-    getNavbarProducts().then((products) => {
+    fetchProducts().then((products) => {
       if (mounted) setNavbarProducts(products);
     });
     return () => {

@@ -10,6 +10,10 @@ import {
   type Category as StaticCategory,
 } from "./catalog";
 
+function allowStaticFallback() {
+  return import.meta.env.DEV === true;
+}
+
 export type StoreCustomField = {
   id: string;
   label: string;
@@ -144,10 +148,13 @@ function mapStaticCategory(c: StaticCategory): StoreCategory {
   };
 }
 
-async function safeApiGet<T>(path: string): Promise<T | null> {
+async function liveApiGet<T>(path: string): Promise<T | null> {
   try {
     const base = getApiBase();
-    const res = await fetch(`${base}${path}`, { credentials: "include" });
+    const res = await fetch(`${base}${path}`, {
+      credentials: "include",
+      cache: "no-store",
+    });
     if (!res.ok) return null;
     const json = await res.json();
     return json.data as T;
@@ -157,20 +164,23 @@ async function safeApiGet<T>(path: string): Promise<T | null> {
 }
 
 export async function fetchCategories(): Promise<StoreCategory[]> {
-  const data = await safeApiGet<ApiCategory[]>("/api/categories");
+  const data = await liveApiGet<ApiCategory[]>("/api/categories");
   if (data) return data.map(mapApiCategory);
-  return CATEGORIES.map(mapStaticCategory);
+  if (allowStaticFallback()) return CATEGORIES.map(mapStaticCategory);
+  return [];
 }
 
 export async function fetchNavbarCategories(): Promise<StoreCategory[]> {
-  const data = await safeApiGet<ApiCategory[]>("/api/categories/navbar");
+  const data = await liveApiGet<ApiCategory[]>("/api/categories/navbar");
   if (data) return data.map(mapApiCategory);
-  return CATEGORIES.map(mapStaticCategory);
+  if (allowStaticFallback()) return CATEGORIES.map(mapStaticCategory);
+  return [];
 }
 
 export async function fetchCategory(slug: string): Promise<StoreCategory | null> {
-  const data = await safeApiGet<ApiCategory>(`/api/categories/${slug}`);
+  const data = await liveApiGet<ApiCategory>(`/api/categories/${slug}`);
   if (data) return mapApiCategory(data);
+  if (!allowStaticFallback()) return null;
   const c = getStaticCategory(slug);
   return c ? mapStaticCategory(c) : null;
 }
@@ -180,15 +190,17 @@ export async function fetchProducts(category?: string, sort?: string): Promise<S
   if (category) params.set("category", category);
   if (sort) params.set("sort", sort);
   const qs = params.toString();
-  const data = await safeApiGet<ApiProduct[]>(`/api/products${qs ? `?${qs}` : ""}`);
+  const data = await liveApiGet<ApiProduct[]>(`/api/products${qs ? `?${qs}` : ""}`);
   if (data) return data.map(mapApiProduct);
+  if (!allowStaticFallback()) return [];
   if (category) return staticProductsByCategory(category).map(mapStaticProduct);
   return PRODUCTS.map(mapStaticProduct);
 }
 
 export async function fetchProduct(slug: string): Promise<StoreProduct | null> {
-  const data = await safeApiGet<ApiProduct>(`/api/products/${slug}`);
+  const data = await liveApiGet<ApiProduct>(`/api/products/${slug}`);
   if (data) return mapApiProduct(data);
+  if (!allowStaticFallback()) return null;
   const p = getStaticProduct(slug);
   return p ? mapStaticProduct(p) : null;
 }
@@ -198,6 +210,7 @@ export async function searchProducts(q: string): Promise<StoreProduct[]> {
     const products = await api.get<ApiProduct[]>(`/api/products/search?q=${encodeURIComponent(q)}`);
     return products.map(mapApiProduct);
   } catch {
+    if (!allowStaticFallback()) return [];
     const lower = q.toLowerCase();
     return PRODUCTS.filter(
       (p) =>

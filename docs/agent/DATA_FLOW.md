@@ -11,7 +11,7 @@ Shop / header
 → UI
 ```
 
-If API fails, `catalog-api.ts` maps static `CATEGORIES` / `PRODUCTS` from `catalog.ts`. Header caches navbar categories in a module-level variable.
+If API fails in **dev only**, `catalog-api.ts` maps static `CATEGORIES` / `PRODUCTS` from `catalog.ts`. Production never uses that seed catalog — refresh always hits Mongo via `/api`.
 
 Navbar filter: `Category.find({ isActive: true, showOnNavbar: true })`.
 
