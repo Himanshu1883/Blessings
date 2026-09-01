@@ -261,7 +261,13 @@ export async function handleGoogleCallback(code: string) {
   const payload = ticket.getPayload();
   if (!payload?.sub || !payload.email) throw new AppError(400, "Google authentication failed");
 
-  const user = await upsertGoogleUser(payload);
+  const user = await upsertGoogleUser({
+    sub: payload.sub,
+    email: payload.email,
+    name: payload.name,
+    picture: payload.picture,
+    email_verified: payload.email_verified,
+  });
   const exchangeToken = await issueGoogleExchange(user._id.toString());
   return { exchangeToken };
 }
@@ -290,7 +296,13 @@ export async function googleTokenLogin(idToken: string, res: Response) {
   const payload = ticket.getPayload();
   if (!payload?.sub || !payload.email) throw new AppError(400, "Invalid Google token");
 
-  const user = await upsertGoogleUser(payload);
+  const user = await upsertGoogleUser({
+    sub: payload.sub,
+    email: payload.email,
+    name: payload.name,
+    picture: payload.picture,
+    email_verified: payload.email_verified,
+  });
   await issueSession(user._id.toString(), user.role, res);
   return toPublicUser(user);
 }
