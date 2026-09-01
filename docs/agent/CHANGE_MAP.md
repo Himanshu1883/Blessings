@@ -10,7 +10,7 @@ Inspect **Primary** first. Do not scan the repo.
 | Footer | `src/components/site/site-footer.tsx` | |
 | Homepage / hero / banners | `src/routes/index.tsx` | `homepage-api.ts`, admin HomepageTab. Extra storefront blocks: `ExploreMenswear`, `ShopByOccasion`, `RelatedLooks` |
 | Shop grid / filters | `src/routes/shop.$category.tsx` | `catalog-api.ts`; product cards `product-card.tsx` (mobile compact mockup) |
-| Product PDP | `src/routes/product.$id.tsx` | `product-gallery.tsx` (viewport-capped gallery, hover/pinch zoom, lightbox); `catalog-api.ts` `imageUrls[]`; `shop-store.tsx` addToCart |
+| Product PDP | `src/routes/product.$id.tsx` | `product-customize-sheet.tsx` (WhatsApp custom order: size/color/fabric/custom fields, works when OOS); `product-gallery.tsx`; `catalog-api.ts` `imageUrls[]` + `stock`/`colors`/`customFields`; `shop-store.tsx` addToCart |
 | Search overlay | `src/components/site/search-dialog.tsx` | `shop-store` panel `"search"` |
 | Cart drawer | `src/components/site/cart-sheet.tsx` | `shop-store.tsx`, `api-hooks.ts` |
 | Wishlist | `src/components/site/wishlist-sheet.tsx` | |

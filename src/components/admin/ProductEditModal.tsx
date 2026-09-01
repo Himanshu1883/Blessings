@@ -285,13 +285,24 @@ export function ProductEditModal({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="prod-sizes">Sizes (comma-separated)</Label>
-            <Input
-              id="prod-sizes"
-              value={form.sizesText}
-              onChange={(e) => onSizesChange(e.target.value)}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="prod-sizes">Sizes (comma-separated)</Label>
+              <Input
+                id="prod-sizes"
+                value={form.sizesText}
+                onChange={(e) => onSizesChange(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="prod-colors">Colors (comma-separated)</Label>
+              <Input
+                id="prod-colors"
+                value={form.colorsText}
+                onChange={(e) => setForm((f) => ({ ...f, colorsText: e.target.value }))}
+                placeholder="Ivory, Maroon, Black"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -8,16 +8,24 @@ import { Heart, Ruler, Scissors, Truck, Shield, ArrowRight } from "lucide-react"
 import { toast } from "sonner";
 import { ProductCard } from "./index";
 import { cn } from "@/lib/utils";
-import { fetchProduct, fetchProducts, storeProductFromApi, type StoreProduct } from "@/lib/catalog-api";
+import {
+  fetchProduct,
+  fetchProducts,
+  isProductOutOfStock,
+  isSizeInStock,
+  storeProductFromApi,
+  type StoreProduct,
+} from "@/lib/catalog-api";
 import { addRecentlyViewed } from "@/lib/recently-viewed";
 import { ProductGallery } from "@/components/site/product-gallery";
+import { ProductCustomizeSheet } from "@/components/site/product-customize-sheet";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { whatsappUrl } from "@/lib/whatsapp";
 import { ProductEditModal } from "@/components/admin/ProductEditModal";
 import { AdminModal } from "@/components/admin/ui/AdminModal";
 import { Button } from "@/components/ui/button";
@@ -82,6 +90,8 @@ function ProductPage() {
   const adminCatalog = useAdminProductCatalog(isAdmin);
   const [related, setRelated] = useState(relatedFromLoader);
   const [size, setSize] = useState(product.sizes[0] ?? "M");
+  const [color, setColor] = useState(product.colors[0] ?? "");
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const saved = isInWishlist(product.mongoId);
   const ctaRef = useRef<HTMLDivElement>(null);
   const [showSticky, setShowSticky] = useState(false);
@@ -98,11 +108,17 @@ function ProductPage() {
         : [];
 
   const categoryLabel = product.categorySlug.replace(/-/g, " ");
+  const productOutOfStock = isProductOutOfStock(product);
+  const sizeAvailable = isSizeInStock(product, size);
+  const canAddToBag = !productOutOfStock && sizeAvailable;
+  const showSizeSelector = product.showSizeSelector !== false && product.sizes.length > 0;
+  const showColorSelector = product.showColorSelector !== false && product.colors.length > 0;
 
   useEffect(() => {
     setSize(product.sizes[0] ?? "M");
+    setColor(product.colors[0] ?? "");
     setRelated(relatedFromLoader);
-  }, [product.slug, product.sizes, relatedFromLoader]);
+  }, [product.slug, product.sizes, product.colors, relatedFromLoader]);
 
   useEffect(() => {
     addRecentlyViewed({
@@ -126,9 +142,15 @@ function ProductPage() {
   }, [product.slug]);
 
   const handleAdd = () => {
+    if (!canAddToBag) {
+      setCustomizeOpen(true);
+      return;
+    }
     addToCart(product.mongoId, size);
     toast.success("Added to your bag.");
   };
+
+  const openCustomize = () => setCustomizeOpen(true);
 
   const handleWishlist = () => {
     toggleWishlist(product.mongoId);
@@ -249,51 +271,119 @@ function ProductPage() {
               </p>
             </div>
 
-            {product.sizes.length > 0 && (
+            {showColorSelector && (
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="eyebrow text-[10px]">Select size</p>
-                  <span className="text-[11px] text-foreground/40">Size {size}</span>
+                  <p className="eyebrow text-[10px]">Select colour</p>
+                  <span className="text-[11px] text-foreground/40">{color}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((s) => (
+                  {product.colors.map((c) => (
                     <button
-                      key={s}
+                      key={c}
                       type="button"
-                      onClick={() => setSize(s)}
+                      onClick={() => setColor(c)}
                       className={cn(
-                        "min-w-12 px-4 py-2.5 border eyebrow text-[10px] transition-colors",
-                        size === s
+                        "px-4 py-2.5 border eyebrow text-[10px] transition-colors",
+                        color === c
                           ? "border-[color:var(--charcoal)] bg-[color:var(--charcoal)] text-[color:var(--ivory)]"
                           : "border-foreground/15 hover:border-foreground/40",
                       )}
                     >
-                      {s}
+                      {c}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            <div ref={ctaRef} className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleAdd}
-                className="flex-1 bg-[color:var(--charcoal)] py-4 eyebrow text-[10px] tracking-[0.22em] text-[color:var(--ivory)] transition-colors hover:bg-[color:var(--maroon)]"
-              >
-                Add to bag
-              </button>
-              <button
-                type="button"
-                onClick={handleWishlist}
-                className="flex items-center justify-center gap-2 border border-foreground/15 px-6 py-4 eyebrow text-[10px] transition-colors hover:border-[color:var(--maroon)]"
-              >
-                <Heart
-                  className={cn("size-4", saved && "fill-[color:var(--maroon)] text-[color:var(--maroon)]")}
-                  strokeWidth={1.5}
-                />
-                {saved ? "Saved" : "Save"}
-              </button>
+            {showSizeSelector && (
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="eyebrow text-[10px]">Select size</p>
+                  <span className="text-[11px] text-foreground/40">Size {size}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((s) => {
+                    const available = isSizeInStock(product, s);
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setSize(s)}
+                        className={cn(
+                          "relative min-w-12 px-4 py-2.5 border eyebrow text-[10px] transition-colors",
+                          size === s
+                            ? "border-[color:var(--charcoal)] bg-[color:var(--charcoal)] text-[color:var(--ivory)]"
+                            : "border-foreground/15 hover:border-foreground/40",
+                          !available && "opacity-55",
+                        )}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!sizeAvailable ? (
+                  <p className="mt-2 text-[12px] text-[color:var(--maroon)]">
+                    Size {size} is out of stock. Request a custom piece on WhatsApp.
+                  </p>
+                ) : null}
+              </div>
+            )}
+
+            {productOutOfStock && (
+              <div className="border border-[color:var(--maroon)]/20 bg-[color:var(--maroon)]/5 px-4 py-3">
+                <p className="eyebrow text-[10px] text-[color:var(--maroon)]">Out of stock</p>
+                <p className="mt-1 text-sm text-foreground/70">
+                  This piece can still be made to order. Choose size, colour, fabric, and any
+                  custom details — we confirm everything on WhatsApp.
+                </p>
+              </div>
+            )}
+
+            <div ref={ctaRef} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {canAddToBag ? (
+                  <button
+                    type="button"
+                    onClick={handleAdd}
+                    className="flex-1 bg-[color:var(--charcoal)] py-4 eyebrow text-[10px] tracking-[0.22em] text-[color:var(--ivory)] transition-colors hover:bg-[color:var(--maroon)]"
+                  >
+                    Add to bag
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openCustomize}
+                    className="flex flex-1 items-center justify-center gap-2 bg-[color:var(--charcoal)] py-4 eyebrow text-[10px] tracking-[0.18em] text-[color:var(--ivory)] transition-colors hover:bg-[color:var(--maroon)]"
+                  >
+                    <WhatsAppIcon className="size-4 text-[#25D366]" />
+                    Customise · WhatsApp
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleWishlist}
+                  className="flex items-center justify-center gap-2 border border-foreground/15 px-6 py-4 eyebrow text-[10px] transition-colors hover:border-[color:var(--maroon)]"
+                >
+                  <Heart
+                    className={cn("size-4", saved && "fill-[color:var(--maroon)] text-[color:var(--maroon)]")}
+                    strokeWidth={1.5}
+                  />
+                  {saved ? "Saved" : "Save"}
+                </button>
+              </div>
+              {canAddToBag ? (
+                <button
+                  type="button"
+                  onClick={openCustomize}
+                  className="inline-flex items-center justify-center gap-2 border border-foreground/15 py-3.5 text-[12px] text-foreground/70 transition-colors hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)]"
+                >
+                  Customise this piece
+                  <ArrowRight className="size-3.5" />
+                </button>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-y border-foreground/10 py-5">
@@ -317,6 +407,26 @@ function ProductPage() {
                 </AccordionTrigger>
                 <AccordionContent className="text-sm leading-relaxed text-foreground/70">
                   {product.description || "A Blessings atelier piece, cut and finished by hand."}
+                  {product.customFields
+                    .filter((f) => f.showOnProductPage && f.label && !["image", "video"].includes(f.type))
+                    .map((f) => {
+                      const display = Array.isArray(f.value)
+                        ? f.value.join(", ")
+                        : typeof f.value === "boolean"
+                          ? f.value
+                            ? "Yes"
+                            : "No"
+                          : f.value
+                            ? String(f.value)
+                            : "";
+                      if (!display) return null;
+                      return (
+                        <p key={f.id} className="mt-3">
+                          <span className="text-foreground/90">{f.label}: </span>
+                          {display}
+                        </p>
+                      );
+                    })}
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="fabric" className="border-foreground/10">
@@ -360,7 +470,17 @@ function ProductPage() {
                       ))}
                     </tbody>
                   </table>
-                  <p className="mt-3 text-[11px] text-foreground/45">Measurements in inches. Need a custom fit? Ask the atelier.</p>
+                  <p className="mt-3 text-[11px] text-foreground/45">
+                    Measurements in inches. Need a custom fit?{" "}
+                    <button
+                      type="button"
+                      onClick={openCustomize}
+                      className="underline underline-offset-2 hover:text-[color:var(--maroon)]"
+                    >
+                      Request made-to-measure
+                    </button>
+                    .
+                  </p>
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="shipping" className="border-foreground/10">
@@ -374,15 +494,14 @@ function ProductPage() {
               </AccordionItem>
             </Accordion>
 
-            <a
-              href={whatsappUrl(`Hi Blessings, I'm interested in ${product.name}. Could you help with sizing or a custom fit?`)}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={openCustomize}
               className="inline-flex items-center gap-2 text-[12px] text-foreground/60 transition-colors hover:text-[color:var(--maroon)]"
             >
               Talk to the atelier
               <ArrowRight className="size-3.5" />
-            </a>
+            </button>
           </div>
           </div>
         </div>
@@ -430,13 +549,21 @@ function ProductPage() {
           </div>
           <button
             type="button"
-            onClick={handleAdd}
+            onClick={canAddToBag ? handleAdd : openCustomize}
             className="shrink-0 bg-[color:var(--charcoal)] px-5 py-3 eyebrow text-[10px] tracking-[0.18em] text-[color:var(--ivory)]"
           >
-            Add · {size}
+            {canAddToBag ? `Add · ${size}` : "Customise"}
           </button>
         </div>
       </div>
+
+      <ProductCustomizeSheet
+        product={product}
+        open={customizeOpen}
+        onOpenChange={setCustomizeOpen}
+        initialSize={size}
+        outOfStock={!canAddToBag}
+      />
 
       {isAdmin && (
         <ProductEditModal

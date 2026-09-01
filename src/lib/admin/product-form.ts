@@ -15,6 +15,7 @@ export type ProductForm = {
   fabric: string;
   description: string;
   sizesText: string;
+  colorsText: string;
   stock: Record<string, number>;
   imageIds: string[];
   imagePreviews: string[];
@@ -34,6 +35,7 @@ export function emptyForm(categoryId = ""): ProductForm {
     fabric: "",
     description: "",
     sizesText: "S, M, L, XL",
+    colorsText: "",
     stock: { S: 0, M: 0, L: 0, XL: 0 },
     imageIds: [],
     imagePreviews: [],
@@ -57,6 +59,7 @@ export function fromProduct(p: AdminProduct): ProductForm {
     fabric: p.fabric,
     description: p.description,
     sizesText: sizes.join(", "),
+    colorsText: (p.colors ?? []).join(", "),
     stock,
     imageIds: [...p.imageIds],
     imagePreviews: [...p.imageUrls],
@@ -82,6 +85,10 @@ export function productFormToBody(form: ProductForm): Record<string, unknown> {
     price: Number(form.price) || 0,
     description: form.description.trim(),
     sizes,
+    colors: form.colorsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
     stock: form.stock,
     imageIds: form.imageIds,
     customFields: form.customFields,

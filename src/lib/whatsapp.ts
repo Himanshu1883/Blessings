@@ -14,3 +14,36 @@ export const WHATSAPP_MESSAGES = {
   returns: "Hi Blessings, I have a question about a return or exchange.",
   shipping: "Hi Blessings, I'd like help with shipping or delivery.",
 } as const;
+
+export type CustomOrderLine = { label: string; value: string };
+
+export function buildCustomOrderMessage(input: {
+  productName: string;
+  productUrl?: string;
+  sku?: string | null;
+  outOfStock?: boolean;
+  lines: CustomOrderLine[];
+  notes?: string;
+}) {
+  const rows: string[] = [
+    `Hi Blessings, I'd like a custom order for ${input.productName}.`,
+  ];
+  if (input.outOfStock) {
+    rows.push("This size / piece is currently out of stock — please make it to order.");
+  }
+  rows.push("");
+  if (input.sku) rows.push(`SKU: ${input.sku}`);
+  if (input.productUrl) rows.push(`Link: ${input.productUrl}`);
+  rows.push("");
+  for (const line of input.lines) {
+    if (!line.value.trim()) continue;
+    rows.push(`${line.label}: ${line.value.trim()}`);
+  }
+  if (input.notes?.trim()) {
+    rows.push("");
+    rows.push(`Notes: ${input.notes.trim()}`);
+  }
+  rows.push("");
+  rows.push("Please share timeline, fabric availability, and a quote.");
+  return rows.join("\n");
+}

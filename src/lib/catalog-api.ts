@@ -10,11 +10,20 @@ import {
   type Category as StaticCategory,
 } from "./catalog";
 
+export type StoreCustomField = {
+  id: string;
+  label: string;
+  type: string;
+  value: unknown;
+  showOnProductPage: boolean;
+};
+
 export type StoreProduct = {
   id: string;
   mongoId: string;
   slug: string;
   name: string;
+  sku?: string | null;
   categorySlug: string;
   fabric: string;
   price: number;
@@ -24,6 +33,11 @@ export type StoreProduct = {
   isNew?: boolean;
   bestSeller?: boolean;
   sizes: string[];
+  colors: string[];
+  showColorSelector: boolean;
+  showSizeSelector: boolean;
+  stock: Record<string, number>;
+  customFields: StoreCustomField[];
 };
 
 export type StoreCategory = {
@@ -45,6 +59,7 @@ function mapApiProduct(p: ApiProduct): StoreProduct {
     mongoId: p.id,
     slug: p.slug,
     name: p.name,
+    sku: p.sku ?? null,
     categorySlug: p.categorySlug ?? "",
     fabric: p.fabric,
     price: p.price,
@@ -54,6 +69,11 @@ function mapApiProduct(p: ApiProduct): StoreProduct {
     isNew: p.isNew,
     bestSeller: p.bestSeller,
     sizes: p.sizes,
+    colors: p.colors ?? [],
+    showColorSelector: p.showColorSelector ?? true,
+    showSizeSelector: p.showSizeSelector ?? true,
+    stock: p.stock ?? {},
+    customFields: p.customFields ?? [],
   };
 }
 
@@ -62,11 +82,13 @@ export function storeProductFromApi(p: ApiProduct): StoreProduct {
 }
 
 function mapStaticProduct(p: StaticProduct): StoreProduct {
+  const sizes = ["S", "M", "L", "XL"];
   return {
     id: p.id,
     mongoId: p.id,
     slug: p.id,
     name: p.name,
+    sku: null,
     categorySlug: p.categorySlug,
     fabric: p.fabric,
     price: p.price,
@@ -75,8 +97,30 @@ function mapStaticProduct(p: StaticProduct): StoreProduct {
     description: p.description,
     isNew: p.isNew,
     bestSeller: p.bestSeller,
-    sizes: ["S", "M", "L", "XL"],
+    sizes,
+    colors: [],
+    showColorSelector: true,
+    showSizeSelector: true,
+    stock: Object.fromEntries(sizes.map((s) => [s, 8])),
+    customFields: [],
   };
+}
+
+export function sizeStock(product: StoreProduct, size: string): number | null {
+  const entries = Object.entries(product.stock ?? {});
+  if (entries.length === 0) return null;
+  return product.stock[size] ?? 0;
+}
+
+export function isSizeInStock(product: StoreProduct, size: string): boolean {
+  const qty = sizeStock(product, size);
+  return qty === null || qty > 0;
+}
+
+export function isProductOutOfStock(product: StoreProduct): boolean {
+  const values = Object.values(product.stock ?? {});
+  if (values.length === 0) return false;
+  return values.every((qty) => qty <= 0);
 }
 
 function mapApiCategory(c: ApiCategory): StoreCategory {

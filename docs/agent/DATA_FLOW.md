@@ -51,6 +51,18 @@ addToCart (shop-store)
 
 On login, guest lines are POSTed into the user cart then cleared.
 
+## Product customisation (WhatsApp)
+
+```
+PDP Customise this piece  (always shown; primary CTA when size/product is OOS)
+→ product-customize-sheet.tsx
+→ choose listed size / colour / fabric / product custom fields, or type custom
+→ custom size: chest/waist/shoulder/sleeve/length
+→ Send on WhatsApp (wa.me, no cart / no payment)
+```
+
+Stock for add-to-bag comes from `product.stock` per size. Empty stock map is treated as in stock (static fallback).
+
 ## Checkout
 
 ```
