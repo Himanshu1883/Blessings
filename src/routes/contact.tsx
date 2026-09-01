@@ -5,10 +5,9 @@ import {
   Clock,
   HelpCircle,
   Mail,
-  MapPin,
   MessageCircle,
   Package,
-  RotateCcw,
+  Phone,
   Ruler,
   Shield,
   Truck,
@@ -21,18 +20,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WHATSAPP_DISPLAY, WHATSAPP_MESSAGES, whatsappUrl } from "@/lib/whatsapp";
+import {
+  STORE_EMAIL,
+  STORE_HOURS,
+  STORE_LANDLINE,
+  STORE_LANDLINE_DISPLAY,
+} from "@/lib/store-contact";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact, Returns & Shipping — Blessings" },
+      { title: "Contact & Shipping — Blessings" },
       {
         name: "description",
         content:
-          "Visit the Blessings Delhi atelier, book a virtual fitting, or read returns, shipping and help. Concierge on WhatsApp.",
+          "Reach Blessings Men's Boutique on WhatsApp, phone, or email. Book a fitting, ask about an order, or read shipping and help.",
       },
       { property: "og:title", content: "Contact — Blessings" },
-      { property: "og:description", content: "Delhi flagship, returns, worldwide shipping, and atelier help." },
+      { property: "og:description", content: "Concierge, shipping, and atelier help." },
     ],
   }),
   component: Contact,
@@ -41,21 +46,20 @@ export const Route = createFileRoute("/contact")({
 const JUMP_LINKS = [
   { id: "contact", label: "Contact" },
   { id: "atelier", label: "Atelier" },
-  { id: "returns", label: "Returns" },
   { id: "shipping", label: "Shipping" },
   { id: "help", label: "Help" },
 ] as const;
 
-const TOPICS = ["Bespoke consultation", "An order", "Returns & exchange", "Shipping", "Sizing", "Other"] as const;
+const TOPICS = ["Bespoke consultation", "An order", "Shipping", "Sizing", "Other"] as const;
 
 const FAQS = [
   {
     q: "How long does a ready piece take to ship?",
-    a: "Ready pieces leave the Delhi atelier within 3–5 working days. International express typically arrives in 4–8 days after dispatch, depending on customs.",
+    a: "Ready pieces usually dispatch within 3–5 working days. International express typically arrives in 4–8 days after dispatch, depending on customs.",
   },
   {
     q: "Do you offer made-to-measure?",
-    a: "Yes. Book a private consultation in Delhi or a virtual fitting on WhatsApp or Zoom. Bespoke pieces are patterned on your block and finished over about 30 days.",
+    a: "Yes. Book a private consultation in store or a virtual fitting on WhatsApp or Zoom. Bespoke pieces are patterned on your block and finished over about 30 days.",
   },
   {
     q: "How do I find my size?",
@@ -119,11 +123,11 @@ function Contact() {
         <div className="mx-auto max-w-[1200px] px-4 py-14 sm:px-6 sm:py-20 md:px-8 md:py-24">
           <p className="eyebrow mb-4 text-[color:var(--gold)]">The Concierge</p>
           <h1 className="font-serif max-w-3xl text-balance text-3xl italic leading-tight sm:text-5xl md:text-6xl">
-            We’re here — in Delhi, and wherever you are.
+            We’re here — in the boutique, and wherever you are.
           </h1>
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-foreground/65 sm:text-base">
-            Visit the flagship, book a virtual fitting, or write to the house about an order, a return, or a wedding
-            brief. Returns, shipping and help live on this page.
+            Visit the atelier, book a virtual fitting, or write to the house about an order or a wedding brief.
+            Shipping and help live on this page.
           </p>
         </div>
         <nav className="sticky top-[var(--header-height)] z-20 border-t border-foreground/10 bg-[color:var(--ivory)]/95 backdrop-blur-sm">
@@ -173,8 +177,19 @@ function Contact() {
                 </span>
                 <div>
                   <p className="eyebrow text-[9px]">Email</p>
-                  <a href="mailto:hello@blessings.house" className="mt-1 block text-sm hover:text-[color:var(--maroon)]">
-                    hello@blessings.house
+                  <a href={`mailto:${STORE_EMAIL}`} className="mt-1 block text-sm hover:text-[color:var(--maroon)]">
+                    {STORE_EMAIL}
+                  </a>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-foreground/10">
+                  <Phone className="size-4 text-[color:var(--gold)]" strokeWidth={1.5} />
+                </span>
+                <div>
+                  <p className="eyebrow text-[9px]">Phone</p>
+                  <a href={`tel:${STORE_LANDLINE}`} className="mt-1 block text-sm hover:text-[color:var(--maroon)]">
+                    {STORE_LANDLINE_DISPLAY}
                   </a>
                 </div>
               </div>
@@ -184,7 +199,7 @@ function Contact() {
                 </span>
                 <div>
                   <p className="eyebrow text-[9px]">Hours</p>
-                  <p className="mt-1 text-sm text-foreground/70">Monday — Saturday, 11am to 8pm IST</p>
+                  <p className="mt-1 text-sm text-foreground/70">{STORE_HOURS}</p>
                 </div>
               </div>
             </div>
@@ -244,20 +259,12 @@ function Contact() {
       >
         <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-10 px-4 py-16 sm:px-6 sm:py-20 md:grid-cols-2 md:px-8 md:gap-16">
           <div>
-            <p className="eyebrow mb-3 text-[color:var(--gold)]">Flagship</p>
-            <h2 className="font-serif text-3xl italic sm:text-4xl">Visit the Delhi atelier.</h2>
+            <p className="eyebrow mb-3 text-[color:var(--gold)]">Atelier</p>
+            <h2 className="font-serif text-3xl italic sm:text-4xl">Visit the boutique.</h2>
             <p className="mt-4 text-sm leading-relaxed text-foreground/65">
               Private viewings by walk-in or appointment. Bring a reference, a date, or simply come to feel the silks.
               Virtual fittings are available for the UK, USA, UAE, Canada and beyond.
             </p>
-            <div className="mt-8 flex gap-4">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-[color:var(--gold)]" strokeWidth={1.5} />
-              <p className="text-sm leading-relaxed text-foreground/75">
-                21, South Extension II
-                <br />
-                New Delhi 110049, India
-              </p>
-            </div>
             <div className="mt-8 flex flex-wrap gap-2">
               <WhatsAppLink
                 message={WHATSAPP_MESSAGES.book}
@@ -278,7 +285,7 @@ function Contact() {
               ["In person", "Try silhouettes, fabrics and embroidery in the fitting rooms. Alterations on the house for Blessings pieces."],
               ["Virtual", "WhatsApp or Zoom with a house stylist. We ship trial muslins for bespoke clients abroad when needed."],
               ["Weddings", "Groom, groomsmen and family edits. Share the function list and we will map a wardrobe."],
-              ["Press & events", "For editorials and trunk shows, write to hello@blessings.house with dates and city."],
+              ["Press & events", `For editorials and trunk shows, write to ${STORE_EMAIL} with dates and city.`],
             ].map(([title, copy]) => (
               <div key={title} className="rounded-2xl border border-foreground/10 p-5">
                 <h3 className="font-medium">{title}</h3>
@@ -287,50 +294,6 @@ function Contact() {
             ))}
           </div>
         </div>
-      </section>
-
-      <section
-        id="returns"
-        className="scroll-mt-[calc(var(--header-height)+4.5rem)] mx-auto max-w-[1200px] px-4 py-16 sm:px-6 sm:py-20 md:px-8"
-      >
-        <div className="flex items-start gap-4">
-          <span className="hidden size-11 shrink-0 items-center justify-center rounded-full border border-foreground/10 sm:flex">
-            <RotateCcw className="size-4 text-[color:var(--gold)]" strokeWidth={1.5} />
-          </span>
-          <div className="max-w-3xl">
-            <p className="eyebrow mb-3 text-[color:var(--gold)]">Returns</p>
-            <h2 className="font-serif text-3xl italic sm:text-4xl">Seven days, unworn, with tags.</h2>
-            <p className="mt-4 text-sm leading-relaxed text-foreground/65">
-              Ready-to-wear pieces may be returned within 7 days of delivery if they are unworn, unwashed, and still
-              carry original tags and packaging. Refunds go back to the original payment method once the atelier
-              receives and inspects the garment.
-            </p>
-          </div>
-        </div>
-        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {[
-            ["01", "Write to us", "Open a return from this page or WhatsApp with your order number and reason."],
-            ["02", "Ship it back", "We share a prepaid label for India. International returns ship at the client’s cost unless the piece is defective."],
-            ["03", "Refund or exchange", "Once inspected in Delhi, we refund or exchange. Store credit is available if you prefer another silhouette."],
-          ].map(([n, title, copy]) => (
-            <div key={n} className="rounded-2xl border border-foreground/10 bg-white p-6">
-              <p className="font-serif text-2xl italic text-[color:var(--gold)]">{n}</p>
-              <h3 className="mt-3 font-medium">{title}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-foreground/60">{copy}</p>
-            </div>
-          ))}
-        </div>
-        <ul className="mt-8 space-y-2 text-sm text-foreground/65">
-          <li>Bespoke and made-to-measure garments are not returnable unless there is a manufacturing fault.</li>
-          <li>Sale pieces are final unless damaged in transit — photograph the parcel before opening.</li>
-          <li>Earrings of perfume, makeup or deodorant on a garment cannot be accepted.</li>
-        </ul>
-        <WhatsAppLink
-          message={WHATSAPP_MESSAGES.returns}
-          className="mt-8 inline-flex h-10 items-center rounded-full border border-foreground/15 px-5 eyebrow text-[9px] tracking-[0.16em] hover:border-[color:var(--gold)]"
-        >
-          Start a return on WhatsApp
-        </WhatsAppLink>
       </section>
 
       <section
@@ -344,7 +307,7 @@ function Contact() {
             </span>
             <div className="max-w-3xl">
               <p className="eyebrow mb-3 text-[color:var(--gold)]">Shipping</p>
-              <h2 className="font-serif text-3xl italic sm:text-4xl">From Delhi to your door.</h2>
+              <h2 className="font-serif text-3xl italic sm:text-4xl">To your door, worldwide.</h2>
               <p className="mt-4 text-sm leading-relaxed text-foreground/65">
                 Complimentary worldwide shipping on every Blessings order. Duties and taxes for your country are shown
                 at checkout where we can calculate them; otherwise they may be collected by local customs.
@@ -353,7 +316,7 @@ function Contact() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { Icon: Package, title: "Ready to wear", copy: "Leaves Delhi in 3–5 working days after confirmation." },
+              { Icon: Package, title: "Ready to wear", copy: "Dispatches in 3–5 working days after confirmation." },
               { Icon: Truck, title: "International express", copy: "Typically 4–8 days after dispatch to UK, USA, UAE, EU and Canada." },
               { Icon: Shield, title: "Insured", copy: "Every parcel is tracked and insured until it is in your hands." },
               { Icon: Clock, title: "Bespoke", copy: "Cut and finished in about 30 days, then shipped white-glove." },

@@ -1,3 +1,4 @@
+import { Menu, ShoppingBag, User, X } from "lucide-react";
 import { ChevronDownIcon } from "@/components/icons/site-icons";
 import { WhatsAppLink } from "@/components/site/whatsapp-link";
 import { useAuth } from "@/lib/auth-context";
@@ -14,10 +15,9 @@ import { useShop } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 const UTILITY_LEFT = [
-  { label: "RETURNS", to: "/contact" as const, hash: "returns" },
   { label: "SHIPPING", to: "/contact" as const, hash: "shipping" },
   { label: "HELP", to: "/contact" as const, hash: "help" },
 ] as const;
@@ -29,7 +29,7 @@ const STATIC_NAV = [
   { label: "CONTACT", to: "/contact" as const },
 ] as const;
 
-const BRAND_TAGLINE = "The Men's Boutique · Delhi";
+const BRAND_TAGLINE = "The Men's Boutique";
 const BRAND_LOGO = "/logo-blessings.png";
 
 let navbarCategoriesCache: StoreCategory[] | null = null;
@@ -69,6 +69,9 @@ export function SiteHeader() {
   );
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const menuCloseTimer = useRef<number | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
+  const [mobileMenuTop, setMobileMenuTop] = useState(0);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
@@ -101,10 +104,38 @@ export function SiteHeader() {
     }
   };
 
-  useEffect(() => {
-    setMobileOpen(false);
-    setShopMenuOpen(false);
-  }, [pathname]);
+  const syncHeaderLayout = useCallback(() => {
+    const header = headerRef.current;
+    const mobileNav = mobileNavRef.current;
+    if (header) {
+      document.documentElement.style.setProperty(
+        "--header-height",
+        `${header.getBoundingClientRect().height}px`,
+      );
+    }
+    if (mobileNav) {
+      setMobileMenuTop(mobileNav.getBoundingClientRect().bottom);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    syncHeaderLayout();
+    const header = headerRef.current;
+    const mobileNav = mobileNavRef.current;
+    const ro = new ResizeObserver(syncHeaderLayout);
+    if (header) ro.observe(header);
+    if (mobileNav) ro.observe(mobileNav);
+    window.addEventListener("resize", syncHeaderLayout);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", syncHeaderLayout);
+    };
+  }, [syncHeaderLayout]);
+
+  useLayoutEffect(() => {
+    if (!mobileOpen) return;
+    syncHeaderLayout();
+  }, [mobileOpen, syncHeaderLayout]);
 
   const openShopMenu = () => {
     if (menuCloseTimer.current) {
@@ -121,6 +152,11 @@ export function SiteHeader() {
       menuCloseTimer.current = null;
     }, 140);
   };
+
+  useEffect(() => {
+    setMobileOpen(false);
+    setShopMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     return () => {
@@ -151,10 +187,11 @@ export function SiteHeader() {
   return (
     <>
       <header
+        ref={headerRef}
         className={cn(
           "fixed inset-x-0 top-0 z-40 transition-colors duration-300",
           solidHeader
-            ? "bg-white text-[color:var(--charcoal)] shadow-[0_1px_0_rgba(0,0,0,0.06)]"
+            ? "bg-[color:var(--ivory)] text-[color:var(--charcoal)] lg:bg-white lg:shadow-[0_1px_0_rgba(0,0,0,0.06)]"
             : "bg-transparent text-white",
         )}
       >
@@ -250,32 +287,55 @@ export function SiteHeader() {
           </div>
 
           {/* ── Mobile header ── */}
-          <nav className="lg:hidden px-4 sm:px-6 py-2.5">
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+          <nav
+            ref={mobileNavRef}
+            className={cn(
+              "lg:hidden mx-2 sm:mx-3 mt-2 rounded-2xl border border-foreground/8 bg-white px-2 py-2 shadow-[0_2px_14px_rgba(0,0,0,0.05)]",
+              mobileOpen ? "mb-0 rounded-b-none border-b-0 shadow-none" : "mb-1.5",
+            )}
+            aria-label="Mobile"
+          >
+            <div className="flex min-h-12 items-center gap-0.5">
               <button
-                className={cn(
-                  "text-[11px] font-medium tracking-[0.14em] uppercase min-h-11 px-1 transition-opacity hover:opacity-70",
-                  solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                )}
+                type="button"
+                className="flex size-10 shrink-0 items-center justify-center text-[color:var(--charcoal)] transition-opacity hover:opacity-70"
                 onClick={() => setMobileOpen((o) => !o)}
-                aria-label="Menu"
+                aria-expanded={mobileOpen}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
               >
-                {mobileOpen ? "Close" : "Menu"}
+                {mobileOpen ? (
+                  <X className="size-5" strokeWidth={1.5} />
+                ) : (
+                  <Menu className="size-5" strokeWidth={1.5} />
+                )}
               </button>
 
-              <BrandLogo solidHeader={solidHeader} compact />
+              <div className="flex min-w-0 flex-1 items-center justify-center px-0.5">
+                <BrandLogo solidHeader={solidHeader} variant="mobile" />
+              </div>
 
-              <div className="justify-self-end flex items-center gap-1">
-                <CurrencySwitcher variant="compact" />
+              <div className="flex shrink-0 items-center">
+                <CurrencySwitcher variant="mobile" />
+                <button
+                  type="button"
+                  onClick={openAccount}
+                  className="flex size-10 shrink-0 items-center justify-center text-[color:var(--charcoal)] transition-opacity hover:opacity-70"
+                  aria-label={isAuthenticated ? "Account" : "Login or sign up"}
+                >
+                  <User className="size-[1.15rem]" strokeWidth={1.5} />
+                </button>
                 <button
                   type="button"
                   onClick={() => openPanel("cart")}
-                  className={cn(
-                    "text-[11px] font-medium tracking-[0.14em] uppercase min-h-11 px-1 transition-opacity hover:opacity-70",
-                    solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
-                  )}
+                  className="relative flex size-10 shrink-0 items-center justify-center text-[color:var(--charcoal)] transition-opacity hover:opacity-70"
+                  aria-label={`Cart, ${cartCount} items`}
                 >
-                  Cart ({cartCount})
+                  <ShoppingBag className="size-[1.15rem]" strokeWidth={1.5} />
+                  {cartCount > 0 ? (
+                    <span className="absolute right-1 top-1 grid min-w-[0.9rem] place-items-center rounded-full bg-[color:var(--maroon)] px-0.5 text-[8px] font-medium leading-none text-white">
+                      {cartCount > 9 ? "9+" : cartCount}
+                    </span>
+                  ) : null}
                 </button>
               </div>
             </div>
@@ -294,6 +354,7 @@ export function SiteHeader() {
 
       {mobileOpen && (
         <MobileDrawer
+          menuTop={mobileMenuTop}
           categories={visibleCategories}
           onClose={() => setMobileOpen(false)}
           onAccount={openAccount}
@@ -306,24 +367,61 @@ export function SiteHeader() {
 
 function BrandLogo({
   solidHeader,
+  variant = "desktop",
   compact = false,
 }: {
   solidHeader: boolean;
+  variant?: "desktop" | "mobile";
   compact?: boolean;
 }) {
+  const isMobile = variant === "mobile";
+
+  if (isMobile) {
+    if (compact) {
+      return (
+        <Link
+          to="/"
+          aria-label="Blessings home"
+          className="pointer-events-auto group flex shrink-0 items-center justify-center"
+        >
+          <span className="relative size-9 overflow-hidden rounded-full bg-black ring-1 ring-[color:var(--gold)]/45 shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-transform duration-700 ease-in-out group-hover:rotate-[360deg]">
+            <img src={BRAND_LOGO} alt="" className="h-full w-full object-contain" />
+          </span>
+        </Link>
+      );
+    }
+
+    return (
+      <Link
+        to="/"
+        aria-label="Blessings home"
+        className="group flex min-w-0 max-w-full items-center gap-2 overflow-hidden"
+      >
+        <span className="relative size-10 shrink-0 overflow-hidden rounded-full bg-black ring-1 ring-[color:var(--gold)]/45 shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-transform duration-700 ease-in-out group-hover:rotate-[360deg] sm:size-11">
+          <img src={BRAND_LOGO} alt="" className="h-full w-full object-contain" />
+        </span>
+        <span className="flex min-w-0 flex-col items-start text-left">
+          <span className="profile-display truncate text-[14px] uppercase leading-none tracking-[0.05em] text-[color:var(--charcoal)] sm:text-[16px]">
+            Blessings
+          </span>
+          <span className="mt-1 truncate text-[6px] uppercase leading-tight tracking-[0.22em] text-[color:var(--gold)] sm:text-[7px] sm:tracking-[0.26em]">
+            The Men&apos;s Boutique
+          </span>
+        </span>
+      </Link>
+    );
+  }
+
   return (
     <Link
       to="/"
       aria-label="Blessings home"
-      className={cn(
-        "group flex shrink-0 items-center",
-        compact ? "justify-self-center gap-2.5" : "gap-3.5",
-      )}
+      className="group flex shrink-0 items-center gap-3.5"
     >
       <span
         className={cn(
           "relative shrink-0 overflow-hidden rounded-full bg-black ring-1 shadow-[0_2px_10px_rgba(0,0,0,0.25)] transition-transform duration-700 ease-in-out group-hover:rotate-[360deg]",
-          compact ? "size-11" : "size-14 xl:size-16",
+          "size-14 xl:size-16",
           solidHeader ? "ring-[color:var(--gold)]/50" : "ring-white/50",
         )}
       >
@@ -336,8 +434,7 @@ function BrandLogo({
       <span className="flex min-w-0 flex-col items-start text-left">
         <span
           className={cn(
-            "font-bold uppercase tracking-[0.16em] leading-none",
-            compact ? "text-[15px]" : "text-[20px] xl:text-[22px]",
+            "font-bold uppercase tracking-[0.16em] leading-none text-[20px] xl:text-[22px]",
             solidHeader ? "text-[color:var(--charcoal)]" : "text-white",
           )}
         >
@@ -345,8 +442,7 @@ function BrandLogo({
         </span>
         <span
           className={cn(
-            "mt-1.5 uppercase tracking-[0.28em] leading-none",
-            compact ? "text-[6px] sm:text-[6.5px]" : "text-[7.5px] xl:text-[8px]",
+            "mt-1.5 uppercase tracking-[0.28em] leading-none text-[7.5px] xl:text-[8px]",
             solidHeader ? "text-[color:var(--charcoal)]/45" : "text-white/55",
           )}
         >
@@ -556,11 +652,13 @@ function MegaMenuProductCard({
 }
 
 function MobileDrawer({
+  menuTop,
   categories,
   onClose,
   onAccount,
   isAuthenticated,
 }: {
+  menuTop: number;
   categories: StoreCategory[];
   onClose: () => void;
   onAccount: () => void;
@@ -577,13 +675,15 @@ function MobileDrawer({
     <>
       <button
         type="button"
-        className="lg:hidden fixed inset-0 top-[var(--header-height)] z-40 bg-black/40"
+        className="lg:hidden fixed inset-0 z-40 bg-black/40"
+        style={{ top: menuTop }}
         onClick={onClose}
         aria-label="Close menu"
       />
 
       <div
-        className="lg:hidden fixed inset-x-0 top-[var(--header-height)] bottom-[calc(62px+env(safe-area-inset-bottom))] z-50 bg-white overflow-y-auto animate-reveal"
+        className="lg:hidden fixed inset-x-0 bottom-[calc(62px+env(safe-area-inset-bottom))] z-50 bg-white overflow-y-auto animate-reveal border-t border-foreground/8"
+        style={{ top: menuTop }}
         data-lenis-prevent
       >
         <div className="px-6 py-8 space-y-8">

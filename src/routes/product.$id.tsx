@@ -316,7 +316,7 @@ function ProductPage() {
                   The piece
                 </AccordionTrigger>
                 <AccordionContent className="text-sm leading-relaxed text-foreground/70">
-                  {product.description || "A Blessings atelier piece, cut and finished in Delhi."}
+                  {product.description || "A Blessings atelier piece, cut and finished by hand."}
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="fabric" className="border-foreground/10">
@@ -365,11 +365,11 @@ function ProductPage() {
               </AccordionItem>
               <AccordionItem value="shipping" className="border-foreground/10">
                 <AccordionTrigger className="eyebrow py-4 text-[10px] tracking-[0.22em] hover:no-underline">
-                  Shipping & returns
+                  Shipping
                 </AccordionTrigger>
                 <AccordionContent className="space-y-2 text-sm leading-relaxed text-foreground/70">
                   <p>Complimentary worldwide shipping. Made-to-order pieces dispatch in 3–5 weeks.</p>
-                  <p>Ready pieces leave Delhi within 3–5 working days. Returns accepted within 7 days, unworn, with tags.</p>
+                  <p>Ready pieces usually dispatch within 3–5 working days after confirmation.</p>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

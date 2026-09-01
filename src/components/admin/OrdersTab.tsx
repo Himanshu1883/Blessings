@@ -23,6 +23,7 @@ import type { AdminOrder } from "@/lib/admin/types";
 import type { OrderStatus } from "@/components/admin/ui/StatusBadge";
 import type { useAdminApi } from "@/hooks/useAdminApi";
 import { ADMIN_NEXT_LABELS, adminNextStatuses, adminCanDirectCancel } from "@/lib/order-ui";
+import { RETURNS_ENABLED } from "@/lib/store-contact";
 
 const ORDER_STATUSES: OrderStatus[] = [
   "placed",
@@ -383,12 +384,12 @@ export function OrdersTab({ api }: Props) {
                                   )}
                                 </div>
                               )}
-                              {o.returnStatus ? (
+                              {RETURNS_ENABLED && o.returnStatus ? (
                                 <p className="text-xs text-muted-foreground">
                                   Return: <StatusBadge status={o.returnStatus} kind="return" />
                                 </p>
                               ) : null}
-                              {o.canReturn ? (
+                              {RETURNS_ENABLED && o.canReturn ? (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -500,6 +501,7 @@ export function OrdersTab({ api }: Props) {
         )}
       </AdminModal>
 
+      {RETURNS_ENABLED ? (
       <AdminModal
         open={!!returnOrder}
         onOpenChange={(open) => !open && setReturnOrder(null)}
@@ -541,6 +543,7 @@ export function OrdersTab({ api }: Props) {
           />
         </div>
       </AdminModal>
+      ) : null}
     </div>
   );
 }

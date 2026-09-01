@@ -16,7 +16,7 @@ import {
 } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
-type Variant = "nav" | "compact" | "drawer";
+type Variant = "nav" | "compact" | "drawer" | "mobile";
 
 export function CurrencySwitcher({
   variant = "nav",
@@ -63,13 +63,18 @@ export function CurrencySwitcher({
               "text-[11px] font-medium tracking-[0.14em] uppercase text-[color:var(--charcoal)]",
             variant === "compact" &&
               "text-[11px] font-medium tracking-[0.14em] uppercase text-[color:var(--charcoal)] px-1",
+            variant === "mobile" &&
+              "min-h-10 min-w-8 shrink-0 px-1 text-[11px] font-medium tracking-[0.04em] text-[color:var(--charcoal)]",
             className,
           )}
         >
-          <span className="tabular-nums" suppressHydrationWarning>
+          <span className="tabular-nums sm:hidden" suppressHydrationWarning>
+            {info.symbol}
+          </span>
+          <span className="hidden tabular-nums sm:inline" suppressHydrationWarning>
             {currency}
           </span>
-          <ChevronDownIcon className="size-3 opacity-60 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          <ChevronDownIcon className="size-2.5 opacity-45 transition-transform duration-200 group-data-[state=open]:rotate-180" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

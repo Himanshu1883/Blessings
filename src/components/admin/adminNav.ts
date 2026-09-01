@@ -1,3 +1,4 @@
+import { RETURNS_ENABLED } from "@/lib/store-contact";
 import {
   LayoutDashboard,
   Home,
@@ -32,19 +33,6 @@ export type AdminNavItem = {
   badgeKey?: "pendingOrders" | "pendingReturns" | "lowStock";
 };
 
-export const ADMIN_TABS: AdminTabId[] = [
-  "dashboard",
-  "homepage",
-  "products",
-  "orders",
-  "inventory",
-  "categories",
-  "coupons",
-  "marketing",
-  "returns",
-  "settings",
-];
-
 export const ADMIN_NAV: AdminNavItem[] = [
   { id: "dashboard", label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
   { id: "homepage", label: "Homepage", path: "/admin/homepage", icon: Home },
@@ -54,9 +42,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { id: "categories", label: "Categories", path: "/admin/categories", icon: FolderTree },
   { id: "coupons", label: "Coupons", path: "/admin/coupons", icon: Ticket },
   { id: "marketing", label: "Marketing", path: "/admin/marketing", icon: Megaphone },
-  { id: "returns", label: "Returns", path: "/admin/returns", icon: RotateCcw, badgeKey: "pendingReturns" },
+  ...(RETURNS_ENABLED
+    ? [{ id: "returns" as const, label: "Returns", path: "/admin/returns" as const, icon: RotateCcw, badgeKey: "pendingReturns" as const }]
+    : []),
   { id: "settings", label: "Settings", path: "/admin/settings", icon: Settings },
 ];
+
+export const ADMIN_TABS: AdminTabId[] = ADMIN_NAV.map((item) => item.id);
 
 export function isValidAdminTab(tab: string): tab is AdminTabId {
   return (ADMIN_TABS as string[]).includes(tab);

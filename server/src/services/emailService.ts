@@ -86,7 +86,7 @@ async function deliver(to: string, subject: string, text: string) {
         to: [to],
         subject,
         text,
-        html: `<p>${text}</p><p style="color:#888;font-size:12px">Blessings · Delhi atelier</p>`,
+        html: `<p>${text}</p><p style="color:#888;font-size:12px">Blessings · Men's Boutique</p>`,
       }),
     });
     if (!res.ok) {

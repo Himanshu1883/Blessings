@@ -9,7 +9,7 @@ Inspect **Primary** first. Do not scan the repo.
 | Header / navbar / mega menu | `src/components/site/site-header.tsx` | `currency-switcher.tsx`; `catalog-api.ts` `fetchNavbarCategories`; Category `showOnNavbar` |
 | Footer | `src/components/site/site-footer.tsx` | |
 | Homepage / hero / banners | `src/routes/index.tsx` | `homepage-api.ts`, admin HomepageTab. Extra storefront blocks: `ExploreMenswear`, `ShopByOccasion`, `RelatedLooks` |
-| Shop grid / filters | `src/routes/shop.$category.tsx` | `catalog-api.ts` |
+| Shop grid / filters | `src/routes/shop.$category.tsx` | `catalog-api.ts`; product cards `product-card.tsx` (mobile compact mockup) |
 | Product PDP | `src/routes/product.$id.tsx` | `product-gallery.tsx` (viewport-capped gallery, hover/pinch zoom, lightbox); `catalog-api.ts` `imageUrls[]`; `shop-store.tsx` addToCart |
 | Search overlay | `src/components/site/search-dialog.tsx` | `shop-store` panel `"search"` |
 | Cart drawer | `src/components/site/cart-sheet.tsx` | `shop-store.tsx`, `api-hooks.ts` |

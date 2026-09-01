@@ -57,7 +57,7 @@ function OrderInvoicePage() {
         <div className="flex items-start justify-between gap-6">
           <div>
             <p className="font-serif italic text-3xl">Blessings</p>
-            <p className="mt-2 text-xs text-foreground/50">Delhi atelier · Men’s couture</p>
+            <p className="mt-2 text-xs text-foreground/50">Men&apos;s couture</p>
           </div>
           <div className="text-right">
             <p className="eyebrow text-[10px]">Invoice</p>

@@ -23,6 +23,12 @@ import { useCurrency } from "@/lib/currency";
 import { loginSearch } from "@/lib/login-search";
 import { readCheckoutAddress } from "@/lib/checkout-address";
 import { WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import {
+  STORE_EMAIL,
+  STORE_LANDLINE,
+  STORE_LANDLINE_DISPLAY,
+  RETURNS_ENABLED,
+} from "@/lib/store-contact";
 import { cn } from "@/lib/utils";
 import {
   CheckoutDismissedError,
@@ -66,7 +72,7 @@ const INDIAN_STATES = [
   "West Bengal",
 ];
 
-const SUPPORT_EMAIL = "hello@blessings.house";
+const SUPPORT_EMAIL = STORE_EMAIL;
 
 const fieldClass =
   "h-11 rounded-lg border-foreground/12 bg-[color:var(--ivory)]/70 shadow-none focus-visible:ring-[color:var(--gold)]";
@@ -485,10 +491,17 @@ function CheckoutPage() {
                   <Lock className="size-3.5 text-[color:var(--gold)]" strokeWidth={1.6} />
                   100% Secure Payments
                 </p>
-                <p className="flex flex-col items-center gap-1 px-1">
-                  <RotateCcw className="size-3.5 text-[color:var(--gold)]" strokeWidth={1.6} />
-                  Easy Returns
-                </p>
+                {RETURNS_ENABLED ? (
+                  <p className="flex flex-col items-center gap-1 px-1">
+                    <RotateCcw className="size-3.5 text-[color:var(--gold)]" strokeWidth={1.6} />
+                    Easy Returns
+                  </p>
+                ) : (
+                  <p className="flex flex-col items-center gap-1 px-1">
+                    <BadgeCheck className="size-3.5 text-[color:var(--gold)]" strokeWidth={1.6} />
+                    Atelier Quality
+                  </p>
+                )}
                 <p className="flex flex-col items-center gap-1 px-1">
                   <BadgeCheck className="size-3.5 text-[color:var(--gold)]" strokeWidth={1.6} />
                   Genuine Products
@@ -507,6 +520,9 @@ function CheckoutPage() {
                   <p className="mt-3 text-right text-sm">
                     <a href={`tel:${WHATSAPP_DISPLAY.replace(/\s/g, "")}`} className="block hover:text-[color:var(--maroon)]">
                       {WHATSAPP_DISPLAY}
+                    </a>
+                    <a href={`tel:${STORE_LANDLINE}`} className="mt-0.5 block hover:text-[color:var(--maroon)]">
+                      {STORE_LANDLINE_DISPLAY}
                     </a>
                     <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-0.5 block text-foreground/60 hover:text-[color:var(--maroon)]">
                       {SUPPORT_EMAIL}

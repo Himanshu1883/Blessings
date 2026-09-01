@@ -9,22 +9,28 @@ import type { StoreCategory, StoreProduct } from "@/lib/catalog-api";
 import { fetchCategories, fetchProducts } from "@/lib/catalog-api";
 import { useCurrency } from "@/lib/currency";
 import { fetchHomepageContent } from "@/lib/homepage-api";
+import { useShop } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  ChevronDown,
+  ChevronUp,
+  Heart,
   Plus,
   Ruler,
   Scissors,
   Shield,
+  ShoppingBag,
   Star,
   Truck,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -447,8 +453,314 @@ const HOTSPOT = { x: "50%", y: "58%" };
 
 function NewArrivals() {
   const { products } = Route.useLoaderData();
-  const { format } = useCurrency();
   const looks = products.filter((p) => p.bestSeller).slice(0, 5);
+  if (!looks.length) return null;
+
+  return (
+    <>
+      <NewArrivalsMobile looks={looks} />
+      <NewArrivalsDesktop looks={looks} />
+    </>
+  );
+}
+
+function NewArrivalsMobile({ looks }: { looks: StoreProduct[] }) {
+  const { format } = useCurrency();
+  const heroLooks = looks.slice(0, 3);
+  const gridProducts = looks.slice(0, 4);
+  const [active, setActive] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isPaused || heroLooks.length <= 1) return;
+    intervalRef.current = setInterval(() => {
+      setActive((c) => (c + 1) % heroLooks.length);
+    }, 6000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isPaused, heroLooks.length]);
+
+  const goTo = (index: number) => {
+    setActive((index + heroLooks.length) % heroLooks.length);
+  };
+
+  const look = heroLooks[active];
+
+  return (
+    <section
+      data-reveal-direction="split"
+      className="lg:hidden bg-[color:var(--ivory)] px-4 py-8"
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+      aria-roledescription="carousel"
+      aria-label="New arrivals"
+    >
+      {/* Hero split card */}
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-[color:var(--charcoal)]/8 bg-[color:var(--ivory)] shadow-[0_10px_40px_rgba(40,16,10,0.08)] min-h-[19rem]">
+        <div className="relative z-10 flex w-[46%] min-w-[9.5rem] flex-col justify-between p-5 pr-2 min-h-[19rem]">
+          <div>
+            <p className="eyebrow text-[9px] text-[color:var(--maroon)]">02 | New Arrivals</p>
+            <h2 className="mt-3 font-serif text-[2.35rem] leading-[0.95] text-[color:var(--charcoal)]">
+              New Look
+            </h2>
+            <div className="mt-4 h-px w-10 bg-[color:var(--gold)]" />
+            <p className="mt-4 text-sm leading-relaxed text-[color:var(--charcoal)]/70">
+              Discover our new arrivals.
+            </p>
+            <Link
+              to="/shop/$category"
+              params={{ category: look.categorySlug || "sherwanis" }}
+              className="group mt-6 inline-flex items-center gap-2 text-sm font-medium text-[color:var(--maroon)] transition-colors hover:text-[color:var(--charcoal)]"
+            >
+              <span className="whitespace-nowrap">Explore collection</span>
+              <ArrowRight
+                className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+                strokeWidth={1.5}
+              />
+            </Link>
+          </div>
+
+          {heroLooks.length > 1 && (
+            <div className="mt-6 flex items-center gap-2 eyebrow text-[9px]">
+              {heroLooks.map((_, index) => (
+                <span key={heroLooks[index].id} className="inline-flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => goTo(index)}
+                    aria-label={`Show look ${index + 1}`}
+                    aria-current={index === active}
+                    className={cn(
+                      "transition-colors",
+                      index === active
+                        ? "text-[color:var(--maroon)]"
+                        : "text-[color:var(--charcoal)]/35 hover:text-[color:var(--charcoal)]/60",
+                    )}
+                  >
+                    {String(index + 1).padStart(2, "0")}
+                  </button>
+                  {index < heroLooks.length - 1 && (
+                    <span className="text-[color:var(--charcoal)]/20">——</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="absolute inset-y-0 right-0 w-[58%]">
+          <svg
+            className="absolute left-0 top-0 z-10 h-full w-7 -translate-x-[1px] text-[color:var(--ivory)]"
+            viewBox="0 0 28 320"
+            preserveAspectRatio="none"
+            aria-hidden
+          >
+            <path d="M28,0 C6,72 6,248 28,320 L0,320 L0,0 Z" fill="currentColor" />
+          </svg>
+
+          {heroLooks.map((p, i) => (
+            <div
+              key={p.id}
+              className={cn(
+                "absolute inset-0 transition-opacity duration-700",
+                i === active ? "opacity-100" : "opacity-0",
+              )}
+            >
+              <img
+                src={p.imageUrl}
+                alt={p.name}
+                loading={i === 0 ? "eager" : "lazy"}
+                className="size-full object-cover object-top"
+              />
+            </div>
+          ))}
+
+          {heroLooks.length > 1 && (
+            <div className="absolute right-2 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full border border-[color:var(--charcoal)]/8 bg-white/95 px-1.5 py-2 shadow-sm">
+              <button
+                type="button"
+                onClick={() => goTo(active - 1)}
+                aria-label="Previous look"
+                className="flex size-7 items-center justify-center text-[color:var(--charcoal)]/50 hover:text-[color:var(--maroon)]"
+              >
+                <ChevronUp className="size-4" strokeWidth={1.5} />
+              </button>
+              {heroLooks.map((p, index) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => goTo(index)}
+                  aria-label={`Show look ${index + 1}`}
+                  aria-current={index === active}
+                  className="flex size-6 items-center justify-center"
+                >
+                  <span
+                    className={cn(
+                      "rounded-full transition-all",
+                      index === active
+                        ? "size-2 bg-[color:var(--maroon)]"
+                        : "size-1.5 bg-[color:var(--charcoal)]/25",
+                    )}
+                  />
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => goTo(active + 1)}
+                aria-label="Next look"
+                className="flex size-7 items-center justify-center text-[color:var(--charcoal)]/50 hover:text-[color:var(--maroon)]"
+              >
+                <ChevronDown className="size-4" strokeWidth={1.5} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Featured product bar */}
+      <div className="mt-4 flex items-stretch gap-3 rounded-[1.25rem] border border-[color:var(--charcoal)]/8 bg-white p-3 shadow-[0_6px_24px_rgba(40,16,10,0.06)]">
+        <Link
+          to="/product/$id"
+          params={{ id: look.id }}
+          className="size-[4.5rem] shrink-0 overflow-hidden rounded-xl bg-[color:var(--muted)]"
+        >
+          <img src={look.imageUrl} alt={look.name} className="size-full object-cover" />
+        </Link>
+
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 py-0.5">
+          <div>
+            <Link
+              to="/product/$id"
+              params={{ id: look.id }}
+              className="font-serif text-base leading-tight text-[color:var(--charcoal)] line-clamp-1"
+            >
+              {look.name}
+            </Link>
+            <p className="mt-1 text-sm text-[color:var(--maroon)]">{format(look.price)}</p>
+          </div>
+
+          <Link
+            to="/product/$id"
+            params={{ id: look.id }}
+            className="inline-flex items-center gap-1 text-sm font-medium text-[color:var(--maroon)]"
+          >
+            <Plus className="size-3.5" strokeWidth={1.6} /> Quick view
+          </Link>
+        </div>
+
+        <Link
+          to="/product/$id"
+          params={{ id: look.id }}
+          aria-label={`View ${look.name}`}
+          className="flex size-12 shrink-0 items-center justify-center self-center rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)] shadow-sm transition-colors hover:bg-[color:var(--charcoal)]"
+        >
+          <ArrowRight className="size-5" strokeWidth={1.6} />
+        </Link>
+      </div>
+
+      {/* Explore more grid */}
+      {gridProducts.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h3 className="font-serif text-xl leading-tight text-[color:var(--charcoal)]">
+              Explore More New Arrivals
+            </h3>
+            <Link
+              to="/shop/$category"
+              params={{ category: "sherwanis" }}
+              className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[color:var(--maroon)] transition-colors hover:text-[color:var(--charcoal)]"
+            >
+              <span className="whitespace-nowrap">See all</span>
+              <ArrowRight
+                className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+                strokeWidth={1.5}
+              />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {gridProducts.map((product) => (
+              <NewArrivalMobileGridCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function NewArrivalMobileGridCard({ product }: { product: StoreProduct }) {
+  const { format } = useCurrency();
+  const { toggleWishlist, isInWishlist, addToCart } = useShop();
+  const saved = isInWishlist(product.mongoId);
+
+  const handleAdd = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(product.mongoId, product.sizes[0] ?? "M");
+    toast.success("Added to your bag.");
+  };
+
+  const handleWishlist = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWishlist(product.mongoId);
+    toast.success(saved ? "Removed from wishlist." : "Saved to wishlist.");
+  };
+
+  return (
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-[color:var(--charcoal)]/8 bg-white shadow-[0_6px_20px_rgba(40,16,10,0.06)]">
+      <div className="relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]">
+        <Link to="/product/$id" params={{ id: product.id }} className="absolute inset-0 block">
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            loading="lazy"
+            className="size-full object-cover object-top"
+          />
+        </Link>
+        <button
+          type="button"
+          aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
+          onClick={handleWishlist}
+          className="absolute top-2 right-2 flex size-8 items-center justify-center rounded-full border border-[color:var(--charcoal)]/8 bg-white text-[color:var(--charcoal)] shadow-sm"
+        >
+          <Heart className={cn("size-3.5", saved && "fill-current text-[color:var(--maroon)]")} strokeWidth={1.6} />
+        </button>
+      </div>
+
+      <div className="flex flex-1 flex-col px-3 py-3">
+        <Link to="/product/$id" params={{ id: product.id }}>
+          <h4 className="font-serif text-sm leading-snug text-[color:var(--charcoal)] line-clamp-2">
+            {product.name}
+          </h4>
+        </Link>
+        <p className="mt-1 text-sm text-[color:var(--maroon)]">{format(product.price)}</p>
+
+        <Link
+          to="/product/$id"
+          params={{ id: product.id }}
+          className="mt-2 inline-flex items-center justify-center gap-1 eyebrow text-[9px] text-[color:var(--maroon)]"
+        >
+          <Plus className="size-3" strokeWidth={1.6} /> Quick view
+        </Link>
+
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-full bg-[color:var(--maroon)] px-3 eyebrow text-[9px] text-[color:var(--ivory)] transition-colors hover:bg-[color:var(--charcoal)]"
+        >
+          <ShoppingBag className="size-3.5" strokeWidth={1.6} />
+          Add to bag
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function NewArrivalsDesktop({ looks }: { looks: StoreProduct[] }) {
+  const { format } = useCurrency();
   const [active, setActive] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [cardOpen, setCardOpen] = useState(true);
@@ -470,13 +782,12 @@ function NewArrivals() {
     setCardOpen(true);
   };
 
-  if (!looks.length) return null;
   const look = looks[active];
 
   return (
     <section
       data-reveal-direction="split"
-      className="relative bg-[color:var(--muted)] overflow-hidden"
+      className="relative hidden lg:block bg-[color:var(--muted)] overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
@@ -502,13 +813,17 @@ function NewArrivals() {
           </div>
         ))}
 
-        {/* Headline */}
-        <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center px-6 sm:px-10 md:px-16 max-w-md pointer-events-none">
-          <p className="eyebrow text-[color:var(--maroon)] mb-4">(02) New Arrivals</p>
-          <h2 className="font-serif text-5xl sm:text-6xl md:text-7xl leading-[0.95] text-foreground">
-            New look
-          </h2>
-          <p className="mt-4 text-sm text-foreground/60">Discover our new arrivals.</p>
+        {/* Headline — ivory panel keeps type readable on every product photo */}
+        <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center px-4 sm:px-10 md:px-16 pointer-events-none">
+          <div className="max-w-[min(20rem,88vw)] sm:max-w-md bg-[color:var(--ivory)] px-5 py-6 sm:px-8 sm:py-9 border border-[color:var(--charcoal)]/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
+            <p className="eyebrow text-[color:var(--maroon)] mb-3 sm:mb-4">(02) New Arrivals</p>
+            <h2 className="font-serif text-4xl sm:text-6xl md:text-7xl leading-[0.95] text-[color:var(--charcoal)]">
+              New look
+            </h2>
+            <p className="mt-3 sm:mt-4 text-sm text-[color:var(--charcoal)]/70">
+              Discover our new arrivals.
+            </p>
+          </div>
         </div>
 
         {/* Hotspot */}
@@ -528,7 +843,7 @@ function NewArrivals() {
         {/* Quick-view card */}
         <div
           className={cn(
-            "absolute z-20 left-6 sm:left-10 md:left-16 bottom-10 sm:bottom-14 md:bottom-16 w-[calc(100%-3rem)] max-w-sm bg-background shadow-lg flex items-stretch transition-all duration-500",
+            "absolute z-20 left-4 sm:left-10 md:left-16 bottom-10 sm:bottom-14 md:bottom-16 w-[calc(100%-2rem)] sm:w-[calc(100%-5rem)] max-w-sm bg-[color:var(--ivory)] border border-[color:var(--charcoal)]/10 shadow-lg flex items-stretch transition-all duration-500",
             cardOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none",
           )}
         >
@@ -540,7 +855,7 @@ function NewArrivals() {
               <Link
                 to="/product/$id"
                 params={{ id: look.id }}
-                className="font-serif text-lg leading-tight text-foreground truncate block"
+                className="font-serif text-lg leading-tight text-[color:var(--charcoal)] truncate block"
               >
                 {look.name}
               </Link>
@@ -549,7 +864,7 @@ function NewArrivals() {
             <Link
               to="/product/$id"
               params={{ id: look.id }}
-              className="mt-3 inline-flex items-center gap-1.5 eyebrow text-[10px] text-foreground/70 hover:text-[color:var(--maroon)] transition-colors"
+              className="mt-3 inline-flex items-center gap-1.5 eyebrow text-[10px] text-[color:var(--charcoal)]/70 hover:text-[color:var(--maroon)] transition-colors"
             >
               <Plus className="size-3" strokeWidth={1.6} /> Quick view
             </Link>
@@ -558,7 +873,7 @@ function NewArrivals() {
             type="button"
             onClick={() => setCardOpen(false)}
             aria-label="Close product details"
-            className="absolute top-3 right-3 text-foreground/40 hover:text-foreground transition-colors"
+            className="absolute top-3 right-3 text-[color:var(--charcoal)]/40 hover:text-[color:var(--charcoal)] transition-colors"
           >
             <X className="size-4" strokeWidth={1.6} />
           </button>
@@ -566,7 +881,7 @@ function NewArrivals() {
 
         {/* Manual slide dots */}
         {looks.length > 1 && (
-          <div className="absolute z-20 right-6 sm:right-10 md:right-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2.5">
+          <div className="absolute z-20 right-4 sm:right-10 md:right-16 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2.5 rounded-full bg-[color:var(--ivory)]/95 px-2 py-3 border border-[color:var(--charcoal)]/10 shadow-sm">
             {looks.map((p, index) => (
               <button
                 key={p.id}
@@ -581,7 +896,7 @@ function NewArrivals() {
                     "w-1.5 rounded-full transition-all duration-500",
                     index === active
                       ? "h-8 bg-[color:var(--maroon)]"
-                      : "h-1.5 bg-foreground/25 hover:bg-foreground/50",
+                      : "h-1.5 bg-[color:var(--charcoal)]/25 hover:bg-[color:var(--charcoal)]/45",
                   )}
                 />
               </button>
@@ -592,7 +907,7 @@ function NewArrivals() {
         {/* See all */}
         <a
           href="/shop/sherwanis"
-          className="absolute z-20 right-6 sm:right-10 md:right-16 bottom-6 eyebrow text-[10px] border-b border-foreground/30 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] pb-0.5 transition-colors"
+          className="absolute z-20 right-4 sm:right-10 md:right-16 bottom-6 eyebrow text-[10px] bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-3 py-1.5 border border-[color:var(--charcoal)]/12 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] transition-colors shadow-sm"
         >
           See all
         </a>

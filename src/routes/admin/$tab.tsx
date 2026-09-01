@@ -2,6 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { AdminProtected } from "@/components/admin/AdminProtected";
 import { AdminShell } from "@/components/admin/ui/AdminShell";
 import { isValidAdminTab, type AdminTabId } from "@/components/admin/adminNav";
+import { RETURNS_ENABLED } from "@/lib/store-contact";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { DashboardTab } from "@/components/admin/DashboardTab";
 import { ProductsTab } from "@/components/admin/ProductsTab";
@@ -21,6 +22,10 @@ export const Route = createFileRoute("/admin/$tab")({
 function AdminPage() {
   const { tab } = Route.useParams();
   const activeTab: AdminTabId = isValidAdminTab(tab) ? tab : "dashboard";
+
+  if (tab === "returns" && !RETURNS_ENABLED) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   if (!isValidAdminTab(tab)) {
     return <Navigate to="/admin/dashboard" replace />;

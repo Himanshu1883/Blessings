@@ -69,7 +69,7 @@
   --emerald-deep: oklch(0.28 0.06 165);
 
   /* Fixed SiteHeader: mobile (menu | logo+wordmark | cart); lg (links | lockup | links). */
-  --header-height: 4.55rem;
+  --header-height: 5.45rem;
 
   --background: var(--ivory);
   --foreground: var(--charcoal);
