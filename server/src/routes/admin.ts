@@ -35,6 +35,29 @@ import { requireAuth, requireAdmin, attachRefreshedCookie, type AuthRequest } fr
 import { validateBody, validateParams } from "../middleware/validate.js";
 import { paramId } from "../utils/params.js";
 
+const couponBodySchema = z.object({
+  code: z.string().min(2),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  type: z.enum(["percent", "flat"]),
+  value: z.number().min(0),
+  minOrder: z.number().optional(),
+  maxDiscount: z.number().optional(),
+  maxUses: z.number().optional(),
+  perUserLimit: z.number().optional(),
+  startsAt: z.string().nullable().optional(),
+  expiresAt: z.string().nullable().optional(),
+  isActive: z.boolean().optional(),
+  autoApply: z.boolean().optional(),
+  visibility: z.enum(["public", "code_only"]).optional(),
+  applyTo: z.enum(["all", "categories", "products"]).optional(),
+  categoryIds: z.array(z.string()).optional(),
+  productIds: z.array(z.string()).optional(),
+  design: z.enum(["maroon", "gold", "charcoal", "festive", "ivory"]).optional(),
+});
+
+const couponPatchSchema = couponBodySchema.partial().omit({ code: true });
+
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
 
@@ -333,16 +356,7 @@ router.get("/coupons", async (_req, res, next) => {
 
 router.post(
   "/coupons",
-  validateBody(
-    z.object({
-      code: z.string().min(2),
-      type: z.enum(["percent", "flat"]),
-      value: z.number().min(0),
-      minOrder: z.number().optional(),
-      maxUses: z.number().optional(),
-      expiresAt: z.string().nullable().optional(),
-    }),
-  ),
+  validateBody(couponBodySchema),
   async (req, res, next) => {
     try {
       sendSuccess(res, await createCoupon(req.body), 201);
@@ -355,16 +369,7 @@ router.post(
 router.patch(
   "/coupons/:id",
   validateParams(z.object({ id: z.string() })),
-  validateBody(
-    z.object({
-      type: z.enum(["percent", "flat"]).optional(),
-      value: z.number().optional(),
-      minOrder: z.number().optional(),
-      maxUses: z.number().optional(),
-      expiresAt: z.string().nullable().optional(),
-      isActive: z.boolean().optional(),
-    }),
-  ),
+  validateBody(couponPatchSchema),
   async (req, res, next) => {
     try {
       sendSuccess(res, await updateCoupon(paramId(req.params.id), req.body));

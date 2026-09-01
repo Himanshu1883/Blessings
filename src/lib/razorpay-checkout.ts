@@ -1,6 +1,7 @@
 import { api } from "./api-client";
 import type { ApiOrder, RazorpayCheckoutSession } from "./api-types";
 import { displayEmail, normalizeIndianMobile } from "./format-contact";
+import { markOrderSuccess } from "./checkout-success";
 
 type RazorpayHandlerResponse = {
   razorpay_order_id: string;
@@ -97,5 +98,6 @@ export async function payWithRazorpay(opts: {
 }
 
 export function replaceWithThankYou(orderId: string) {
+  markOrderSuccess(orderId);
   window.location.replace(`/checkout/success?order=${encodeURIComponent(orderId)}`);
 }

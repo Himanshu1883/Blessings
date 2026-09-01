@@ -8,12 +8,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useCurrency } from "@/lib/currency";
+import { ProductOfferPrice } from "@/components/site/product-offer-price";
 import { useShop } from "@/lib/shop-store";
 
 export function WishlistSheet() {
   const { panel, closePanel, resolveWishlistProducts, removeFromWishlist, addToCart } = useShop();
-  const { format } = useCurrency();
   const products = resolveWishlistProducts();
   const open = panel === "wishlist";
 
@@ -65,7 +64,7 @@ export function WishlistSheet() {
                       <TrashIcon className="size-4" />
                     </button>
                   </div>
-                  <p className="mt-2 text-sm text-[color:var(--maroon)] tabular-nums">{format(product.price)}</p>
+                  <ProductOfferPrice product={product} size="sm" className="mt-2" />
                   <Button
                     size="sm"
                     variant="outline"

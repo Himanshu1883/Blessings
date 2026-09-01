@@ -1,22 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useAuth } from "@/lib/auth-context";
 import { useOrder } from "@/lib/api-hooks";
 import { useCurrency } from "@/lib/currency";
 import { resolveMediaUrl } from "@/lib/api-client";
+import { RequireAuth } from "@/lib/require-auth";
 
 export const Route = createFileRoute("/orders/$id")({
-  component: OrderDetailPage,
+  component: function OrderDetailRoute() {
+    const { id } = Route.useParams();
+    return (
+      <RequireAuth from={`/orders/${id}`}>
+        <OrderDetailPage />
+      </RequireAuth>
+    );
+  },
 });
 
 function OrderDetailPage() {
   const { id } = Route.useParams();
-  const { isAuthenticated } = useAuth();
   const { data: order, isLoading } = useOrder(id);
   const { formatInr } = useCurrency();
-
-  if (!isAuthenticated) {
-    return <div className="py-24 text-center">Please sign in.</div>;
-  }
 
   if (isLoading || !order) {
     return <div className="py-24 text-center eyebrow text-[10px]">Loading…</div>;

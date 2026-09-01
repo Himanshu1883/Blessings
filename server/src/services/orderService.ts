@@ -4,6 +4,7 @@ import { Product } from "../models/Product.js";
 import { User } from "../models/User.js";
 import { Return } from "../models/Return.js";
 import { getCartForOrder, clearCart } from "./cartService.js";
+import { incrementCouponUse, quoteCoupon, type CartCouponLine } from "./couponService.js";
 import { AppError } from "../utils/apiResponse.js";
 import { generateOrderNumber, sanitizeText, isPlaceholderEmail } from "../utils/sanitize.js";
 import { env } from "../config/env.js";
@@ -149,12 +150,23 @@ function formatInrCharged(total: number) {
   return `₹${Math.round(total).toLocaleString("en-IN")}`;
 }
 
+async function redeemCouponOnce(order: IOrder) {
+  if (!order.couponCode) return;
+  const claimed = await Order.findOneAndUpdate(
+    { _id: order._id, couponRedeemed: { $ne: true } },
+    { $set: { couponRedeemed: true } },
+  );
+  if (claimed && !claimed.couponCode) return;
+  if (claimed) await incrementCouponUse(order.couponCode);
+}
+
 async function afterPaidSideEffects(order: IOrder) {
   try {
     await clearCart(order.userId.toString());
   } catch (err) {
     console.error("Could not clear cart after payment:", err);
   }
+  await redeemCouponOnce(order);
   void sendOrderEmail(
     await customerEmail(order.userId.toString()),
     "confirmed",
@@ -240,6 +252,8 @@ export async function createOrder(
   data: {
     shippingAddress: IAddress;
     paymentMethod: PaymentMethod;
+    couponCode?: string | null;
+    skipCoupon?: boolean;
   },
 ) {
   const cart = await getCartForOrder(userId);
@@ -266,8 +280,37 @@ export async function createOrder(
     };
   });
 
+  const quoteLines: CartCouponLine[] = items.map((item) => {
+    const product = productMap.get(item.productId.toString())!;
+    return {
+      productId: item.productId.toString(),
+      categoryId: product.categoryId.toString(),
+      price: item.unitPrice,
+      quantity: item.quantity,
+    };
+  });
+  const explicitCode = data.couponCode?.trim();
+  const quote =
+    data.skipCoupon && !explicitCode
+      ? {
+          ok: false,
+          message: "No coupon applied",
+          coupon: null,
+          eligibleSubtotal: 0,
+          discount: 0,
+          autoApplied: false,
+        }
+      : await quoteCoupon(quoteLines, {
+          code: explicitCode || undefined,
+          userId,
+        });
+  if (explicitCode && !quote.ok) {
+    throw new AppError(400, quote.message || "Coupon could not be applied");
+  }
+
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-  const total = subtotal + SHIPPING_FEE;
+  const discount = quote.ok ? quote.discount : 0;
+  const total = Math.max(0, subtotal - discount) + SHIPPING_FEE;
 
   const sanitizedAddress: IAddress = {
     name: sanitizeText(data.shippingAddress.name),
@@ -293,7 +336,10 @@ export async function createOrder(
     shippingAddress: sanitizedAddress,
     subtotal,
     shippingFee: SHIPPING_FEE,
+    discount,
     total,
+    couponCode: quote.ok ? quote.coupon?.code ?? null : null,
+    couponTitle: quote.ok ? quote.coupon?.title ?? null : null,
     paymentMethod: data.paymentMethod,
     paymentStatus: "pending",
     orderStatus: isCod ? "confirmed" : "placed",
@@ -316,6 +362,7 @@ export async function createOrder(
       }
     }
     await clearCart(userId);
+    await redeemCouponOnce(order);
     return { ...toPublicOrder(order), razorpay: null };
   }
 

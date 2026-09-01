@@ -95,7 +95,10 @@ export type ApiOrder = {
   shippingAddress: ApiUser["addresses"][0];
   subtotal: number;
   shippingFee: number;
+  discount?: number;
   total: number;
+  couponCode?: string | null;
+  couponTitle?: string | null;
   paymentMethod: "razorpay" | "cod";
   paymentStatus: string;
   orderStatus: string;

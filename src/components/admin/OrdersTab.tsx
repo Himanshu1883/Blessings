@@ -494,6 +494,12 @@ export function OrdersTab({ api }: Props) {
             </table>
             <div className="text-right space-y-1">
               <p>Subtotal: {format(invoiceOrder.subtotal)}</p>
+              {(invoiceOrder.discount ?? 0) > 0 ? (
+                <p>
+                  Coupon{invoiceOrder.couponCode ? ` (${invoiceOrder.couponCode})` : ""}: −
+                  {format(invoiceOrder.discount ?? 0)}
+                </p>
+              ) : null}
               <p>Shipping: {format(invoiceOrder.shippingFee)}</p>
               <p className="font-serif text-lg">Total: {format(invoiceOrder.total)}</p>
             </div>

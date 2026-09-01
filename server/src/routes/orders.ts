@@ -31,6 +31,8 @@ const addressSchema = z.object({
 const createOrderSchema = z.object({
   shippingAddress: addressSchema,
   paymentMethod: z.enum(["razorpay", "cod"]),
+  couponCode: z.string().nullable().optional(),
+  skipCoupon: z.boolean().optional(),
 });
 
 router.get("/", async (req: AuthRequest, res, next) => {

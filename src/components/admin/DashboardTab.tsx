@@ -120,7 +120,7 @@ export function DashboardTab({ data, loading, error, reload }: Props) {
 
   const handleLogout = async () => {
     await logout();
-    navigate({ to: "/admin/login" });
+    navigate({ to: "/admin/login", replace: true });
   };
 
   return (

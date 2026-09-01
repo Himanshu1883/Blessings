@@ -68,11 +68,21 @@ function setupScrollReveals() {
   );
 
   const targets = document.querySelectorAll(
-    "main section:not(.reveal-ignore), main .parallax-scroll__panel, main [data-reveal-section], footer, [data-reveal]",
+    "main section:not(.reveal-ignore), main .parallax-scroll__panel, main [data-reveal-section], [data-reveal]",
   );
 
   targets.forEach((section) => {
-    if (section.classList.contains("reveal-group")) return;
+    if (section.classList.contains("reveal-group")) {
+      if (!section.classList.contains("is-inview")) {
+        observer.observe(section);
+        const rect = section.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.92 && rect.bottom > 0) {
+          section.classList.add("is-inview");
+          observer.unobserve(section);
+        }
+      }
+      return;
+    }
 
     section.classList.add("reveal-group");
     const direction = (section.getAttribute("data-reveal-direction") ??

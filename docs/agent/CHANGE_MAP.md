@@ -7,12 +7,14 @@ Inspect **Primary** first. Do not scan the repo.
 | Request | Primary | Related |
 |---|---|---|
 | Header / navbar / mega menu | `src/components/site/site-header.tsx` | `currency-switcher.tsx`; `catalog-api.ts` `fetchNavbarCategories`; Category `showOnNavbar` |
-| Footer | `src/components/site/site-footer.tsx` | |
+| Footer | `src/components/site/site-footer.tsx` | Always visible (`reveal-ignore`); chrome in `__root.tsx`. Inner pages wrap it in `PreFooterBanner`. |
 | Homepage / hero / banners | `src/routes/index.tsx` | `homepage-api.ts`, admin HomepageTab. Extra storefront blocks: `ExploreMenswear`, `ShopByOccasion`, `RelatedLooks` |
 | Shop grid / filters | `src/routes/shop.$category.tsx` | `catalog-api.ts`; product cards `product-card.tsx` (mobile compact mockup) |
 | Product PDP | `src/routes/product.$id.tsx` | `product-customize-sheet.tsx` (WhatsApp custom order: size/color/fabric/custom fields, works when OOS); `product-gallery.tsx`; `catalog-api.ts` `imageUrls[]` + `stock`/`colors`/`customFields`; `shop-store.tsx` addToCart |
 | Search overlay | `src/components/site/search-dialog.tsx` | `shop-store` panel `"search"` |
-| Cart drawer | `src/components/site/cart-sheet.tsx` | `shop-store.tsx`, `api-hooks.ts` |
+| Cart drawer | `src/components/site/cart-sheet.tsx` | `shop-store.tsx`, `api-hooks.ts`, coupon tickets + quote preview |
+| Checkout page | `src/routes/checkout.tsx` | `checkout-coupons.tsx`, `useQuoteCoupon`, `useCreateOrder` `couponCode` |
+| Coupons | `server/src/services/couponService.ts` | Admin ticket preview: `CouponsTab.tsx`, `coupon-ticket.tsx`. Storefront shows offer prices/text (no ticket badge): `product-offer-price.tsx`, `checkout-coupons.tsx`, `coupons-context.tsx`. |
 | Wishlist | `src/components/site/wishlist-sheet.tsx` | |
 | Account sheet | `src/components/site/account-sheet.tsx` | `auth-context.tsx` |
 | Customer profile | `src/routes/profile.tsx` | `profile-member-card.tsx`, `profile-order-card.tsx`, `profile-notifications.tsx`, `profile-recent-carousel.tsx`; invoice `orders.$id.invoice.tsx` |
@@ -27,21 +29,21 @@ Inspect **Primary** first. Do not scan the repo.
 | Request | Primary | Related |
 |---|---|---|
 | Login / signup UI | `src/routes/login.tsx`, `signup.tsx` | `auth-page-layout.tsx` |
-| Auth state | `src/lib/auth-context.tsx` | `POST/GET /api/auth/*` |
+| Auth state | `src/lib/auth-context.tsx` | `POST/GET /api/auth/*`; gates `require-auth.tsx` (checkout, profile, orders, invoices, admin) |
 | JWT / cookies | `server/src/middleware/auth.ts` | `utils/tokens.ts`, `utils/cookies.ts` |
 | Auth business logic | `server/src/services/authService.ts` | `routes/auth.ts`, `models/User.ts` |
-| Admin gate | `src/components/admin/AdminProtected.tsx` | `requireAdmin` |
+| Admin gate | `src/components/admin/AdminProtected.tsx` | `RequireAdmin` in `require-auth.tsx` — fresh `/api/auth/me` on every visit |
 
 ## Checkout / orders
 
 | Request | Primary | Related |
 |---|---|---|
-| Checkout page | `src/routes/checkout.tsx` | `razorpay-checkout.ts`, thank-you `checkout.success.tsx`, `useCreateOrder` |
+| Checkout page | `src/routes/checkout.tsx` | `razorpay-checkout.ts`, thank-you `checkout.success.tsx` (one-time Hurray via `checkout-success.ts`), `checkout-coupons.tsx` |
 | Order list / detail | `src/routes/orders.tsx`, `orders.$id.tsx` | Profile Pay now: `profile-order-card.tsx` |
 | Order / Razorpay logic | `server/src/services/orderService.ts` | `routes/orders.ts`, `routes/webhooks.ts`, `utils/razorpayCrypto.ts`, `emailService.ts` |
 | Order schema | `server/src/models/Order.ts` | Fulfilment: confirmed → packed (`processing`) → shipped → out for delivery (`in_transit`) → delivered. Admin next-step only. |
 | Returns | `ReturnsTab.tsx` | `returnService.ts`; customer `POST /api/orders/:id/return`; admin `POST /api/admin/returns`; next-step only |
-| Coupons | `server/src/services/couponService.ts` | admin `CouponsTab.tsx` |
+| Coupons | `server/src/services/couponService.ts` | Admin ticket preview: `CouponsTab.tsx`, `coupon-ticket.tsx`. Storefront shows offer prices/text (no ticket badge): `product-offer-price.tsx`, `checkout-coupons.tsx`, `coupons-context.tsx`. |
 
 ## Catalog / media
 
@@ -66,6 +68,7 @@ Inspect **Primary** first. Do not scan the repo.
 | Inventory | `InventoryTab.tsx` | `patchProductStock` |
 | Dashboard stats | `DashboardTab.tsx` | `getDashboardMetrics` |
 | Orders admin | `OrdersTab.tsx` | next-status buttons, cancel approve/reject/direct, start return |
+| Coupons admin | `CouponsTab.tsx` | designs, targeting, preview; `couponService.ts` |
 | Returns admin | `ReturnsTab.tsx` | `returnService.ts`; customer `POST /api/orders/:id/return`; admin `POST /api/admin/returns` |
 | Admin login page | `src/routes/admin/login.tsx` | |
 

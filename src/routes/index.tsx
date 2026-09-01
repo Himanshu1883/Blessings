@@ -1,5 +1,6 @@
 import bespokeImg from "@/assets/bespoke.jpg";
 import craftImg from "@/assets/craft.jpg";
+import { ProductOfferPrice } from "@/components/site/product-offer-price";
 import { ProductCard } from "@/components/site/product-card";
 import { InstagramReelsSection } from "@/components/site/instagram-reels-section";
 import { ParallaxScroll } from "@/components/site/parallax-scroll";
@@ -691,7 +692,6 @@ function NewArrivalsMobile({ looks }: { looks: StoreProduct[] }) {
 }
 
 function NewArrivalMobileGridCard({ product }: { product: StoreProduct }) {
-  const { format } = useCurrency();
   const { toggleWishlist, isInWishlist, addToCart } = useShop();
   const saved = isInWishlist(product.mongoId);
 
@@ -736,7 +736,7 @@ function NewArrivalMobileGridCard({ product }: { product: StoreProduct }) {
             {product.name}
           </h4>
         </Link>
-        <p className="mt-1 text-sm text-[color:var(--maroon)]">{format(product.price)}</p>
+        <ProductOfferPrice product={product} size="card" className="mt-1.5" />
 
         <Link
           to="/product/$id"

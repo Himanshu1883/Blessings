@@ -9,7 +9,7 @@ import { ProfileRecentCarousel } from "@/components/site/profile-recent-carousel
 import { Button } from "@/components/ui/button";
 import { useOrders, useProducts } from "@/lib/api-hooks";
 import { useAuth } from "@/lib/auth-context";
-import { loginSearch } from "@/lib/login-search";
+import { RequireAuth } from "@/lib/require-auth";
 import { getRecentlyViewed, type RecentProduct } from "@/lib/recently-viewed";
 
 export const Route = createFileRoute("/profile")({
@@ -21,11 +21,17 @@ export const Route = createFileRoute("/profile")({
       },
     ],
   }),
-  component: ProfilePage,
+  component: function ProfileRoute() {
+    return (
+      <RequireAuth from="/profile">
+        <ProfilePage />
+      </RequireAuth>
+    );
+  },
 });
 
 function ProfilePage() {
-  const { user, isAuthenticated, isLoading, isAdmin, logout } = useAuth();
+  const { user, isLoading, isAdmin, logout } = useAuth();
   const { data: orders = [], isLoading: ordersLoading } = useOrders();
   const { data: catalog = [] } = useProducts();
   const navigate = useNavigate();
@@ -50,8 +56,8 @@ function ProfilePage() {
     );
   }
 
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" search={loginSearch("/profile")} />;
+  if (!user) {
+    return null;
   }
 
   if (isAdmin) {

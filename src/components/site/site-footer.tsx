@@ -54,8 +54,8 @@ function FooterLink({
 
 export function SiteFooter() {
   return (
-    <footer className="relative min-h-[40vh] bg-[color:var(--charcoal)] text-[color:var(--ivory)]/75 overflow-hidden pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
-      <div
+    <footer className="reveal-ignore relative min-h-[40vh] bg-[color:var(--charcoal)] text-[color:var(--ivory)]/75 overflow-hidden pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
+      {/* <div
         className="absolute inset-0 opacity-[0.06] pointer-events-none"
         style={{
           backgroundImage: "url(/blessings_1.jpg.jpeg)",
@@ -63,7 +63,7 @@ export function SiteFooter() {
           backgroundPosition: "center top",
           filter: "grayscale(1)",
         }}
-      />
+      /> */}
       <div className="absolute inset-0 bg-gradient-to-b from-[color:var(--charcoal)] via-transparent to-[color:var(--charcoal)] pointer-events-none" />
 
       <div className="relative min-h-[40vh] w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 pt-10 lg:pt-12 pb-5 flex flex-col">

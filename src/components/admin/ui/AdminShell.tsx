@@ -49,7 +49,7 @@ export function AdminShell({
 
   const handleLogout = async () => {
     await logout();
-    navigate({ to: "/admin/login" });
+    navigate({ to: "/admin/login", replace: true });
   };
 
   const sidebarContent = (

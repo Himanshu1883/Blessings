@@ -1,80 +1,103 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, PartyPopper, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth-context";
 import { useOrder } from "@/lib/api-hooks";
 import { useCurrency } from "@/lib/currency";
-import { loginSearch } from "@/lib/login-search";
+import { RequireAuth } from "@/lib/require-auth";
+import { clearOrderSuccess, hasOrderSuccessToken } from "@/lib/checkout-success";
 
 export const Route = createFileRoute("/checkout/success")({
   validateSearch: (search: Record<string, unknown>): { order?: string } => ({
     ...(typeof search.order === "string" ? { order: search.order } : {}),
   }),
-  component: CheckoutSuccessPage,
+  component: CheckoutSuccessRoute,
 });
 
-function CheckoutSuccessPage() {
+function CheckoutSuccessRoute() {
   const { order: orderId } = Route.useSearch();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { data: order, isLoading } = useOrder(orderId ?? "");
+  return (
+    <RequireAuth from="/profile">
+      <CheckoutSuccessPage orderId={orderId} />
+    </RequireAuth>
+  );
+}
+
+function CheckoutSuccessPage({ orderId }: { orderId?: string }) {
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const { data: order, isLoading } = useOrder(allowed ? (orderId ?? "") : "");
   const { formatInr } = useCurrency();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setAllowed(hasOrderSuccessToken(orderId));
+  }, [orderId]);
 
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["cart"] });
     queryClient.invalidateQueries({ queryKey: ["orders"] });
   }, [queryClient]);
 
-  if (authLoading || (orderId && isLoading)) {
-    return <div className="min-h-[50vh] flex items-center justify-center eyebrow text-[10px]">Loading…</div>;
-  }
-
-  if (!isAuthenticated) {
+  if (allowed === null) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-24 text-center">
-        <h1 className="font-serif italic text-3xl mb-4">Thank you</h1>
-        <p className="text-sm text-foreground/60 mb-8">Sign in to see your order.</p>
-        <Button asChild className="rounded-none">
-          <Link to="/login" search={loginSearch("/profile")}>
-            Sign in
-          </Link>
-        </Button>
-      </div>
+      <div className="min-h-[50vh] flex items-center justify-center eyebrow text-[10px]">Loading…</div>
     );
   }
 
+  if (!orderId || !allowed) {
+    return <Navigate to="/profile" hash="orders" replace />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center eyebrow text-[10px]">Loading…</div>
+    );
+  }
+
+  const orderRef = order?.orderNumber || orderId;
   const paid = order?.paymentStatus === "paid" || order?.paymentMethod === "cod";
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-24 text-center">
-      <p className="eyebrow text-[10px] tracking-[0.2em] text-foreground/45 mb-4">Order placed</p>
-      <h1 className="font-serif italic text-3xl sm:text-4xl mb-4">Thank you</h1>
-      {order ? (
-        <>
-          <p className="text-sm text-foreground/60">{order.orderNumber}</p>
-          <p className="mt-3 font-serif text-2xl tabular-nums">{formatInr(order.total)}</p>
-          <p className="mt-2 text-[11px] text-foreground/45">Charged in Indian Rupees</p>
+    <div className="bg-[color:var(--ivory)]">
+      <div className="mx-auto max-w-lg px-4 py-20 text-center sm:py-28">
+        <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-[color:var(--maroon)] text-[color:var(--ivory)]">
+          <PartyPopper className="size-7" strokeWidth={1.6} />
+        </span>
+        <p className="eyebrow mt-6 text-[10px] tracking-[0.28em] text-[color:var(--gold)]">Order confirmed</p>
+        <h1 className="profile-display mt-3 text-5xl italic text-[color:var(--maroon)] sm:text-6xl">Hurray!</h1>
+        <p className="mt-4 text-sm leading-relaxed text-foreground/60">
+          Your order is in. We are preparing your piece at the atelier.
+        </p>
+        <div className="mt-8 rounded-2xl border border-foreground/8 bg-white px-6 py-5 shadow-[0_10px_32px_rgba(40,16,10,0.05)]">
+          <p className="eyebrow text-[9px] text-foreground/40">Order ID</p>
+          <p className="mt-1 font-serif text-2xl tabular-nums">{orderRef}</p>
+          {order ? (
+            <p className="mt-2 text-sm tabular-nums text-foreground/55">{formatInr(order.total)}</p>
+          ) : null}
           {!paid ? (
-            <p className="mt-4 text-sm text-amber-800">
-              Payment is still confirming. Refresh in a moment, or check Your orders.
+            <p className="mt-3 text-sm text-amber-800">
+              Payment is still confirming. You can follow it under Your orders.
             </p>
           ) : null}
-        </>
-      ) : (
-        <p className="text-sm text-foreground/60">Your order is confirmed.</p>
-      )}
-      <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-        <Button asChild className="rounded-none min-w-40">
-          <Link to="/profile" hash="orders">
-            Your orders
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="rounded-none min-w-40">
-          <Link to="/shop/$category" params={{ category: "sherwanis" }}>
-            Continue shopping
-          </Link>
-        </Button>
+        </div>
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Button
+            asChild
+            className="min-w-44 rounded-full bg-[color:var(--maroon)] hover:bg-[color:var(--maroon)]/90"
+          >
+            <Link to="/profile" hash="orders" onClick={clearOrderSuccess}>
+              Your orders
+              <ArrowRight className="ml-1.5 size-4" strokeWidth={1.75} />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="min-w-44 rounded-full">
+            <Link to="/shop/$category" params={{ category: "sherwanis" }} onClick={clearOrderSuccess}>
+              <ShoppingBag className="mr-1.5 size-4" strokeWidth={1.6} />
+              Shop more
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

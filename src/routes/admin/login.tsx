@@ -1,10 +1,11 @@
-import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
+import { safeAdminFrom } from "@/lib/require-auth";
 
 export const Route = createFileRoute("/admin/login")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -15,14 +16,16 @@ export const Route = createFileRoute("/admin/login")({
 
 function AdminLoginPage() {
   const { login, logout, isAdmin, isLoading, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { from } = Route.useSearch();
+  const dest = safeAdminFrom(from);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   if (!isLoading && isAuthenticated && isAdmin) {
-    return <Navigate to="/admin/dashboard" replace />;
+    window.location.replace(dest);
+    return null;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,7 +39,7 @@ function AdminLoginPage() {
         setError("Invalid credentials or insufficient permissions.");
         return;
       }
-      navigate({ to: "/admin/dashboard" });
+      window.location.replace(dest);
     } catch {
       setError("Invalid credentials or insufficient permissions.");
     } finally {

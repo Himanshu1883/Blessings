@@ -332,6 +332,14 @@ export function ProfileOrderCard({ order }: { order: ApiOrder }) {
               <span className="tabular-nums">{formatInr(order.shippingFee)}</span>
             </p>
           ) : null}
+          {(order.discount ?? 0) > 0 ? (
+            <p className="flex justify-between sm:justify-end sm:gap-8">
+              <span className="text-foreground/50">
+                Coupon{order.couponCode ? ` (${order.couponCode})` : ""}
+              </span>
+              <span className="tabular-nums">−{formatInr(order.discount ?? 0)}</span>
+            </p>
+          ) : null}
           <p className="flex justify-between font-serif text-base sm:justify-end sm:gap-8">
             <span>Total</span>
             <span className="tabular-nums">{formatInr(order.total)}</span>

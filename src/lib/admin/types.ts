@@ -21,18 +21,9 @@ export type ReturnStatus =
   | "refunded"
   | "rejected";
 
-export type AdminCoupon = {
-  id: string;
-  code: string;
-  type: "percent" | "flat";
-  value: number;
-  minOrder: number;
-  maxUses: number;
-  usedCount: number;
-  expiresAt: string | null;
-  isActive: boolean;
-  createdAt: string;
-};
+import type { StoreCoupon } from "@/lib/coupons";
+
+export type AdminCoupon = StoreCoupon;
 
 export type AdminReturn = {
   id: string;

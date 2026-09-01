@@ -77,12 +77,33 @@ Signed-in checkout, method = online
 → handler POST /api/orders/:id/verify (session + HMAC order_id|payment_id)
   AND/OR webhook POST /api/webhook/razorpay (raw-body HMAC)
 → finalize once: paid + confirmed + stock + confirmation email (₹)
-→ /checkout/success (history.replace so Back cannot pay again)
+→ /checkout/success (location.replace + one-time session token; Hurray + order id)
+  Revisit of that URL without the token → /profile#orders
 
-COD: confirmed immediately, stock taken, cart cleared, payment pending until delivered.
+COD: confirmed immediately, stock taken, cart cleared, coupon use incremented, payment pending until delivered.
 If Razorpay orders.create fails: shop order marked failed; no success.
 If customer closes the modal: order stays pending; no stock drop.
 ```
+
+## Coupons
+
+```
+Admin CouponsTab
+→ POST/PATCH /api/admin/coupons
+→ Coupon (applyTo all | categories | products, visibility public | code_only, design, minOrder, maxDiscount, autoApply)
+
+Storefront
+→ GET /api/coupons/active (public, live only)
+→ CouponsProvider → product cards / PDP tickets + strikethrough sale price
+→ Cart: local quote of auto-apply + matching tickets
+→ Checkout: POST /api/coupons/quote (server cart, optional code, skipAuto)
+→ POST /api/orders { couponCode, skipCoupon }
+    → quoteCoupon on eligible subtotal (minOrder / maxDiscount)
+    → order.discount + couponCode
+    → increment usedCount once on COD confirm or Razorpay paid (not pending Razorpay)
+```
+
+code_only coupons are hidden from the storefront and `/api/coupons/active`; they still work if entered at checkout.
 
 ## Currency display
 

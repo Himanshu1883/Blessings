@@ -1,6 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useRef, useState } from "react";
@@ -33,6 +32,7 @@ import { useAdminProductCatalog } from "@/hooks/useAdminProductCatalog";
 import type { AdminProduct } from "@/lib/admin/product-form";
 import type { ApiProduct } from "@/lib/api-types";
 import { AdminProductActions } from "@/components/site/admin-product-actions";
+import { ProductOfferPrice } from "@/components/site/product-offer-price";
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ loaderData }) => {
@@ -81,7 +81,6 @@ const SIZE_CHART = [
 
 function ProductPage() {
   const { product, related: relatedFromLoader } = Route.useLoaderData();
-  const { format } = useCurrency();
   const { isAdmin } = useAuth();
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
   const router = useRouter();
@@ -263,9 +262,9 @@ function ProductPage() {
               {product.fabric ? (
                 <p className="mt-4 eyebrow text-[10px] text-foreground/55">{product.fabric}</p>
               ) : null}
-              <p className="mt-6 font-serif text-2xl tabular-nums text-[color:var(--maroon)]">
-                {format(product.price)}
-              </p>
+              <div className="mt-6">
+                <ProductOfferPrice product={product} size="lg" />
+              </div>
               <p className="mt-2 text-[11px] leading-relaxed text-foreground/45">
                 Inclusive of all duties. Complimentary worldwide shipping.
               </p>
@@ -545,7 +544,7 @@ function ProductPage() {
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{product.name}</p>
-            <p className="font-serif text-[color:var(--maroon)] tabular-nums">{format(product.price)}</p>
+            <ProductOfferPrice product={product} size="sm" />
           </div>
           <button
             type="button"

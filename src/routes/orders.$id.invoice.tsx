@@ -1,19 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useAuth } from "@/lib/auth-context";
 import { useOrder } from "@/lib/api-hooks";
 import { useCurrency } from "@/lib/currency";
 import { resolveMediaUrl } from "@/lib/api-client";
-import { loginSearch } from "@/lib/login-search";
+import { RequireAuth } from "@/lib/require-auth";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/orders/$id/invoice")({
-  component: OrderInvoicePage,
+  component: function OrderInvoiceRoute() {
+    const { id } = Route.useParams();
+    return (
+      <RequireAuth from={`/orders/${id}/invoice`}>
+        <OrderInvoicePage />
+      </RequireAuth>
+    );
+  },
 });
 
 function OrderInvoicePage() {
   const { id } = Route.useParams();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { data: order, isLoading } = useOrder(id);
   const { formatInr } = useCurrency();
 
@@ -21,21 +26,8 @@ function OrderInvoicePage() {
     document.title = order ? `Invoice ${order.orderNumber}` : "Invoice";
   }, [order]);
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return <div className="py-24 text-center eyebrow text-[10px]">Loading invoice…</div>;
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="py-24 text-center">
-        <p>Sign in to view this invoice.</p>
-        <Button asChild className="mt-6 rounded-none">
-          <Link to="/login" search={loginSearch(`/orders/${id}/invoice`)}>
-            Sign in
-          </Link>
-        </Button>
-      </div>
-    );
   }
 
   if (!order) {
@@ -137,6 +129,14 @@ function OrderInvoicePage() {
                 {order.paymentMethod === "cod" ? "COD fee" : "Shipping"}
               </span>
               <span className="tabular-nums">{formatInr(order.shippingFee)}</span>
+            </p>
+          ) : null}
+          {(order.discount ?? 0) > 0 ? (
+            <p className="flex justify-between">
+              <span className="text-foreground/50">
+                Coupon{order.couponCode ? ` (${order.couponCode})` : ""}
+              </span>
+              <span className="tabular-nums">−{formatInr(order.discount ?? 0)}</span>
             </p>
           ) : null}
           <p className="flex justify-between border-t border-foreground/15 pt-2 font-serif text-lg">

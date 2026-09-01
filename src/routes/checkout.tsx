@@ -18,10 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { resolveMediaUrl } from "@/lib/api-client";
-import { useCart, useCreateOrder, useOrders } from "@/lib/api-hooks";
+import { useCart, useCreateOrder, useOrders, useQuoteCoupon } from "@/lib/api-hooks";
+import { CheckoutCoupons } from "@/components/site/checkout-coupons";
+import { readCheckoutCoupon, writeCheckoutCoupon } from "@/lib/coupons";
 import { useCurrency } from "@/lib/currency";
-import { loginSearch } from "@/lib/login-search";
-import { readCheckoutAddress } from "@/lib/checkout-address";
+import { RequireAuth } from "@/lib/require-auth";
+import { markOrderSuccess } from "@/lib/checkout-success";
+import { RequireAuth } from "@/lib/require-auth";
 import { WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import {
   STORE_EMAIL,
@@ -86,7 +89,13 @@ export const Route = createFileRoute("/checkout")({
       },
     ],
   }),
-  component: CheckoutPage,
+  component: function CheckoutRoute() {
+    return (
+      <RequireAuth from="/checkout">
+        <CheckoutPage />
+      </RequireAuth>
+    );
+  },
 });
 
 function SectionIcon({ children }: { children: ReactNode }) {
@@ -114,6 +123,8 @@ function CheckoutPage() {
   const createOrder = useCreateOrder();
   const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "cod">("cod");
   const [submitting, setSubmitting] = useState(false);
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
+  const [skipCoupon, setSkipCoupon] = useState(false);
 
   const lastOrder = orders[0];
   const primed = useRef(false);
@@ -124,6 +135,20 @@ function CheckoutPage() {
     state: "",
     pincode: "",
     phone: user?.phone ?? "",
+  });
+
+  useEffect(() => {
+    const stored = readCheckoutCoupon();
+    if (stored) {
+      setAppliedCode(stored);
+      setSkipCoupon(false);
+    }
+  }, []);
+
+  const quoteQuery = useQuoteCoupon({
+    code: skipCoupon ? null : appliedCode,
+    skipAuto: skipCoupon,
+    enabled: isAuthenticated && !!cart?.lines.length,
   });
 
   useEffect(() => {
@@ -170,28 +195,7 @@ function CheckoutPage() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="bg-[color:var(--ivory)] px-4 py-24">
-        <div className="mx-auto max-w-lg rounded-2xl bg-white px-8 py-12 text-center shadow-[0_10px_32px_rgba(40,16,10,0.06)]">
-          <h1 className="profile-display text-3xl italic">Checkout</h1>
-          <p className="mt-3 text-sm text-foreground/60">
-            Sign in or create an account to complete your order. Your bag is already saved.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild className="min-w-40 rounded-full bg-[color:var(--maroon)] hover:bg-[color:var(--maroon)]/90">
-              <Link to="/login" search={loginSearch("/checkout")}>
-                Sign in
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="min-w-40 rounded-full">
-              <Link to="/signup" search={{ from: "/checkout" }}>
-                Create account
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!cart?.lines.length) {
@@ -209,6 +213,10 @@ function CheckoutPage() {
     );
   }
 
+  const quote = quoteQuery.data;
+  const discount = quote?.ok ? quote.discount : 0;
+  const payable = Math.max(0, cart.subtotal - discount);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -216,10 +224,13 @@ function CheckoutPage() {
       const order = await createOrder.mutateAsync({
         shippingAddress: { ...form },
         paymentMethod,
+        couponCode: skipCoupon ? null : quoteQuery.data?.coupon?.code ?? appliedCode,
+        skipCoupon,
       });
 
       if (paymentMethod === "cod") {
-        toast.success("Order placed successfully.");
+        writeCheckoutCoupon(null);
+        markOrderSuccess(order.id);
         window.location.replace(`/checkout/success?order=${encodeURIComponent(order.id)}`);
         return;
       }
@@ -236,6 +247,7 @@ function CheckoutPage() {
           description: order.orderNumber,
         });
         replaceWithThankYou(order.id);
+        writeCheckoutCoupon(null);
       } catch (payErr) {
         if (payErr instanceof CheckoutDismissedError) {
           toast.message("Payment not completed. Your order is waiting — no stock was taken.");
@@ -440,6 +452,20 @@ function CheckoutPage() {
           </div>
 
           <aside className="space-y-6 lg:sticky lg:top-[calc(var(--header-height)+1.25rem)]">
+            <CheckoutCoupons
+              lines={cart.lines}
+              quote={quote}
+              quoting={quoteQuery.isFetching}
+              appliedCode={appliedCode}
+              onApply={(code) => {
+                setAppliedCode(code);
+                setSkipCoupon(false);
+              }}
+              onClear={() => {
+                setAppliedCode(null);
+                setSkipCoupon(true);
+              }}
+            />
             <section className="overflow-hidden rounded-2xl border border-foreground/8 bg-white shadow-[0_10px_32px_rgba(40,16,10,0.05)]">
               <div className="p-5 sm:p-6">
                 <div className="mb-5 flex items-center gap-3">
@@ -471,13 +497,19 @@ function CheckoutPage() {
                     <span>Subtotal</span>
                     <span className="tabular-nums text-foreground">{format(cart.subtotal)}</span>
                   </div>
+                  {discount > 0 && quote?.coupon ? (
+                    <div className="flex justify-between text-emerald-800">
+                      <span>Coupon ({quote.coupon.code})</span>
+                      <span className="tabular-nums">−{format(discount)}</span>
+                    </div>
+                  ) : null}
                   <div className="flex justify-between text-foreground/60">
                     <span>Shipping</span>
                     <span className="text-emerald-800">Free</span>
                   </div>
                   <div className="flex justify-between pt-1 font-medium">
                     <span className="profile-display text-xl italic">Total</span>
-                    <span className="profile-display text-xl tabular-nums italic">{format(cart.subtotal)}</span>
+                    <span className="profile-display text-xl tabular-nums italic">{format(payable)}</span>
                   </div>
                   {currency !== "INR" ? (
                     <p className="pt-1 text-[11px] leading-relaxed text-foreground/45">

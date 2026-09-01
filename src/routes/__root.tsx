@@ -20,6 +20,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
 import { CurrencyProvider } from "@/lib/currency";
+import { CouponsProvider } from "@/lib/coupons-context";
 import { ShopProvider } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -174,6 +175,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CurrencyProvider>
+          <CouponsProvider>
           <ShopProvider>
             <ScrollExperienceProvider>
               <div className="flex min-h-screen flex-col bg-white text-foreground w-full max-w-[100vw]">
@@ -207,6 +209,7 @@ function RootComponent() {
               <Toaster position="bottom-right" />
             </ScrollExperienceProvider>
           </ShopProvider>
+          </CouponsProvider>
         </CurrencyProvider>
       </AuthProvider>
     </QueryClientProvider>

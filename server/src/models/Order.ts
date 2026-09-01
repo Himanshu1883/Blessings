@@ -40,7 +40,11 @@ export interface IOrder extends Document {
   shippingAddress: IAddress;
   subtotal: number;
   shippingFee: number;
+  discount: number;
   total: number;
+  couponCode?: string | null;
+  couponTitle?: string | null;
+  couponRedeemed?: boolean;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
@@ -88,7 +92,11 @@ const orderSchema = new Schema<IOrder>(
     shippingAddress: { type: Schema.Types.Mixed, required: true },
     subtotal: { type: Number, required: true },
     shippingFee: { type: Number, default: 0 },
+    discount: { type: Number, default: 0, min: 0 },
     total: { type: Number, required: true },
+    couponCode: { type: String },
+    couponTitle: { type: String },
+    couponRedeemed: { type: Boolean },
     paymentMethod: { type: String, enum: ["razorpay", "cod"], required: true },
     paymentStatus: {
       type: String,
@@ -204,7 +212,10 @@ export function toPublicOrder(order: IOrder) {
     shippingAddress: order.shippingAddress,
     subtotal: order.subtotal,
     shippingFee: order.shippingFee,
+    discount: order.discount ?? 0,
     total: order.total,
+    couponCode: order.couponCode ?? null,
+    couponTitle: order.couponTitle ?? null,
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
     orderStatus: order.orderStatus,

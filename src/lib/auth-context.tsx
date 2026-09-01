@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["auth", "me"],
     queryFn: fetchSession,
     enabled: isBrowser,
-    staleTime: 60_000,
+    staleTime: 0,
     gcTime: 30 * 60 * 1000,
     retry: false,
     refetchOnMount: "always",
@@ -139,9 +139,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear local session even if the API call fails.
     } finally {
       queryClient.setQueryData(["auth", "me"], null);
+      queryClient.removeQueries({ queryKey: ["auth", "me"] });
       queryClient.removeQueries({ queryKey: ["cart"] });
       queryClient.removeQueries({ queryKey: ["wishlist"] });
       queryClient.removeQueries({ queryKey: ["orders"] });
+      queryClient.removeQueries({ queryKey: ["admin"] });
+      queryClient.removeQueries({ queryKey: ["coupon-quote"] });
     }
   }, [queryClient]);
 

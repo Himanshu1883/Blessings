@@ -9,15 +9,32 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ProductOfferPrice } from "@/components/site/product-offer-price";
+import { useActiveCoupons } from "@/lib/coupons-context";
+import {
+  couponAppliesToProduct,
+  couponHeadline,
+  quoteCouponLocal,
+  writeCheckoutCoupon,
+} from "@/lib/coupons";
 import { useCurrency } from "@/lib/currency";
 import { useShop } from "@/lib/shop-store";
 
 export function CartSheet() {
   const { panel, closePanel, resolveCartLines, updateCartQuantity, removeFromCart, clearCart, cartSubtotal } = useShop();
   const { format } = useCurrency();
+  const coupons = useActiveCoupons();
   const lines = resolveCartLines();
   const subtotal = cartSubtotal || lines.reduce((sum, { line, product }) => sum + product.price * line.quantity, 0);
   const open = panel === "cart";
+  const quote = quoteCouponLocal(
+    coupons,
+    lines.map(({ line, product }) => ({ product, quantity: line.quantity })),
+  );
+  const matching = coupons.filter((coupon) =>
+    lines.some(({ product }) => couponAppliesToProduct(coupon, product)),
+  );
+  const payable = Math.max(0, subtotal - (quote.ok ? quote.discount : 0));
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && closePanel()}>
@@ -73,7 +90,7 @@ export function CartSheet() {
                         <TrashIcon className="size-4" />
                       </button>
                     </div>
-                    <p className="mt-2 text-sm text-[color:var(--maroon)] tabular-nums">{format(product.price)}</p>
+                    <ProductOfferPrice product={product} size="sm" className="mt-2" />
                     <div className="mt-auto pt-3 flex items-center gap-3">
                       <div className="inline-flex items-center border border-foreground/15">
                         <button
@@ -98,12 +115,50 @@ export function CartSheet() {
                   </div>
                 </li>
               ))}
+              {matching.length > 0 ? (
+                <li className="space-y-2 border-t border-dashed border-foreground/15 pt-4">
+                  <p className="eyebrow text-[9px] text-foreground/45">Use at checkout</p>
+                  {matching.slice(0, 3).map((coupon) => (
+                    <button
+                      key={coupon.id}
+                      type="button"
+                      onClick={() => {
+                        writeCheckoutCoupon(coupon.code);
+                        toast.success(`${coupon.code} ready at checkout`);
+                      }}
+                      className="flex w-full items-center justify-between gap-2 rounded-lg border border-foreground/12 px-3 py-2 text-left hover:border-[color:var(--maroon)]/40"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm">{couponHeadline(coupon)}</span>
+                        <span className="mt-0.5 block text-[11px] text-foreground/50">{coupon.title || coupon.code}</span>
+                      </span>
+                      <span className="shrink-0 font-mono text-[11px] tracking-[0.12em] text-[color:var(--maroon)]">
+                        {coupon.code}
+                      </span>
+                    </button>
+                  ))}
+                </li>
+              ) : null}
             </ul>
             <div className="border-t border-foreground/10 px-6 py-5 space-y-4 bg-[color:var(--muted)]/30">
               <div className="flex items-center justify-between">
                 <span className="eyebrow text-[10px]">Subtotal</span>
                 <span className="font-serif text-xl tabular-nums">{format(subtotal)}</span>
               </div>
+              {quote.ok ? (
+                <div className="flex items-center justify-between text-sm text-emerald-800">
+                  <span>{quote.coupon?.code} {quote.autoApplied ? "(auto)" : ""}</span>
+                  <span className="tabular-nums">−{format(quote.discount)}</span>
+                </div>
+              ) : quote.coupon && quote.message ? (
+                <p className="text-[11px] text-[color:var(--maroon)]">{quote.message}</p>
+              ) : null}
+              {quote.ok ? (
+                <div className="flex items-center justify-between">
+                  <span className="eyebrow text-[10px]">To pay</span>
+                  <span className="font-serif text-xl tabular-nums">{format(payable)}</span>
+                </div>
+              ) : null}
               <p className="text-[11px] text-foreground/50">Shipping & duties calculated at checkout.</p>
               <Button
                 asChild

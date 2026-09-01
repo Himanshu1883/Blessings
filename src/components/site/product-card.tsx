@@ -3,7 +3,7 @@ import { ArrowRight, Globe, Heart, ShoppingBag } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AdminProductActions } from "@/components/site/admin-product-actions";
-import { useCurrency } from "@/lib/currency";
+import { ProductOfferPrice } from "@/components/site/product-offer-price";
 import { useShop } from "@/lib/shop-store";
 import type { StoreProduct } from "@/lib/catalog-api";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,6 @@ export function ProductCard({
   onAdminDelete?: (product: StoreProduct) => void;
   adminEditReady?: boolean;
 }) {
-  const { format } = useCurrency();
   const { toggleWishlist, isInWishlist, addToCart } = useShop();
   const saved = isInWishlist(product.mongoId);
   const images =
@@ -125,23 +124,19 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-1 flex-col bg-[color:var(--ivory)] px-2.5 py-2.5 lg:gap-4 lg:bg-white lg:px-5 lg:py-5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <Link to="/product/$id" params={{ id: product.id }}>
-              <h4 className="profile-display line-clamp-2 text-[13px] leading-snug text-[color:var(--charcoal)] lg:font-serif lg:text-xl lg:text-balance">
-                {product.name}
-              </h4>
-            </Link>
-            {product.fabric ? (
-              <p className="mt-1 flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.18em] text-[color:var(--charcoal)]/55 lg:mt-2 lg:text-[9px] lg:tracking-[0.22em] lg:text-[color:var(--gold)]">
-                <Globe className="size-2.5 shrink-0 lg:hidden" strokeWidth={1.75} />
-                <span className="truncate">{product.fabric}</span>
-              </p>
-            ) : null}
-          </div>
-          <p className="profile-display shrink-0 text-[13px] tabular-nums text-[color:var(--maroon)] lg:font-serif lg:text-xl">
-            {format(product.price)}
-          </p>
+        <div className="min-w-0">
+          <Link to="/product/$id" params={{ id: product.id }}>
+            <h4 className="profile-display line-clamp-2 text-[13px] leading-snug text-[color:var(--charcoal)] lg:font-serif lg:text-xl lg:text-balance">
+              {product.name}
+            </h4>
+          </Link>
+          {product.fabric ? (
+            <p className="mt-1 flex items-center gap-1 text-[8px] font-medium uppercase tracking-[0.18em] text-[color:var(--charcoal)]/55 lg:mt-2 lg:text-[9px] lg:tracking-[0.22em] lg:text-[color:var(--gold)]">
+              <Globe className="size-2.5 shrink-0 lg:hidden" strokeWidth={1.75} />
+              <span className="truncate">{product.fabric}</span>
+            </p>
+          ) : null}
+          <ProductOfferPrice product={product} size="card" className="mt-2 lg:mt-3" />
         </div>
 
         <div className="mt-2 h-px bg-[color:var(--gold)]/25 lg:hidden" />

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api-client";
+import type { CouponQuote } from "./coupons";
 import type { ApiCart, ApiProduct, ApiCategory, ApiOrder, ApiUserNotification, CreateOrderResult, RazorpayCheckoutSession } from "./api-types";
 import { useAuth } from "./auth-context";
 
@@ -130,6 +131,19 @@ export function useOrder(id: string) {
   });
 }
 
+export function useQuoteCoupon(opts: { code?: string | null; skipAuto?: boolean; enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["coupon-quote", opts.code ?? "", Boolean(opts.skipAuto)],
+    queryFn: () =>
+      api.post<CouponQuote>("/api/coupons/quote", {
+        code: opts.skipAuto ? undefined : opts.code || undefined,
+        skipAuto: opts.skipAuto,
+      }),
+    enabled: opts.enabled !== false,
+    staleTime: 4_000,
+  });
+}
+
 export function useCreateOrder() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -143,9 +157,12 @@ export function useCreateOrder() {
         phone: string;
       };
       paymentMethod: "razorpay" | "cod";
+      couponCode?: string | null;
+      skipCoupon?: boolean;
     }) => api.post<CreateOrderResult>("/api/orders", data),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["coupons"] });
       if (!result.razorpay) {
         queryClient.invalidateQueries({ queryKey: ["cart"] });
       }

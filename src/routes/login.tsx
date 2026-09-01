@@ -9,6 +9,7 @@ import { GoogleAuthButton } from "@/components/site/google-auth-button";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { safeStoreFrom } from "@/lib/login-search";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): {
@@ -44,7 +45,7 @@ function LoginPage() {
 
   if (!isLoading && isAuthenticated) {
     if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
-    return <Navigate to={from} replace />;
+    return <Navigate to={safeStoreFrom(from)} replace />;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -53,7 +54,7 @@ function LoginPage() {
     try {
       const user = await login(loginId.trim(), loginPassword);
       toast.success("Welcome back.");
-      navigate({ to: user.role === "admin" ? "/admin/dashboard" : from });
+      navigate({ to: user.role === "admin" ? "/admin/dashboard" : safeStoreFrom(from) });
     } catch (err) {
       if (err instanceof ApiError && err.code === "GOOGLE_ONLY") {
         toast.error(err.message);
