@@ -24,7 +24,6 @@ import { readCheckoutCoupon, writeCheckoutCoupon } from "@/lib/coupons";
 import { useCurrency } from "@/lib/currency";
 import { RequireAuth } from "@/lib/require-auth";
 import { markOrderSuccess } from "@/lib/checkout-success";
-import { RequireAuth } from "@/lib/require-auth";
 import { WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import {
   STORE_EMAIL,
