@@ -71,6 +71,10 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const { data: wishlist = [] } = useWishlist();
   const { addItem, updateItem, removeItem, clear } = useCartMutations();
   const { add: addWishlist, remove: removeWishlist } = useWishlistMutations();
+  const addItemAsyncRef = useRef(addItem.mutateAsync);
+  addItemAsyncRef.current = addItem.mutateAsync;
+  const addWishlistAsyncRef = useRef(addWishlist.mutateAsync);
+  addWishlistAsyncRef.current = addWishlist.mutateAsync;
 
   const { data: catalogProducts = [] } = useQuery({
     queryKey: ["products"],
@@ -99,16 +103,17 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         for (const line of pending) {
-          await addItem.mutateAsync(line);
+          await addItemAsyncRef.current(line);
         }
         writeGuestCart([]);
         setGuestLines([]);
       } catch (e) {
-        mergedGuestCart.current = false;
+        writeGuestCart([]);
+        setGuestLines([]);
         toast.error(e instanceof Error ? e.message : "Could not save your bag.");
       }
     })();
-  }, [isAuthenticated, addItem]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -125,16 +130,17 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         for (const productId of pending) {
-          await addWishlist.mutateAsync(productId);
+          await addWishlistAsyncRef.current(productId);
         }
         writeGuestWishlist([]);
         setGuestWishlist([]);
       } catch (e) {
-        mergedGuestWishlist.current = false;
+        writeGuestWishlist([]);
+        setGuestWishlist([]);
         toast.error(e instanceof Error ? e.message : "Could not save your wishlist.");
       }
     })();
-  }, [isAuthenticated, addWishlist]);
+  }, [isAuthenticated]);
 
   const persistGuest = useCallback((next: GuestCartLine[]) => {
     writeGuestCart(next);
