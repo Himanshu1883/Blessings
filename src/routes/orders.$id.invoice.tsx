@@ -5,8 +5,16 @@ import { useCurrency } from "@/lib/currency";
 import { resolveMediaUrl } from "@/lib/api-client";
 import { RequireAuth } from "@/lib/require-auth";
 import { Button } from "@/components/ui/button";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/orders/$id/invoice")({
+  head: ({ params }) =>
+    seoHead({
+      title: "Invoice",
+      description: "Blessings order invoice.",
+      path: `/orders/${params.id}/invoice`,
+      noindex: true,
+    }),
   component: function OrderInvoiceRoute() {
     const { id } = Route.useParams();
     return (

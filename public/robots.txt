@@ -1,2 +1,14 @@
 User-agent: *
 Allow: /
+
+Disallow: /admin
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /profile
+Disallow: /orders
+Disallow: /login
+Disallow: /signup
+Disallow: /auth/
+
+Sitemap: https://blessings-phi.vercel.app/sitemap.xml

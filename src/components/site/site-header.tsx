@@ -29,8 +29,7 @@ const STATIC_NAV = [
   { label: "CONTACT", to: "/contact" as const },
 ] as const;
 
-const BRAND_TAGLINE = "The Men's Boutique";
-const BRAND_LOGO = "/logo-blessings.png";
+import { BRAND_LOGO, BRAND_NAME, BRAND_TAGLINE } from "@/lib/seo";
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -354,7 +353,11 @@ function BrandLogo({
           className="pointer-events-auto group flex shrink-0 items-center justify-center"
         >
           <span className="relative size-9 overflow-hidden rounded-full bg-black ring-1 ring-[color:var(--gold)]/45 shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-transform duration-700 ease-in-out group-hover:rotate-[360deg]">
-            <img src={BRAND_LOGO} alt="" className="h-full w-full object-contain" />
+            <img
+              src={BRAND_LOGO}
+              alt={`${BRAND_NAME} — ${BRAND_TAGLINE}`}
+              className="h-full w-full object-contain"
+            />
           </span>
         </Link>
       );
@@ -367,7 +370,11 @@ function BrandLogo({
         className="group flex min-w-0 max-w-full items-center gap-2 overflow-hidden"
       >
         <span className="relative size-10 shrink-0 overflow-hidden rounded-full bg-black ring-1 ring-[color:var(--gold)]/45 shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-transform duration-700 ease-in-out group-hover:rotate-[360deg] sm:size-11">
-          <img src={BRAND_LOGO} alt="" className="h-full w-full object-contain" />
+          <img
+            src={BRAND_LOGO}
+            alt={`${BRAND_NAME} — ${BRAND_TAGLINE}`}
+            className="h-full w-full object-contain"
+          />
         </span>
         <span className="flex min-w-0 flex-col items-start text-left">
           <span className="profile-display truncate text-[14px] uppercase leading-none tracking-[0.05em] text-[color:var(--charcoal)] sm:text-[16px]">
@@ -396,7 +403,7 @@ function BrandLogo({
       >
         <img
           src={BRAND_LOGO}
-          alt=""
+          alt={`${BRAND_NAME} — ${BRAND_TAGLINE}`}
           className="h-full w-full object-contain"
         />
       </span>

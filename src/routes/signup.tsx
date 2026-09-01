@@ -9,11 +9,19 @@ import { GoogleAuthButton } from "@/components/site/google-auth-button";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { loginSearch } from "@/lib/login-search";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/signup")({
   validateSearch: (search: Record<string, unknown>) => ({
     from: typeof search.from === "string" ? search.from : "/",
   }),
+  head: () =>
+    seoHead({
+      title: "Create an account",
+      description: "Join Blessings The Men's Boutique to save looks, track orders and checkout faster.",
+      path: "/signup",
+      noindex: true,
+    }),
   component: SignupPage,
 });
 

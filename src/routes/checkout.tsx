@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useChildMatches } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
@@ -25,6 +25,7 @@ import { readCheckoutAddress } from "@/lib/checkout-address";
 import { useCurrency } from "@/lib/currency";
 import { RequireAuth } from "@/lib/require-auth";
 import { markOrderSuccess } from "@/lib/checkout-success";
+import { seoHead } from "@/lib/seo";
 import { WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import {
   STORE_EMAIL,
@@ -81,15 +82,29 @@ const fieldClass =
   "h-11 rounded-lg border-foreground/12 bg-[color:var(--ivory)]/70 shadow-none focus-visible:ring-[color:var(--gold)]";
 
 export const Route = createFileRoute("/checkout")({
-  head: () => ({
-    links: [
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap",
-      },
-    ],
-  }),
+  head: () => {
+    const seo = seoHead({
+      title: "Checkout",
+      description: "Secure checkout at Blessings The Men's Boutique.",
+      path: "/checkout",
+      noindex: true,
+    });
+    return {
+      ...seo,
+      links: [
+        ...(seo.links ?? []),
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap",
+        },
+      ],
+    };
+  },
   component: function CheckoutRoute() {
+    const childMatches = useChildMatches();
+    if (childMatches.length > 0) {
+      return <Outlet />;
+    }
     return (
       <RequireAuth from="/checkout">
         <CheckoutPage />

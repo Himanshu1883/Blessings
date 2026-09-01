@@ -1,17 +1,25 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, PartyPopper, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOrder } from "@/lib/api-hooks";
 import { useCurrency } from "@/lib/currency";
 import { RequireAuth } from "@/lib/require-auth";
-import { clearOrderSuccess, hasOrderSuccessToken } from "@/lib/checkout-success";
+import { clearOrderSuccess } from "@/lib/checkout-success";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/checkout/success")({
   validateSearch: (search: Record<string, unknown>): { order?: string } => ({
     ...(typeof search.order === "string" ? { order: search.order } : {}),
   }),
+  head: () =>
+    seoHead({
+      title: "Order confirmed",
+      description: "Thank you for your order at Blessings The Men's Boutique.",
+      path: "/checkout/success",
+      noindex: true,
+    }),
   component: CheckoutSuccessRoute,
 });
 
@@ -25,27 +33,16 @@ function CheckoutSuccessRoute() {
 }
 
 function CheckoutSuccessPage({ orderId }: { orderId?: string }) {
-  const [allowed, setAllowed] = useState<boolean | null>(null);
-  const { data: order, isLoading } = useOrder(allowed ? (orderId ?? "") : "");
+  const { data: order, isLoading } = useOrder(orderId ?? "");
   const { formatInr } = useCurrency();
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    setAllowed(hasOrderSuccessToken(orderId));
-  }, [orderId]);
 
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["cart"] });
     queryClient.invalidateQueries({ queryKey: ["orders"] });
   }, [queryClient]);
 
-  if (allowed === null) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center eyebrow text-[10px]">Loading…</div>
-    );
-  }
-
-  if (!orderId || !allowed) {
+  if (!orderId) {
     return <Navigate to="/profile" hash="orders" replace />;
   }
 
@@ -75,7 +72,7 @@ function CheckoutSuccessPage({ orderId }: { orderId?: string }) {
           {order ? (
             <p className="mt-2 text-sm tabular-nums text-foreground/55">{formatInr(order.total)}</p>
           ) : null}
-          {!paid ? (
+          {order && !paid ? (
             <p className="mt-3 text-sm text-amber-800">
               Payment is still confirming. You can follow it under Your orders.
             </p>

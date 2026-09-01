@@ -3,12 +3,20 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { loginSearch } from "@/lib/login-search";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/auth/callback")({
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === "string" ? search.token : "",
     from: typeof search.from === "string" ? search.from : "/",
   }),
+  head: () =>
+    seoHead({
+      title: "Signing in",
+      description: "Completing Google sign-in.",
+      path: "/auth/callback",
+      noindex: true,
+    }),
   component: AuthCallbackPage,
 });
 

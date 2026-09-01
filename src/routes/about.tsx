@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import craftImg from "@/assets/craft.jpg";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "About the House — Blessings Men's Boutique" },
-      { name: "description", content: "A four-generation menswear atelier from the heart of Delhi. Discover the story behind Blessings." },
-      { property: "og:title", content: "About — Blessings" },
-      { property: "og:description", content: "A four-generation menswear atelier from the heart of Delhi." },
-    ],
-  }),
+  head: () =>
+    seoHead({
+      title: "About the House",
+      description:
+        "A four-generation menswear atelier from the heart of Delhi. Discover the story behind Blessings The Men's Boutique.",
+      path: "/about",
+      image: "/banners/banner-2.jpeg",
+    }),
   component: About,
 });
 

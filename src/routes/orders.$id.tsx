@@ -3,8 +3,16 @@ import { useOrder } from "@/lib/api-hooks";
 import { useCurrency } from "@/lib/currency";
 import { resolveMediaUrl } from "@/lib/api-client";
 import { RequireAuth } from "@/lib/require-auth";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/orders/$id")({
+  head: ({ params }) =>
+    seoHead({
+      title: "Order details",
+      description: "Your Blessings order.",
+      path: `/orders/${params.id}`,
+      noindex: true,
+    }),
   component: function OrderDetailRoute() {
     const { id } = Route.useParams();
     return (

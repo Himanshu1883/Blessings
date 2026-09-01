@@ -26,20 +26,16 @@ import {
   STORE_LANDLINE,
   STORE_LANDLINE_DISPLAY,
 } from "@/lib/store-contact";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact & Shipping — Blessings" },
-      {
-        name: "description",
-        content:
-          "Reach Blessings Men's Boutique on WhatsApp, phone, or email. Book a fitting, ask about an order, or read shipping and help.",
-      },
-      { property: "og:title", content: "Contact — Blessings" },
-      { property: "og:description", content: "Concierge, shipping, and atelier help." },
-    ],
-  }),
+  head: () =>
+    seoHead({
+      title: "Contact, Shipping & Help",
+      description:
+        "Reach Blessings The Men's Boutique on WhatsApp, phone, or email. Book a fitting, ask about an order, or read shipping and size-guide help.",
+      path: "/contact",
+    }),
   component: Contact,
 });
 

@@ -166,7 +166,7 @@ export function InstagramReelsSection() {
     <section data-reveal-direction="alternate" className="py-16 sm:py-24 md:py-28 bg-background">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6 mb-8 sm:mb-10">
         <div>
-          <p className="eyebrow text-[color:var(--gold)] mb-4">(06) The Journal</p>
+          <p className="eyebrow text-[color:var(--gold)] mb-4">(03) The Journal</p>
           <h2 className="font-serif italic text-3xl sm:text-4xl md:text-5xl">
             @{INSTAGRAM_HANDLE}
           </h2>

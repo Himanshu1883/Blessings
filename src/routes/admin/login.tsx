@@ -6,11 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { safeAdminFrom } from "@/lib/require-auth";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/admin/login")({
   validateSearch: (search: Record<string, unknown>) => ({
     from: typeof search.from === "string" ? search.from : "/admin/dashboard",
   }),
+  head: () =>
+    seoHead({
+      title: "Admin sign in",
+      description: "Blessings admin.",
+      path: "/admin/login",
+      noindex: true,
+    }),
   component: AdminLoginPage,
 });
 

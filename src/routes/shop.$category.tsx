@@ -14,6 +14,7 @@ import type { AdminProduct } from "@/lib/admin/product-form";
 import type { ApiProduct } from "@/lib/api-types";
 import { toast } from "sonner";
 import { ProductCard } from "./index";
+import { seoHead } from "@/lib/seo";
 
 const ALL_CATEGORY: StoreCategory = {
   slug: "all",
@@ -52,16 +53,16 @@ function getFilterGroups(cat: StoreCategory) {
 export const Route = createFileRoute("/shop/$category")({
   head: ({ loaderData }: { loaderData?: { cat?: StoreCategory } }) => {
     const cat = loaderData?.cat;
-    const title = cat ? `${cat.name} — Blessings Men's Boutique` : "Shop — Blessings";
-    const desc = cat?.tagline ?? "Shop bespoke menswear at Blessings.";
-    return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-      ],
-    };
+    const name = cat?.name ?? "Shop";
+    const isAll = !cat || cat.slug === "all";
+    return seoHead({
+      title: isAll ? "Shop All Menswear" : name,
+      description:
+        cat?.tagline ||
+        `Shop ${name.toLowerCase()} from Blessings The Men's Boutique — handcrafted in our Delhi atelier, shipped worldwide.`,
+      path: `/shop/${cat?.slug ?? "all"}`,
+      image: cat?.imageUrl || "/banners/banner-1.jpeg",
+    });
   },
   loader: async ({ params }) => {
     const isAll = params.category === "all";

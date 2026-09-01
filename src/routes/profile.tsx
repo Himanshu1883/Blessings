@@ -11,16 +11,27 @@ import { useOrders, useProducts } from "@/lib/api-hooks";
 import { useAuth } from "@/lib/auth-context";
 import { RequireAuth } from "@/lib/require-auth";
 import { getRecentlyViewed, type RecentProduct } from "@/lib/recently-viewed";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({
-    links: [
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap",
-      },
-    ],
-  }),
+  head: () => {
+    const seo = seoHead({
+      title: "Your profile",
+      description: "Your Blessings account, orders and saved looks.",
+      path: "/profile",
+      noindex: true,
+    });
+    return {
+      ...seo,
+      links: [
+        ...(seo.links ?? []),
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap",
+        },
+      ],
+    };
+  },
   component: function ProfileRoute() {
     return (
       <RequireAuth from="/profile">

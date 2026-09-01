@@ -3,6 +3,7 @@ import { Send } from "lucide-react";
 import { InstagramLink } from "@/components/site/instagram-link";
 import { WhatsAppLink } from "@/components/site/whatsapp-link";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
+import { BRAND_LOGO, BRAND_NAME, BRAND_TAGLINE } from "@/lib/seo";
 
 const SHOP_LINKS = [
   { label: "Statement Blacks", to: "/shop/$category" as const, params: { category: "sherwanis" } },
@@ -69,8 +70,21 @@ export function SiteFooter() {
       <div className="relative min-h-[40vh] w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 pt-10 lg:pt-12 pb-5 flex flex-col">
         <div className="grid grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-6 lg:gap-5 flex-1">
           <div className="col-span-2 lg:col-span-4">
-            <div className="font-serif text-2xl lg:text-3xl tracking-[0.14em] text-[color:var(--ivory)]">BLESSINGS</div>
-            <div className="text-[9px] tracking-[0.44em] text-[color:var(--ivory)]/45 mt-1">THE MEN&apos;S BOUTIQUE</div>
+            <Link to="/" className="inline-flex items-center gap-3" aria-label={`${BRAND_NAME} home`}>
+              <img
+                src={BRAND_LOGO}
+                alt={`${BRAND_NAME} — ${BRAND_TAGLINE}`}
+                className="size-16 lg:size-[4.5rem] rounded-full object-contain ring-1 ring-[color:var(--gold)]/35"
+              />
+              <span className="min-w-0">
+                <span className="block font-serif text-2xl lg:text-3xl tracking-[0.14em] text-[color:var(--ivory)]">
+                  {BRAND_NAME.toUpperCase()}
+                </span>
+                <span className="block text-[9px] tracking-[0.44em] text-[color:var(--ivory)]/45 mt-1">
+                  {BRAND_TAGLINE.toUpperCase()}
+                </span>
+              </span>
+            </Link>
             <p className="mt-3 text-xs lg:text-sm text-[color:var(--ivory)]/65 leading-relaxed max-w-sm hidden sm:block">
               Hand-painted and hand-embroidered statement pieces for men who dress like they mean it — shipped worldwide.
             </p>

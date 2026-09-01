@@ -5,23 +5,17 @@ import { JOURNAL_POSTS, type JournalPost } from "@/lib/journal-posts";
 import { useScrollExperience } from "@/components/site/scroll-experience";
 import { cn } from "@/lib/utils";
 
+import { seoHead } from "@/lib/seo";
+
 export const Route = createFileRoute("/journal")({
-  head: () => ({
-    meta: [
-      { title: "Journal — Blessings Men's Boutique" },
-      {
-        name: "description",
-        content:
-          "Notes from our Delhi atelier — craftsmanship diaries, wedding styling guides, and stories from grooms across the world.",
-      },
-      { property: "og:title", content: "Journal — Blessings" },
-      {
-        property: "og:description",
-        content: "Craftsmanship, styling and the modern Indian wedding — from the house of Blessings.",
-      },
-      { property: "og:image", content: "/banners/banner-3.jpeg" },
-    ],
-  }),
+  head: () =>
+    seoHead({
+      title: "Journal",
+      description:
+        "Notes from our Delhi atelier — craftsmanship diaries, wedding styling guides, and stories from grooms around the world.",
+      path: "/journal",
+      image: "/banners/banner-3.jpeg",
+    }),
   component: Journal,
 });
 

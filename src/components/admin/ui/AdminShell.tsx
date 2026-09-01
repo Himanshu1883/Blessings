@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { ADMIN_NAV, tabLabel, type AdminTabId } from "@/components/admin/adminNav";
+import { BRAND_LOGO, BRAND_NAME } from "@/lib/seo";
 
 type Badges = {
   pendingOrders?: number;
@@ -56,13 +57,16 @@ export function AdminShell({
     <>
       <div className={cn("px-4 py-5 border-b border-white/10", collapsed && "px-2")}>
         {!collapsed && (
-          <>
-            <p className="font-serif italic text-lg text-[color:var(--ivory)]">Blessings</p>
-            <p className="eyebrow text-[9px] text-[color:var(--gold)] mt-0.5">Admin / Control Panel</p>
-          </>
+          <Link to="/" className="flex items-center gap-3" aria-label={`${BRAND_NAME} storefront`}>
+            <img src={BRAND_LOGO} alt="" className="size-11 rounded-full object-contain ring-1 ring-[color:var(--gold)]/40" />
+            <span>
+              <p className="font-serif italic text-lg text-[color:var(--ivory)]">{BRAND_NAME}</p>
+              <p className="eyebrow text-[9px] text-[color:var(--gold)] mt-0.5">Admin / Control Panel</p>
+            </span>
+          </Link>
         )}
         {collapsed && (
-          <p className="font-serif italic text-center text-[color:var(--gold)]">B</p>
+          <img src={BRAND_LOGO} alt={BRAND_NAME} className="mx-auto size-9 rounded-full object-contain" />
         )}
       </div>
 

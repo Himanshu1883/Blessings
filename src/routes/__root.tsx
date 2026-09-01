@@ -25,6 +25,15 @@ import { ShopProvider } from "@/lib/shop-store";
 import { cn } from "@/lib/utils";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import appCss from "../styles.css?url";
+import {
+  BRAND_LOGO,
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
+  OG_IMAGE,
+  SITE_NAME,
+  organizationJsonLd,
+  seoHead,
+} from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -87,48 +96,34 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits" },
-      {
-        name: "description",
-        content:
-          "Haute-couture menswear. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada.",
-      },
-      { name: "author", content: "Blessings Men's Boutique" },
-      {
-        property: "og:title",
-        content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits",
-      },
-      {
-        property: "og:description",
-        content:
-          "Haute-couture menswear. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      {
-        name: "twitter:title",
-        content: "Blessings | Men's Boutique — Bespoke Sherwanis, Bandhgalas & Wedding Suits",
-      },
-      {
-        name: "twitter:description",
-        content:
-          "Haute-couture menswear. Handcrafted sherwanis, bandhgalas, wedding suits & indo-western sets for grooms worldwide — UK, USA, UAE, Canada.",
-      },
-      { property: "og:image", content: "/banners/banner-1.jpeg" },
-      { name: "twitter:image", content: "/banners/banner-1.jpeg" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-    ],
-  }),
+  head: () => {
+    const seo = seoHead({
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESCRIPTION,
+      path: "/",
+      image: OG_IMAGE,
+      jsonLd: organizationJsonLd(),
+    });
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "theme-color", content: "#6b1d1d" },
+        { name: "application-name", content: SITE_NAME },
+        { name: "apple-mobile-web-app-title", content: "Blessings" },
+        ...seo.meta,
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: "/favicon.ico?v=3", sizes: "any" },
+        { rel: "icon", href: `${BRAND_LOGO}?v=3`, type: "image/png", sizes: "512x512" },
+        { rel: "apple-touch-icon", href: "/apple-touch-icon.png?v=3" },
+        { rel: "shortcut icon", href: "/favicon.ico?v=3" },
+        ...(seo.links ?? []),
+      ],
+      scripts: seo.scripts,
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

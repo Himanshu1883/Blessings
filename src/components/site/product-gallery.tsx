@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
+import { useScrollExperience } from "@/components/site/scroll-experience";
 import { ChevronLeft, ChevronRight, Maximize2, X, ZoomIn } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type ProductGalleryProps = {
   images: string[];
@@ -339,6 +341,9 @@ function Lightbox({
   const pan = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const lastTap = useRef(0);
   const stageRef = useRef<HTMLDivElement>(null);
+  const thumbsRef = useRef<HTMLDivElement>(null);
+  const { lenis } = useScrollExperience();
+  const [mounted, setMounted] = useState(false);
 
   const resetView = () => {
     setScale(1);
@@ -346,24 +351,37 @@ function Lightbox({
     setTy(0);
   };
 
+  const go = (next: number) => {
+    if (count < 2) return;
+    onIndex((next + count) % count);
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     resetView();
+    const el = thumbsRef.current?.querySelector<HTMLElement>(`[data-lb-thumb="${index}"]`);
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [index]);
 
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    lenis?.stop();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight") onIndex((index + 1) % count);
-      if (e.key === "ArrowLeft") onIndex((index - 1 + count) % count);
+      if (e.key === "ArrowRight") go(index + 1);
+      if (e.key === "ArrowLeft") go(index - 1);
     };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
+      lenis?.start();
       window.removeEventListener("keydown", onKey);
     };
-  }, [count, index, onClose, onIndex]);
+  }, [count, index, lenis, onClose, onIndex]);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -375,25 +393,32 @@ function Lightbox({
       el.removeEventListener("wheel", prevent);
       el.removeEventListener("touchmove", prevent);
     };
-  }, []);
+  }, [mounted]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex flex-col bg-[color:var(--charcoal)]"
+      className="fixed inset-0 z-[200] flex flex-col bg-black"
       role="dialog"
       aria-modal="true"
-      aria-label="Zoomed product image"
+      aria-label="Full product images"
+      data-lenis-prevent
     >
-      <div className="flex items-center justify-between px-4 py-3 text-[color:var(--ivory)]">
-        <p className="eyebrow text-[10px] text-[color:var(--ivory)]/70">
-          {alt}
-          {count > 1 ? `  ·  ${index + 1} / ${count}` : ""}
-        </p>
+      <div className="flex shrink-0 items-center justify-between gap-4 px-4 py-3 text-white sm:px-6">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium tracking-wide">{alt}</p>
+          {count > 1 ? (
+            <p className="mt-0.5 text-[11px] uppercase tracking-[0.18em] text-white/50">
+              {index + 1} / {count}
+            </p>
+          ) : null}
+        </div>
         <button
           type="button"
-          aria-label="Close zoom view"
+          aria-label="Close full image view"
           onClick={onClose}
-          className="flex size-10 items-center justify-center hover:bg-white/10"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
         >
           <X className="size-5" strokeWidth={1.4} />
         </button>
@@ -401,7 +426,7 @@ function Lightbox({
 
       <div
         ref={stageRef}
-        className="relative flex min-h-0 flex-1 touch-none items-center justify-center overflow-hidden"
+        className="relative flex min-h-0 flex-1 touch-none items-center justify-center overflow-hidden px-12 sm:px-16"
         onDoubleClick={(e) => {
           if (scale > 1) {
             resetView();
@@ -457,16 +482,16 @@ function Lightbox({
 
           if (scale <= 1 && pan.current && count > 1) {
             const dx = t.clientX - pan.current.x;
-            if (Math.abs(dx) > 56) onIndex((index + (dx < 0 ? 1 : -1) + count) % count);
+            if (Math.abs(dx) > 56) go(index + (dx < 0 ? 1 : -1));
           }
           pan.current = null;
         }}
       >
         <img
           src={src}
-          alt={alt}
+          alt={`${alt} ${index + 1}`}
           draggable={false}
-          className="max-h-full max-w-full object-contain"
+          className="max-h-full max-w-full object-contain select-none"
           style={{
             transform: `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`,
             transition: pinch.current || pan.current ? "none" : "transform 200ms ease-out",
@@ -478,16 +503,16 @@ function Lightbox({
             <button
               type="button"
               aria-label="Previous image"
-              onClick={() => onIndex((index - 1 + count) % count)}
-              className="absolute left-3 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center bg-white/10 text-[color:var(--ivory)] hover:bg-white/20"
+              onClick={() => go(index - 1)}
+              className="absolute left-3 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:left-5"
             >
               <ChevronLeft className="size-5" strokeWidth={1.4} />
             </button>
             <button
               type="button"
               aria-label="Next image"
-              onClick={() => onIndex((index + 1) % count)}
-              className="absolute right-3 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center bg-white/10 text-[color:var(--ivory)] hover:bg-white/20"
+              onClick={() => go(index + 1)}
+              className="absolute right-3 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:right-5"
             >
               <ChevronRight className="size-5" strokeWidth={1.4} />
             </button>
@@ -495,9 +520,33 @@ function Lightbox({
         )}
       </div>
 
-      <p className="px-4 py-3 text-center text-[11px] tracking-[0.16em] text-[color:var(--ivory)]/55 uppercase">
-        Pinch, scroll, or double-tap to zoom
-      </p>
-    </div>
+      {count > 1 ? (
+        <div className="shrink-0 border-t border-white/10 bg-black/80 px-4 py-3 sm:px-6">
+          <div ref={thumbsRef} className="mx-auto flex max-w-3xl gap-2 overflow-x-auto pb-1">
+            {images.map((thumb, i) => (
+              <button
+                key={`${thumb}-${i}`}
+                type="button"
+                data-lb-thumb={i}
+                onClick={() => onIndex(i)}
+                aria-label={`View image ${i + 1}`}
+                aria-pressed={i === index}
+                className={cn(
+                  "h-16 w-12 shrink-0 overflow-hidden rounded-sm border-2 sm:h-20 sm:w-14",
+                  i === index ? "border-white" : "border-transparent opacity-55 hover:opacity-90",
+                )}
+              >
+                <img src={thumb} alt="" className="h-full w-full object-cover object-top" />
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="shrink-0 px-4 py-3 text-center text-[11px] uppercase tracking-[0.16em] text-white/45">
+          Pinch, scroll, or double-tap to zoom
+        </p>
+      )}
+    </div>,
+    document.body,
   );
 }

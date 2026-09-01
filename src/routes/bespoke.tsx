@@ -2,16 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import bespokeImg from "@/assets/bespoke.jpg";
 import craftImg from "@/assets/craft.jpg";
 import { ArrowRight } from "lucide-react";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/bespoke")({
-  head: () => ({
-    meta: [
-      { title: "Bespoke Tailoring — Blessings Men's Boutique" },
-      { name: "description", content: "The Blessings bespoke process — from private consultation to worldwide delivery. Virtual fittings available across UK, USA, UAE and Canada." },
-      { property: "og:title", content: "Bespoke Tailoring — Blessings" },
-      { property: "og:description", content: "Made-to-measure sherwanis, bandhgalas and wedding suits, delivered worldwide." },
-    ],
-  }),
+  head: () =>
+    seoHead({
+      title: "Bespoke Tailoring",
+      description:
+        "The Blessings bespoke process — from private consultation to worldwide delivery. Virtual fittings for sherwanis, bandhgalas and wedding suits across the UK, USA, UAE and Canada.",
+      path: "/bespoke",
+      image: "/banners/banner-2.jpeg",
+    }),
   component: Bespoke,
 });
 

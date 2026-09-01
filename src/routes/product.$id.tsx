@@ -33,21 +33,42 @@ import type { AdminProduct } from "@/lib/admin/product-form";
 import type { ApiProduct } from "@/lib/api-types";
 import { AdminProductActions } from "@/components/site/admin-product-actions";
 import { ProductOfferPrice } from "@/components/site/product-offer-price";
+import { absoluteUrl, seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ loaderData }) => {
     const p = loaderData?.product;
-    const title = p ? `${p.name} — Blessings` : "Product — Blessings";
-    const desc = p?.description ?? "";
-    return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        ...(p?.imageUrl ? [{ property: "og:image", content: p.imageUrl }] : []),
-      ],
-    };
+    const title = p ? p.name : "Product";
+    const desc =
+      p?.description ||
+      "Shop handcrafted menswear from Blessings The Men's Boutique — sherwanis, bandhgalas and statement pieces from our Delhi atelier.";
+    const path = p ? `/product/${p.slug || p.id}` : "/shop/all";
+    const image = p?.imageUrl || p?.imageUrls?.[0];
+    return seoHead({
+      title,
+      description: desc,
+      path,
+      image,
+      type: "product",
+      jsonLd: p
+        ? {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: p.name,
+            description: desc,
+            image: image ? absoluteUrl(image) : undefined,
+            sku: p.sku || p.slug,
+            brand: { "@type": "Brand", name: "Blessings" },
+            offers: {
+              "@type": "Offer",
+              priceCurrency: "INR",
+              price: p.price,
+              availability: "https://schema.org/InStock",
+              url: absoluteUrl(path),
+            },
+          }
+        : undefined,
+    });
   },
   loader: async ({ params }) => {
     const product = await fetchProduct(params.id);

@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { safeStoreFrom } from "@/lib/login-search";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): {
@@ -21,6 +22,13 @@ export const Route = createFileRoute("/login")({
     ...(typeof search.identifier === "string" ? { identifier: search.identifier } : {}),
     ...(typeof search.auth === "string" ? { auth: search.auth } : {}),
   }),
+  head: () =>
+    seoHead({
+      title: "Sign in",
+      description: "Sign in to Blessings The Men's Boutique to view orders, wishlist and checkout.",
+      path: "/login",
+      noindex: true,
+    }),
   component: LoginPage,
 });
 

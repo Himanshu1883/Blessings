@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, seoHead } from "@/lib/seo";
 import {
   ArrowLeft,
   ArrowRight,
@@ -34,6 +35,13 @@ import {
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 export const Route = createFileRoute("/")({
+  head: () =>
+    seoHead({
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESCRIPTION,
+      path: "/",
+      image: "/banners/banner-1.jpeg",
+    }),
   loader: async () => {
     const [products, categories, homepage] = await Promise.all([
       fetchProducts(),
@@ -57,12 +65,12 @@ function Index() {
       <NewArrivals />
       <ExploreMenswear />
       <ShopByOccasion />
+      <InstagramReelsSection />
       <StyleSeekersMarquee />
       <BespokeStory />
       <GroomsEdit />
       <RelatedLooks />
-      <ParallaxCraftsmanship />
-      <Testimonials cms={homepage.reviews as Record<string, unknown> | undefined} />
+      <ParallaxCraftsmanship reviews={homepage.reviews as Record<string, unknown> | undefined} />
       <TrustStrip />
       <PreFooterBanner>
         <Newsletter />
@@ -1326,11 +1334,11 @@ function GroomsEdit() {
   );
 }
 
-function ParallaxCraftsmanship() {
+function ParallaxCraftsmanship({ reviews }: { reviews?: Record<string, unknown> }) {
   return (
     <ParallaxScroll
       image={craftImg}
-      coverGradient="to-background"
+      coverGradient="to-[color:var(--muted)]/40"
       foreground={
         <section
           data-reveal-direction="left"
@@ -1355,7 +1363,7 @@ function ParallaxCraftsmanship() {
           </div>
         </section>
       }
-      cover={<InstagramReelsSection />}
+      cover={<Testimonials cms={reviews} />}
     />
   );
 }
