@@ -110,6 +110,30 @@ function mapStaticProduct(p: StaticProduct): StoreProduct {
   };
 }
 
+export function productsInCategory(products: StoreProduct[], slug: string) {
+  return products.filter((p) => p.categorySlug === slug && Boolean(p.imageUrl));
+}
+
+export function collectionHasProducts(products: StoreProduct[], slug: string) {
+  return productsInCategory(products, slug).length > 0;
+}
+
+export function productImageForCategory(
+  products: StoreProduct[],
+  slug: string,
+  used: Set<string> = new Set(),
+) {
+  const ranked = productsInCategory(products, slug).sort(
+    (a, b) =>
+      Number(Boolean(b.bestSeller)) - Number(Boolean(a.bestSeller)) ||
+      Number(Boolean(b.isNew)) - Number(Boolean(a.isNew)),
+  );
+  const pick = ranked.find((p) => !used.has(p.imageUrl)) ?? ranked[0];
+  if (!pick) return null;
+  used.add(pick.imageUrl);
+  return pick.imageUrl;
+}
+
 export function sizeStock(product: StoreProduct, size: string): number | null {
   const entries = Object.entries(product.stock ?? {});
   if (entries.length === 0) return null;

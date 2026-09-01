@@ -7,7 +7,7 @@ import { ParallaxScroll } from "@/components/site/parallax-scroll";
 import { PreFooterBanner } from "@/components/site/pre-footer-banner";
 import { WhatsAppLink } from "@/components/site/whatsapp-link";
 import type { StoreCategory, StoreProduct } from "@/lib/catalog-api";
-import { fetchCategories, fetchProducts } from "@/lib/catalog-api";
+import { fetchCategories, fetchProducts, productImageForCategory, productsInCategory } from "@/lib/catalog-api";
 import { useCurrency } from "@/lib/currency";
 import { fetchHomepageContent } from "@/lib/homepage-api";
 import { useShop } from "@/lib/shop-store";
@@ -347,9 +347,15 @@ function SectionHeader({
  * NewArrivals below, so the two rails feel like one system).
  */
 function CategoryEditorial() {
-  const { categories } = Route.useLoaderData();
-  const cats = categories;
+  const { categories, products } = Route.useLoaderData();
   const scroller = useRef<HTMLDivElement>(null);
+  const used = new Set<string>();
+  const cats = categories.flatMap((cat) => {
+    const imageUrl = productImageForCategory(products, cat.slug, used);
+    return imageUrl ? [{ ...cat, imageUrl }] : [];
+  });
+  if (!cats.length) return null;
+  const viewAllSlug = cats[0]?.slug ?? "all";
   const scrollBy = (dx: number) => scroller.current?.scrollBy({ left: dx, behavior: "smooth" });
 
   return (
@@ -366,7 +372,7 @@ function CategoryEditorial() {
         </div>
         <div className="flex items-center gap-5 shrink-0">
           <a
-            href="/shop/sherwanis"
+            href={`/shop/${viewAllSlug}`}
             className="eyebrow text-[10px] border-b border-foreground/20 pb-1 hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] transition-colors"
           >
             View all →
@@ -924,49 +930,27 @@ function NewArrivalsDesktop({ looks }: { looks: StoreProduct[] }) {
   );
 }
 
-const STYLE_SEEKER_CATEGORIES = [
-  {
-    label: "Sherwanis",
-    slug: "sherwanis",
-    image: "/blessings_1.jpg.jpeg",
-  },
-  {
-    label: "Bandhgalas",
-    slug: "bandhgalas",
-    image: "/blessings_2.jpg.jpeg",
-  },
-  {
-    label: "Wedding Suits",
-    slug: "wedding-suits",
-    image: "/blessings_3.jpg.jpeg",
-  },
-  {
-    label: "Indo-Western",
-    slug: "indo-western",
-    image: "/blessings_4.jpg.jpeg",
-  },
-  {
-    label: "Shirts",
-    slug: "shirts",
-    image: "/blessings_5.jpg.jpeg",
-  },
-  {
-    label: "Occasion Kurtas",
-    slug: "occasion-kurtas",
-    image: "/blessings_5.jpg.jpeg",
-  },
-  {
-    label: "Accessories",
-    slug: "accessories",
-    image: "/banners/banner-1.jpeg",
-  },
-] as const;
+function collectionCover(slug: string, products: StoreProduct[], used: Set<string>) {
+  return productImageForCategory(products, slug, used);
+}
 
 // Cycled per tile so widths alternate like the reference (narrow, wide, narrow...)
 const TILE_WIDTHS = ["w-[200px] sm:w-[230px]", "w-[260px] sm:w-[320px]"] as const;
 
 function StyleSeekersMarquee() {
-  const track = [...STYLE_SEEKER_CATEGORIES, ...STYLE_SEEKER_CATEGORIES];
+  const { categories, products } = Route.useLoaderData();
+  const used = new Set<string>();
+  const tiles = categories.flatMap((cat) => {
+    if (cat.slug === "all") return [];
+    const image = collectionCover(cat.slug, products, used);
+    return image ? [{ slug: cat.slug, label: cat.name, image }] : [];
+  });
+
+  if (!tiles.length) return null;
+
+  const exploreSlug = tiles[0]?.slug ?? "sherwanis";
+  const track = tiles.length > 1 ? [...tiles, ...tiles] : tiles;
+
   return (
     <section data-reveal-direction="alternate" className="py-16 sm:py-24 md:py-32 overflow-hidden">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center mb-14 md:mb-20">
@@ -978,7 +962,7 @@ function StyleSeekersMarquee() {
 
         <Link
           to="/shop/$category"
-          params={{ category: "sherwanis" }}
+          params={{ category: exploreSlug }}
           className="mt-8 inline-flex items-center gap-2 rounded-full border border-foreground/20 px-8 py-3 eyebrow text-[10px] hover:border-[color:var(--maroon)] hover:text-[color:var(--maroon)] transition-colors"
         >
           Explore Collection
@@ -989,7 +973,7 @@ function StyleSeekersMarquee() {
         <div className="flex items-end gap-4 sm:gap-5 w-max animate-marquee group-hover:[animation-play-state:paused]">
           {track.map((cat, i) => (
             <Link
-              key={`${cat.label}-${i}`}
+              key={`${cat.slug}-${i}`}
               to="/shop/$category"
               params={{ category: cat.slug }}
               className={cn(
@@ -1001,7 +985,7 @@ function StyleSeekersMarquee() {
                 src={cat.image}
                 alt={cat.label}
                 loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover/tile:scale-105"
+                className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover/tile:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/70 via-transparent to-transparent" />
               <span className="absolute bottom-4 left-4 eyebrow text-[10px] text-[color:var(--ivory)]">
@@ -1048,7 +1032,15 @@ const MENSWEAR_SILHOUETTES = [
 ] as const;
 
 function ExploreMenswear() {
-  const { categories, products } = Route.useLoaderData();
+  const { products } = Route.useLoaderData();
+  const used = new Set<string>();
+  const items = MENSWEAR_SILHOUETTES.flatMap((item) => {
+    const pool = productsInCategory(products, item.slug);
+    const cover = productImageForCategory(products, item.slug, used);
+    if (!cover) return [];
+    return [{ ...item, cover, count: pool.length }];
+  });
+  if (!items.length) return null;
 
   return (
     <section
@@ -1068,43 +1060,34 @@ function ExploreMenswear() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
-          {MENSWEAR_SILHOUETTES.map((item) => {
-            const cat = categories.find((c) => c.slug === item.slug);
-            const cover =
-              cat?.imageUrl ||
-              products.find((p) => p.categorySlug === item.slug)?.imageUrl ||
-              "/banners/banner-1.jpeg";
-            const count = products.filter((p) => p.categorySlug === item.slug).length;
-            return (
-              <Link
-                key={item.slug}
-                to="/shop/$category"
-                params={{ category: item.slug }}
-                className="group block"
-              >
-                <div className="relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]">
-                  <img
-                    src={cover}
-                    alt={item.title}
-                    loading="lazy"
-                    className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-[1200ms] group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/80 via-transparent to-transparent" />
-                  <span className="absolute top-4 left-4 eyebrow text-[9px] bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-2.5 py-1">
-                    {item.occasion}
-                  </span>
-                </div>
-                <h3 className="mt-5 font-serif italic text-3xl">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-[color:var(--ivory)]/60">
-                  {item.copy}
-                </p>
-                <span className="mt-4 inline-flex items-center gap-2 eyebrow text-[10px] text-[color:var(--gold-soft)] group-hover:gap-3 transition-all">
-                  Shop {count > 0 ? `${count} looks` : "the collection"}{" "}
-                  <ArrowRight className="size-3.5" />
+          {items.map((item) => (
+            <Link
+              key={item.slug}
+              to="/shop/$category"
+              params={{ category: item.slug }}
+              className="group block"
+            >
+              <div className="relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]">
+                <img
+                  src={item.cover}
+                  alt={item.title}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-[1200ms] group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/80 via-transparent to-transparent" />
+                <span className="absolute top-4 left-4 eyebrow text-[9px] bg-[color:var(--ivory)] text-[color:var(--charcoal)] px-2.5 py-1">
+                  {item.occasion}
                 </span>
-              </Link>
-            );
-          })}
+              </div>
+              <h3 className="mt-5 font-serif italic text-3xl">{item.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-[color:var(--ivory)]/60">
+                {item.copy}
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 eyebrow text-[10px] text-[color:var(--gold-soft)] group-hover:gap-3 transition-all">
+                Shop {item.count} looks <ArrowRight className="size-3.5" />
+              </span>
+            </Link>
+          ))}
         </div>
       </div>
     </section>
@@ -1140,6 +1123,12 @@ const OCCASIONS = [
 
 function ShopByOccasion() {
   const { products } = Route.useLoaderData();
+  const cards = OCCASIONS.flatMap((occ) => {
+    const pool = productsInCategory(products, occ.slug);
+    const cover = pool[occ.pick] ?? pool[0];
+    return cover?.imageUrl ? [{ ...occ, image: cover.imageUrl }] : [];
+  });
+  if (!cards.length) return null;
 
   return (
     <section
@@ -1153,32 +1142,26 @@ function ShopByOccasion() {
         ctaLabel="Shop all →"
       />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-        {OCCASIONS.map((occ) => {
-          const pool = products.filter((p) => p.categorySlug === occ.slug);
-          const cover = pool[occ.pick] ?? pool[0];
-          return (
-            <Link
-              key={occ.label}
-              to="/shop/$category"
-              params={{ category: occ.slug }}
-              className="group relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]"
-            >
-              {cover?.imageUrl ? (
-                <img
-                  src={cover.imageUrl}
-                  alt={occ.label}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-[1200ms] group-hover:scale-105"
-                />
-              ) : null}
-              <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/75 via-[color:var(--charcoal)]/15 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 text-[color:var(--ivory)]">
-                <p className="eyebrow text-[9px] text-[color:var(--gold-soft)] mb-2">{occ.line}</p>
-                <h3 className="font-serif italic text-2xl sm:text-3xl">{occ.label}</h3>
-              </div>
-            </Link>
-          );
-        })}
+        {cards.map((occ) => (
+          <Link
+            key={occ.label}
+            to="/shop/$category"
+            params={{ category: occ.slug }}
+            className="group relative aspect-[3/4] overflow-hidden bg-[color:var(--muted)]"
+          >
+            <img
+              src={occ.image}
+              alt={occ.label}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-[1200ms] group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--charcoal)]/75 via-[color:var(--charcoal)]/15 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 text-[color:var(--ivory)]">
+              <p className="eyebrow text-[9px] text-[color:var(--gold-soft)] mb-2">{occ.line}</p>
+              <h3 className="font-serif italic text-2xl sm:text-3xl">{occ.label}</h3>
+            </div>
+          </Link>
+        ))}
       </div>
     </section>
   );

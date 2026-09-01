@@ -4,6 +4,7 @@ import { WhatsAppLink } from "@/components/site/whatsapp-link";
 import { useAuth } from "@/lib/auth-context";
 import { loginSearch } from "@/lib/login-search";
 import {
+  collectionHasProducts,
   fetchNavbarCategories,
   fetchProducts,
   type StoreCategory,
@@ -46,8 +47,13 @@ export function SiteHeader() {
   const { openPanel, cartCount } = useShop();
 
   const visibleCategories = useMemo(
-    () => navbarCategories.filter((c) => c.showOnNavbar !== false),
-    [navbarCategories],
+    () =>
+      navbarCategories.filter((c) => {
+        if (c.showOnNavbar === false) return false;
+        if (navbarProducts.length === 0) return true;
+        return collectionHasProducts(navbarProducts, c.slug);
+      }),
+    [navbarCategories, navbarProducts],
   );
 
   useEffect(() => {

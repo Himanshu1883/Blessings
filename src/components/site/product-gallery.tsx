@@ -342,8 +342,12 @@ function Lightbox({
   const lastTap = useRef(0);
   const stageRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const indexRef = useRef(index);
   const { lenis } = useScrollExperience();
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(() => typeof document !== "undefined");
+
+  indexRef.current = index;
 
   const resetView = () => {
     setScale(1);
@@ -351,10 +355,13 @@ function Lightbox({
     setTy(0);
   };
 
-  const go = (next: number) => {
-    if (count < 2) return;
-    onIndex((next + count) % count);
-  };
+  const go = useCallback(
+    (next: number) => {
+      if (count < 2) return;
+      onIndex((next + count) % count);
+    },
+    [count, onIndex],
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -370,18 +377,31 @@ function Lightbox({
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     lenis?.stop();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight") go(index + 1);
-      if (e.key === "ArrowLeft") go(index - 1);
-    };
-    window.addEventListener("keydown", onKey);
+    closeRef.current?.focus();
     return () => {
       document.body.style.overflow = prevOverflow;
       lenis?.start();
-      window.removeEventListener("keydown", onKey);
     };
-  }, [count, index, lenis, onClose, onIndex]);
+  }, [lenis]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        go(indexRef.current + 1);
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        go(indexRef.current - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [go, onClose]);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -399,7 +419,7 @@ function Lightbox({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex flex-col bg-black"
+      className="fixed inset-0 z-[200] flex h-dvh w-screen flex-col bg-black pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
       role="dialog"
       aria-modal="true"
       aria-label="Full product images"
@@ -415,6 +435,7 @@ function Lightbox({
           ) : null}
         </div>
         <button
+          ref={closeRef}
           type="button"
           aria-label="Close full image view"
           onClick={onClose}
@@ -491,7 +512,7 @@ function Lightbox({
           src={src}
           alt={`${alt} ${index + 1}`}
           draggable={false}
-          className="max-h-full max-w-full object-contain select-none"
+          className="max-h-full max-w-full select-none object-contain"
           style={{
             transform: `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`,
             transition: pinch.current || pan.current ? "none" : "transform 200ms ease-out",
@@ -520,9 +541,12 @@ function Lightbox({
         )}
       </div>
 
-      {count > 1 ? (
-        <div className="shrink-0 border-t border-white/10 bg-black/80 px-4 py-3 sm:px-6">
-          <div ref={thumbsRef} className="mx-auto flex max-w-3xl gap-2 overflow-x-auto pb-1">
+      <div className="shrink-0 border-t border-white/10 bg-black px-4 py-3 sm:px-6">
+        {count > 1 ? (
+          <div
+            ref={thumbsRef}
+            className="mx-auto flex max-w-4xl justify-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {images.map((thumb, i) => (
               <button
                 key={`${thumb}-${i}`}
@@ -532,20 +556,20 @@ function Lightbox({
                 aria-label={`View image ${i + 1}`}
                 aria-pressed={i === index}
                 className={cn(
-                  "h-16 w-12 shrink-0 overflow-hidden rounded-sm border-2 sm:h-20 sm:w-14",
-                  i === index ? "border-white" : "border-transparent opacity-55 hover:opacity-90",
+                  "h-16 w-12 shrink-0 overflow-hidden rounded-sm border-2 sm:h-[4.5rem] sm:w-14",
+                  i === index ? "border-white" : "border-transparent opacity-50 hover:opacity-90",
                 )}
               >
                 <img src={thumb} alt="" className="h-full w-full object-cover object-top" />
               </button>
             ))}
           </div>
-        </div>
-      ) : (
-        <p className="shrink-0 px-4 py-3 text-center text-[11px] uppercase tracking-[0.16em] text-white/45">
+        ) : null}
+        <p className="mt-2 text-center text-[10px] uppercase tracking-[0.16em] text-white/40">
           Pinch, scroll, or double-tap to zoom
+          {count > 1 ? " · swipe or arrows to browse" : ""}
         </p>
-      )}
+      </div>
     </div>,
     document.body,
   );

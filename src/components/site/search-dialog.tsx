@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { CloseIcon, SearchIcon } from "@/components/icons/site-icons";
 import { useCategories, useProducts } from "@/lib/api-hooks";
+import { collectionHasProducts } from "@/lib/catalog-api";
 import { resolveMediaUrl } from "@/lib/api-client";
 import { useCurrency } from "@/lib/currency";
 import { JOURNAL_POSTS } from "@/lib/journal-posts";
@@ -117,10 +118,14 @@ export function SearchDialog() {
     if (!hasQuery) return [];
     const staticPages = PAGES.filter((p) => matchQuery(p.label, trimmed));
     const collectionPages = categories
-      .filter((c) => matchQuery(c.name, trimmed) || matchQuery(c.tagline, trimmed))
+      .filter(
+        (c) =>
+          collectionHasProducts(products, c.slug) &&
+          (matchQuery(c.name, trimmed) || matchQuery(c.tagline, trimmed)),
+      )
       .map((c) => ({ label: c.name, to: "/shop/$category" as const, category: c.slug }));
     return { staticPages, collectionPages };
-  }, [categories, trimmed, hasQuery]);
+  }, [categories, products, trimmed, hasQuery]);
 
   const displayProducts = useMemo(() => {
     if (hasQuery) {
@@ -380,7 +385,10 @@ export function SearchDialog() {
                       ]
                     : [
                         ...PAGES.map((p) => ({ ...p, kind: "page" as const })),
-                        ...categories.slice(0, 6).map((c) => ({
+                        ...categories
+                          .filter((c) => collectionHasProducts(products, c.slug))
+                          .slice(0, 6)
+                          .map((c) => ({
                           label: c.name,
                           to: "/shop/$category" as const,
                           category: c.slug,

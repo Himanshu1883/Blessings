@@ -15,7 +15,9 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/about", changefreq: "monthly", priority: "0.7" },
           { path: "/contact", changefreq: "monthly", priority: "0.7" },
           { path: "/journal", changefreq: "weekly", priority: "0.6" },
-          ...categories.map((c) => ({
+          ...categories
+            .filter((c) => products.some((p) => p.categorySlug === c.slug))
+            .map((c) => ({
             path: `/shop/${c.slug}`,
             changefreq: "weekly",
             priority: "0.8",
