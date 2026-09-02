@@ -102,21 +102,54 @@ const MOBILE_HERO_BANNERS = [
 
 type HeroSlide = { src: string; alt: string };
 
-// Custom hook to detect mobile screens (Tailwind's 'md' breakpoint = 768px)
-function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
+function HeroSlides({
+  desktopBanners,
+  mobileBanners,
+  active,
+}: {
+  desktopBanners: HeroSlide[];
+  mobileBanners: HeroSlide[];
+  active: number;
+}) {
+  const count = Math.max(desktopBanners.length, mobileBanners.length);
+  if (!count) return null;
+  const current = active % count;
 
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
-    const listener = (event: MediaQueryListEvent) => setMatches(event.matches);
-    window.addEventListener("resize", listener);
-    return () => window.removeEventListener("resize", listener);
-  }, [matches, query]);
-
-  return matches;
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => {
+        const desktop = desktopBanners[index] ?? desktopBanners[desktopBanners.length - 1];
+        const mobile = mobileBanners[index] ?? mobileBanners[mobileBanners.length - 1];
+        const banner = desktop ?? mobile;
+        if (!banner) return null;
+        const isActive = index === current;
+        return (
+          <div
+            key={`${banner.src}-${index}`}
+            className={cn(
+              "absolute inset-0 h-full w-full transition-opacity ease-in-out duration-700 md:duration-[1400ms]",
+              isActive ? "z-10 opacity-100" : "pointer-events-none z-0 opacity-0",
+            )}
+            aria-hidden={!isActive}
+          >
+            <picture>
+              {mobile?.src ? <source media="(max-width: 767px)" srcSet={mobile.src} /> : null}
+              <img
+                src={banner.src}
+                alt={isActive ? banner.alt : ""}
+                width={2560}
+                height={1440}
+                draggable={false}
+                decoding={index === 0 ? "sync" : "async"}
+                fetchPriority={index === 0 ? "high" : "low"}
+                className="h-full w-full object-cover object-top"
+              />
+            </picture>
+          </div>
+        );
+      })}
+    </>
+  );
 }
 
 function Hero({
@@ -126,18 +159,13 @@ function Hero({
   cms?: Record<string, unknown>;
   sectionCopy?: Record<string, unknown>;
 }) {
-  const isMobile = useMediaQuery("(max-width: 767px)");
-
-  // Choose which set of banners to use based on screen size
   const cmsSlides = Array.isArray(cms?.slides)
     ? (cms.slides as HeroSlide[]).filter((s) => s?.src)
     : null;
 
   const desktopBanners: HeroSlide[] = cmsSlides?.length ? cmsSlides : [...HERO_BANNERS];
   const mobileBanners: HeroSlide[] = cmsSlides?.length ? cmsSlides : [...MOBILE_HERO_BANNERS];
-
-  // Dynamically assign the banners based on the isMobile state
-  const banners: HeroSlide[] = isMobile ? mobileBanners : desktopBanners;
+  const slideCount = Math.max(desktopBanners.length, mobileBanners.length, 1);
 
   const overline = String(sectionCopy?.overline ?? cms?.overline ?? "Men's Boutique");
   const title = String(sectionCopy?.title ?? cms?.title ?? "Crafted for the Modern Groom");
@@ -146,86 +174,38 @@ function Hero({
 
   const [active, setActive] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const goTo = (index: number) => {
-    const newIndex = (index + banners.length) % banners.length;
-    setActive(newIndex);
+    if (slideCount < 2) return;
+    setActive(((index % slideCount) + slideCount) % slideCount);
   };
 
-  // Auto-advance slides
   useEffect(() => {
-    if (isPaused) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    intervalRef.current = setInterval(() => {
-      setActive((current) => (current + 1) % banners.length);
+    if (isPaused || slideCount < 2) return;
+    const id = window.setInterval(() => {
+      setActive((current) => (current + 1) % slideCount);
     }, 6000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [banners.length, isPaused]);
-
-  // Reset active slide when switching between mobile/desktop to prevent index mismatch
-  useEffect(() => {
-    setActive(0);
-  }, [isMobile]);
-
-  const pause = () => setIsPaused(true);
-  const resume = () => setIsPaused(false);
-
-  // Debug log to check which banners are loading
-  console.log("Current Screen:", isMobile ? "Mobile" : "Desktop");
-  console.log("Banners loaded:", banners.length);
+    return () => window.clearInterval(id);
+  }, [slideCount, isPaused]);
 
   return (
     <section
       className="reveal-ignore relative w-full overflow-hidden bg-white"
-      onMouseEnter={pause}
-      onMouseLeave={resume}
-      onTouchStart={pause}
-      onTouchEnd={resume}
+      onMouseEnter={() => {
+        if (window.matchMedia("(min-width: 768px)").matches) setIsPaused(true);
+      }}
+      onMouseLeave={() => {
+        if (window.matchMedia("(min-width: 768px)").matches) setIsPaused(false);
+      }}
       aria-roledescription="carousel"
       aria-label="Featured collections"
     >
       <div className="relative h-[calc(100svh-var(--header-height))] min-h-[32rem] w-full lg:min-h-[44rem]">
-        {banners.map((banner, index) => {
-          const isActive = index === active;
-          return (
-            <div
-              key={banner.src}
-              className={cn(
-                "absolute inset-0 w-full h-full transition-opacity duration-[1400ms] ease-in-out",
-                isActive ? "opacity-100 z-10" : "opacity-0 z-0",
-              )}
-            >
-              <img
-                src={banner.src}
-                alt={banner.alt}
-                width={2560}
-                height={1440}
-                fetchPriority={index === 0 ? "high" : "low"}
-                className="h-full w-full object-cover object-top"
-                onError={(e) => {
-                  console.error(`Failed to load image: ${banner.src}`);
-                  e.currentTarget.style.display = "none";
-                }}
-                onLoad={() => {
-                  console.log(`Loaded image: ${banner.src}`);
-                }}
-              />
-            </div>
-          );
-        })}
+        <HeroSlides
+          desktopBanners={desktopBanners}
+          mobileBanners={mobileBanners}
+          active={active}
+        />
 
         {/* Gradient overlays */}
         <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-r from-[color:var(--charcoal)]/45 via-[color:var(--charcoal)]/10 to-[color:var(--charcoal)]/25 md:from-[color:var(--charcoal)]/25 md:to-[color:var(--charcoal)]/35" />
@@ -255,9 +235,9 @@ function Hero({
 
         {/* Navigation dots */}
         <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 md:bottom-8">
-          {banners.map((banner, index) => (
+          {Array.from({ length: slideCount }, (_, index) => (
             <button
-              key={banner.src}
+              key={index}
               type="button"
               onClick={() => goTo(index)}
               aria-label={`Show banner ${index + 1}`}
