@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -55,12 +56,22 @@ const RETURN_REASONS = [
   { value: "other", label: "Other" },
 ] as const;
 
-function OrderStatusTracker({ order }: { order: ApiOrder }) {
+/**
+ * Horizontal order status tracker.
+ * `compact` renders a single-line progress bar for the collapsed row.
+ * Full mode renders the step-by-step rail, laid out left-to-right.
+ */
+function OrderStatusTracker({ order, compact = false }: { order: ApiOrder; compact?: boolean }) {
   if (hideTrackerRail(order)) {
     return (
-      <div className="border border-[color:var(--maroon)]/30 bg-[color:var(--maroon)]/5 px-4 py-3 text-sm">
+      <div
+        className={cn(
+          "border border-[color:var(--maroon)]/30 bg-[color:var(--maroon)]/5 px-4 py-3 text-sm",
+          compact && "px-3 py-1.5 text-xs",
+        )}
+      >
         <p className="font-medium text-[color:var(--maroon)]">{statusHeadline(order)}</p>
-        {order.cancelReason ? (
+        {!compact && order.cancelReason ? (
           <p className="mt-1 text-xs text-foreground/55">{order.cancelReason}</p>
         ) : null}
       </div>
@@ -69,63 +80,82 @@ function OrderStatusTracker({ order }: { order: ApiOrder }) {
 
   const current = trackIndex(order.orderStatus);
   const delivered = order.orderStatus === "delivered";
+  const lastActiveIndex = TRACK_STEPS.reduce((acc, _step, i) => {
+    const tone = stepTone(i, current, delivered);
+    return tone === "upcoming" ? acc : i;
+  }, 0);
+  const progressPct = TRACK_STEPS.length > 1 ? (lastActiveIndex / (TRACK_STEPS.length - 1)) * 100 : 0;
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2.5">
+        <div className="relative h-1 w-full min-w-16 flex-1 rounded-full bg-foreground/10">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-[color:var(--gold)] transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <span className="shrink-0 whitespace-nowrap text-xs text-foreground/60">
+          {TRACK_STEPS[current]?.label ?? statusHeadline(order)}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <p className="mb-4 font-serif text-lg">{statusHeadline(order)}</p>
-      <ol className="space-y-3">
+      <p className="mb-5 font-serif text-lg">{statusHeadline(order)}</p>
+      <div className="relative flex items-start justify-between">
+        <div className="absolute left-0 right-0 top-[5px] h-px bg-foreground/10" />
+        <div
+          className="absolute left-0 top-[5px] h-px bg-[color:var(--gold)] transition-all"
+          style={{ width: `${progressPct}%` }}
+        />
         {TRACK_STEPS.map((step, i) => {
           const tone = stepTone(i, current, delivered);
           const at = formatTrackTime(historyTimeForStep(order, step.key));
           return (
-            <li key={step.key} className="flex gap-3">
-              <div className="flex flex-col items-center pt-1">
-                <span
-                  className={cn(
-                    "size-2.5 rounded-full shrink-0",
-                    tone === "complete" && "bg-[color:var(--gold)]",
-                    tone === "current" && "bg-[color:var(--maroon)] ring-2 ring-[color:var(--maroon)]/25",
-                    tone === "upcoming" && "bg-foreground/15",
-                  )}
-                />
-                {i < TRACK_STEPS.length - 1 ? (
-                  <span
-                    className={cn(
-                      "mt-1 w-px flex-1 min-h-6",
-                      tone === "upcoming" ? "bg-foreground/10" : "bg-[color:var(--gold)]/70",
-                    )}
-                  />
-                ) : null}
-              </div>
-              <div className="min-w-0 pb-2">
-                <p
-                  className={cn(
-                    "text-sm",
-                    tone === "upcoming" ? "text-foreground/35" : "text-foreground",
-                    tone === "current" && "font-medium",
-                  )}
-                >
-                  {step.label}
-                </p>
-                <p
-                  className={cn(
-                    "text-[11px]",
-                    tone === "upcoming" ? "text-foreground/30" : "text-foreground/50",
-                  )}
-                >
-                  {step.hint}
-                  {at && tone !== "upcoming" ? ` · ${at}` : ""}
-                </p>
-              </div>
-            </li>
+            <div key={step.key} className="relative z-10 flex flex-1 flex-col items-center px-1 text-center">
+              <span
+                className={cn(
+                  "size-2.5 rounded-full shrink-0",
+                  tone === "complete" && "bg-[color:var(--gold)]",
+                  tone === "current" && "bg-[color:var(--maroon)] ring-2 ring-[color:var(--maroon)]/25",
+                  tone === "upcoming" && "bg-foreground/15",
+                )}
+              />
+              <p
+                className={cn(
+                  "mt-2 text-[11px] leading-tight",
+                  tone === "upcoming" ? "text-foreground/35" : "text-foreground",
+                  tone === "current" && "font-medium",
+                )}
+              >
+                {step.label}
+              </p>
+              <p
+                className={cn(
+                  "mt-0.5 text-[10px]",
+                  tone === "upcoming" ? "text-foreground/30" : "text-foreground/50",
+                )}
+              >
+                {at || step.hint}
+              </p>
+            </div>
           );
         })}
-      </ol>
+      </div>
     </div>
   );
 }
 
-export function ProfileOrderCard({ order }: { order: ApiOrder }) {
+export function ProfileOrderCard({
+  order,
+  defaultOpen = false,
+}: {
+  order: ApiOrder;
+  defaultOpen?: boolean;
+}) {
   const { formatInr } = useCurrency();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -133,6 +163,7 @@ export function ProfileOrderCard({ order }: { order: ApiOrder }) {
   const cancelOrder = useCancelOrder();
   const requestReturn = useRequestReturn();
   const startRazorpay = useStartRazorpay();
+  const [open, setOpen] = useState(defaultOpen);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState<(typeof CANCEL_REASONS)[number]["value"]>("changed_mind");
   const [note, setNote] = useState("");
@@ -148,6 +179,9 @@ export function ProfileOrderCard({ order }: { order: ApiOrder }) {
     (order.paymentStatus === "pending" || order.paymentStatus === "failed") &&
     order.orderStatus !== "cancelled" &&
     order.orderStatus !== "cancel_requested";
+
+  const thumbs = order.items.slice(0, 3);
+  const extraCount = order.items.length - thumbs.length;
 
   const reorder = async () => {
     setReordering(true);
@@ -235,21 +269,75 @@ export function ProfileOrderCard({ order }: { order: ApiOrder }) {
   };
 
   return (
-    <article id={`order-${order.id}`} className="scroll-mt-28 rounded-2xl bg-white p-5 sm:p-6 shadow-[0_10px_32px_rgba(40,16,10,0.06)]">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="font-serif text-lg">{order.orderNumber}</p>
-          <p className="mt-1 text-xs text-foreground/50">
+    <article id={`order-${order.id}`} className="scroll-mt-28">
+      {/* Collapsed summary row — the "table" view */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full flex-wrap items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-[color:var(--ivory)]/60 sm:flex-nowrap sm:px-6 sm:py-5"
+      >
+        <div className="flex -space-x-3">
+          {thumbs.map((item, i) =>
+            item.imageUrl ? (
+              <img
+                key={`${item.productId}-${i}`}
+                src={resolveMediaUrl(item.imageUrl) ?? ""}
+                alt=""
+                className="size-11 shrink-0 rounded-full border-2 border-white object-cover bg-muted"
+              />
+            ) : (
+              <div
+                key={`${item.productId}-${i}`}
+                className="size-11 shrink-0 rounded-full border-2 border-white bg-muted"
+              />
+            ),
+          )}
+          {extraCount > 0 ? (
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-white bg-[color:var(--ivory)] text-xs text-foreground/60">
+              +{extraCount}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="min-w-[9rem] flex-1 basis-full sm:basis-auto">
+          <p className="font-serif text-base">{order.orderNumber}</p>
+          <p className="mt-0.5 truncate text-sm text-foreground/70">
+            {order.items[0]?.name}
+            {order.items.length > 1 ? ` +${order.items.length - 1} more` : ""}
+          </p>
+          <p className="mt-0.5 text-xs text-foreground/50">
             {new Date(order.createdAt).toLocaleDateString("en-IN", {
               day: "numeric",
               month: "short",
               year: "numeric",
             })}
+            {" · "}
+            {order.items.length} item{order.items.length === 1 ? "" : "s"}
           </p>
         </div>
-        <div className="text-right">
-          <p className="font-serif text-xl tabular-nums">{formatInr(order.total)}</p>
-          <div className="mt-2 flex flex-wrap justify-end gap-2">
+
+        <div className="w-full order-last sm:order-none sm:w-48 sm:shrink-0">
+          <OrderStatusTracker order={order} compact />
+        </div>
+
+        <p className="w-24 shrink-0 text-right font-serif text-base tabular-nums sm:w-28">
+          {formatInr(order.total)}
+        </p>
+
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-foreground/40 transition-transform duration-200",
+            open && "rotate-180",
+          )}
+          strokeWidth={1.6}
+        />
+      </button>
+
+      {/* Expanded detail */}
+      {open ? (
+        <div className="border-t border-foreground/10 px-5 pb-6 pt-5 sm:px-6">
+          <div className="flex flex-wrap gap-2">
             <span
               className={cn(
                 "eyebrow px-2 py-1 text-[8px] tracking-[0.14em]",
@@ -265,134 +353,134 @@ export function ProfileOrderCard({ order }: { order: ApiOrder }) {
               {order.paymentMethod === "cod" ? "Cash on delivery" : "Online"}
             </span>
           </div>
-        </div>
-      </div>
 
-      <div className="mt-6">
-        <OrderStatusTracker order={order} />
-      </div>
+          <div className="mt-6">
+            <OrderStatusTracker order={order} />
+          </div>
 
-      <ul className="mt-6 space-y-4 border-t border-foreground/10 pt-5">
-        {order.items.map((item, i) => (
-          <li key={`${item.productId}-${i}`} className="flex gap-4">
-            {item.imageUrl ? (
-              <img
-                src={resolveMediaUrl(item.imageUrl) ?? ""}
-                alt=""
-                className="size-16 object-cover bg-muted"
-              />
-            ) : (
-              <div className="size-16 bg-muted" />
-            )}
-            <div className="min-w-0 flex-1">
-              {item.slug ? (
-                <Link
-                  to="/product/$id"
-                  params={{ id: item.slug }}
-                  className="font-serif text-sm hover:text-[color:var(--maroon)]"
-                >
-                  {item.name}
-                </Link>
-              ) : (
-                <p className="font-serif text-sm">{item.name}</p>
-              )}
-              <p className="mt-1 text-xs text-foreground/50">
-                Qty {item.quantity}
-                {item.size ? ` · Size ${item.size}` : ""}
-                {item.color ? ` · ${item.color}` : ""}
+          <ul className="mt-6 space-y-4 border-t border-foreground/10 pt-5">
+            {order.items.map((item, i) => (
+              <li key={`${item.productId}-${i}`} className="flex gap-4">
+                {item.imageUrl ? (
+                  <img
+                    src={resolveMediaUrl(item.imageUrl) ?? ""}
+                    alt=""
+                    className="size-16 object-cover bg-muted"
+                  />
+                ) : (
+                  <div className="size-16 bg-muted" />
+                )}
+                <div className="min-w-0 flex-1">
+                  {item.slug ? (
+                    <Link
+                      to="/product/$id"
+                      params={{ id: item.slug }}
+                      className="font-serif text-sm hover:text-[color:var(--maroon)]"
+                    >
+                      {item.name}
+                    </Link>
+                  ) : (
+                    <p className="font-serif text-sm">{item.name}</p>
+                  )}
+                  <p className="mt-1 text-xs text-foreground/50">
+                    Qty {item.quantity}
+                    {item.size ? ` · Size ${item.size}` : ""}
+                    {item.color ? ` · ${item.color}` : ""}
+                  </p>
+                </div>
+                <p className="shrink-0 text-sm tabular-nums">{formatInr(item.lineTotal)}</p>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-5 grid gap-6 border-t border-foreground/10 pt-5 sm:grid-cols-2">
+            <div>
+              <p className="eyebrow text-[9px] text-foreground/45">Ship to</p>
+              <p className="mt-2 text-sm leading-relaxed">
+                {order.shippingAddress.name}
+                <br />
+                {order.shippingAddress.city}, {order.shippingAddress.pincode}
               </p>
             </div>
-            <p className="shrink-0 text-sm tabular-nums">{formatInr(item.lineTotal)}</p>
-          </li>
-        ))}
-      </ul>
+            <div className="space-y-1 text-sm sm:text-right">
+              <p className="flex justify-between sm:justify-end sm:gap-8">
+                <span className="text-foreground/50">Subtotal</span>
+                <span className="tabular-nums">{formatInr(order.subtotal)}</span>
+              </p>
+              {showCodFee ? (
+                <p className="flex justify-between sm:justify-end sm:gap-8">
+                  <span className="text-foreground/50">COD fee</span>
+                  <span className="tabular-nums">{formatInr(order.shippingFee)}</span>
+                </p>
+              ) : order.shippingFee > 0 ? (
+                <p className="flex justify-between sm:justify-end sm:gap-8">
+                  <span className="text-foreground/50">Shipping</span>
+                  <span className="tabular-nums">{formatInr(order.shippingFee)}</span>
+                </p>
+              ) : null}
+              {(order.discount ?? 0) > 0 ? (
+                <p className="flex justify-between sm:justify-end sm:gap-8">
+                  <span className="text-foreground/50">
+                    Coupon{order.couponCode ? ` (${order.couponCode})` : ""}
+                  </span>
+                  <span className="tabular-nums">−{formatInr(order.discount ?? 0)}</span>
+                </p>
+              ) : null}
+              <p className="flex justify-between font-serif text-base sm:justify-end sm:gap-8">
+                <span>Total</span>
+                <span className="tabular-nums">{formatInr(order.total)}</span>
+              </p>
+            </div>
+          </div>
 
-      <div className="mt-5 grid gap-6 border-t border-foreground/10 pt-5 sm:grid-cols-2">
-        <div>
-          <p className="eyebrow text-[9px] text-foreground/45">Ship to</p>
-          <p className="mt-2 text-sm leading-relaxed">
-            {order.shippingAddress.name}
-            <br />
-            {order.shippingAddress.city}, {order.shippingAddress.pincode}
-          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {waitingPay ? (
+              <Button
+                type="button"
+                className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em] bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)]"
+                onClick={payNow}
+                disabled={paying}
+              >
+                {paying ? "Opening…" : "Pay now"}
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em]"
+              onClick={reorder}
+              disabled={reordering}
+            >
+              {reordering ? "Adding…" : "Order again"}
+            </Button>
+            <Button asChild variant="outline" className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em]">
+              <a href={`/api/orders/${order.id}/invoice.pdf`} download={`${order.orderNumber}-invoice.pdf`}>
+                Invoice PDF
+              </a>
+            </Button>
+            {order.canCancel ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em] text-[color:var(--maroon)]"
+                onClick={() => setCancelOpen(true)}
+              >
+                Cancel
+              </Button>
+            ) : null}
+            {RETURNS_ENABLED && order.canReturn ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em]"
+                onClick={() => setReturnOpen(true)}
+              >
+                Request return
+              </Button>
+            ) : null}
+          </div>
         </div>
-        <div className="space-y-1 text-sm sm:text-right">
-          <p className="flex justify-between sm:justify-end sm:gap-8">
-            <span className="text-foreground/50">Subtotal</span>
-            <span className="tabular-nums">{formatInr(order.subtotal)}</span>
-          </p>
-          {showCodFee ? (
-            <p className="flex justify-between sm:justify-end sm:gap-8">
-              <span className="text-foreground/50">COD fee</span>
-              <span className="tabular-nums">{formatInr(order.shippingFee)}</span>
-            </p>
-          ) : order.shippingFee > 0 ? (
-            <p className="flex justify-between sm:justify-end sm:gap-8">
-              <span className="text-foreground/50">Shipping</span>
-              <span className="tabular-nums">{formatInr(order.shippingFee)}</span>
-            </p>
-          ) : null}
-          {(order.discount ?? 0) > 0 ? (
-            <p className="flex justify-between sm:justify-end sm:gap-8">
-              <span className="text-foreground/50">
-                Coupon{order.couponCode ? ` (${order.couponCode})` : ""}
-              </span>
-              <span className="tabular-nums">−{formatInr(order.discount ?? 0)}</span>
-            </p>
-          ) : null}
-          <p className="flex justify-between font-serif text-base sm:justify-end sm:gap-8">
-            <span>Total</span>
-            <span className="tabular-nums">{formatInr(order.total)}</span>
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap gap-2">
-        {waitingPay ? (
-          <Button
-            type="button"
-            className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em] bg-[color:var(--charcoal)] hover:bg-[color:var(--maroon)]"
-            onClick={payNow}
-            disabled={paying}
-          >
-            {paying ? "Opening…" : "Pay now"}
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant="outline"
-          className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em]"
-          onClick={reorder}
-          disabled={reordering}
-        >
-          {reordering ? "Adding…" : "Order again"}
-        </Button>
-        <Button asChild variant="outline" className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em]">
-          <a href={`/orders/${order.id}/invoice`} target="_blank" rel="noreferrer">
-            Invoice PDF
-          </a>
-        </Button>
-        {order.canCancel ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em] text-[color:var(--maroon)]"
-            onClick={() => setCancelOpen(true)}
-          >
-            Cancel
-          </Button>
-        ) : null}
-        {RETURNS_ENABLED && order.canReturn ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-none h-10 eyebrow text-[9px] tracking-[0.16em]"
-            onClick={() => setReturnOpen(true)}
-          >
-            Request return
-          </Button>
-        ) : null}
-      </div>
+      ) : null}
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent className="rounded-none sm:max-w-md">
@@ -442,50 +530,50 @@ export function ProfileOrderCard({ order }: { order: ApiOrder }) {
       </Dialog>
 
       {RETURNS_ENABLED ? (
-      <Dialog open={returnOpen} onOpenChange={setReturnOpen}>
-        <DialogContent className="rounded-none sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-serif italic">Return {order.orderNumber}</DialogTitle>
-            <DialogDescription className="text-sm">
-              Returns can be requested within 7 days of delivery. The atelier will review and arrange pickup.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Label className="eyebrow text-[9px]">Reason</Label>
-            <div className="space-y-2">
-              {RETURN_REASONS.map((r) => (
-                <label key={r.value} className="flex items-center gap-3 text-sm">
-                  <input
-                    type="radio"
-                    name={`return-${order.id}`}
-                    checked={returnReason === r.value}
-                    onChange={() => setReturnReason(r.value)}
-                  />
-                  {r.label}
-                </label>
-              ))}
+        <Dialog open={returnOpen} onOpenChange={setReturnOpen}>
+          <DialogContent className="rounded-none sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-serif italic">Return {order.orderNumber}</DialogTitle>
+              <DialogDescription className="text-sm">
+                Returns can be requested within 7 days of delivery. The atelier will review and arrange pickup.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Label className="eyebrow text-[9px]">Reason</Label>
+              <div className="space-y-2">
+                {RETURN_REASONS.map((r) => (
+                  <label key={r.value} className="flex items-center gap-3 text-sm">
+                    <input
+                      type="radio"
+                      name={`return-${order.id}`}
+                      checked={returnReason === r.value}
+                      onChange={() => setReturnReason(r.value)}
+                    />
+                    {r.label}
+                  </label>
+                ))}
+              </div>
+              <Label className="eyebrow text-[9px]">Note (optional)</Label>
+              <Textarea
+                value={returnNote}
+                onChange={(e) => setReturnNote(e.target.value)}
+                className="rounded-none min-h-20"
+              />
             </div>
-            <Label className="eyebrow text-[9px]">Note (optional)</Label>
-            <Textarea
-              value={returnNote}
-              onChange={(e) => setReturnNote(e.target.value)}
-              className="rounded-none min-h-20"
-            />
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-none" onClick={() => setReturnOpen(false)}>
-              Keep order
-            </Button>
-            <Button
-              className="rounded-none bg-[color:var(--maroon)] hover:bg-[color:var(--maroon)]/90"
-              onClick={submitReturn}
-              disabled={requestReturn.isPending}
-            >
-              {requestReturn.isPending ? "Sending…" : "Request return"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" className="rounded-none" onClick={() => setReturnOpen(false)}>
+                Keep order
+              </Button>
+              <Button
+                className="rounded-none bg-[color:var(--maroon)] hover:bg-[color:var(--maroon)]/90"
+                onClick={submitReturn}
+                disabled={requestReturn.isPending}
+              >
+                {requestReturn.isPending ? "Sending…" : "Request return"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       ) : null}
     </article>
   );

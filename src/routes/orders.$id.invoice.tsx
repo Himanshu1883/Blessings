@@ -48,9 +48,16 @@ function OrderInvoicePage() {
         <Link to="/profile" className="eyebrow text-[10px] text-foreground/50 hover:text-foreground">
           ← Profile
         </Link>
-        <Button type="button" className="rounded-none" onClick={() => window.print()}>
-          Print / Save PDF
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button asChild type="button" variant="outline" className="rounded-none">
+            <a href={`/api/orders/${order.id}/invoice.pdf`} download={`${order.orderNumber}-invoice.pdf`}>
+              Download PDF
+            </a>
+          </Button>
+          <Button type="button" className="rounded-none" onClick={() => window.print()}>
+            Print
+          </Button>
+        </div>
       </div>
 
       <article className="border border-foreground/15 p-8 print:border-0">

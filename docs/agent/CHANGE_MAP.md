@@ -40,6 +40,7 @@ Inspect **Primary** first. Do not scan the repo.
 |---|---|---|
 | Checkout page | `src/routes/checkout.tsx` | `razorpay-checkout.ts`, thank-you `checkout.success.tsx` (one-time Hurray via `checkout-success.ts`), `checkout-coupons.tsx` |
 | Order list / detail | `src/routes/orders.tsx`, `orders.$id.tsx` | Profile Pay now: `profile-order-card.tsx` |
+| Customer invoice PDF | `server/src/services/invoiceService.ts` | `server/src/routes/orders.ts`; preview route `src/routes/orders.$id.invoice.tsx`; profile link `profile-order-card.tsx` |
 | Order / Razorpay logic | `server/src/services/orderService.ts` | `routes/orders.ts`, `routes/webhooks.ts`, `utils/razorpayCrypto.ts`, `emailService.ts` |
 | Order schema | `server/src/models/Order.ts` | Fulfilment: confirmed → packed (`processing`) → shipped → out for delivery (`in_transit`) → delivered. Admin next-step only. |
 | Returns | `ReturnsTab.tsx` | `returnService.ts`; customer `POST /api/orders/:id/return`; admin `POST /api/admin/returns`; next-step only |

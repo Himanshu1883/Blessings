@@ -9,6 +9,7 @@ import {
   cancelOrder,
 } from "../services/orderService.js";
 import { requestReturn } from "../services/returnService.js";
+import { getInvoicePdf } from "../services/invoiceService.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import { validateBody, validateParams } from "../middleware/validate.js";
 import { requireAuth, attachRefreshedCookie, type AuthRequest } from "../middleware/auth.js";
@@ -43,6 +44,23 @@ router.get("/", async (req: AuthRequest, res, next) => {
     next(e);
   }
 });
+
+router.get(
+  "/:id/invoice.pdf",
+  validateParams(z.object({ id: z.string() })),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const invoice = await getInvoicePdf(paramId(req.params.id), req.userId!, req.userRole === "admin");
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Length", invoice.pdf.length.toString());
+      res.setHeader("Content-Disposition", `attachment; filename="${invoice.filename}"`);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.send(invoice.pdf);
+    } catch (e) {
+      next(e);
+    }
+  },
+);
 
 router.get(
   "/:id",

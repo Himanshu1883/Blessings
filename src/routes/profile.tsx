@@ -127,8 +127,18 @@ function ProfilePage() {
         </section>
 
         <section id="orders" className="mt-16 scroll-mt-28">
-          <p className="eyebrow text-[10px] tracking-[0.28em] text-[color:var(--gold)]">Orders</p>
-          <h2 className="profile-display mt-2 text-3xl italic sm:text-4xl">My Orders</h2>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="eyebrow text-[10px] tracking-[0.28em] text-[color:var(--gold)]">Orders</p>
+              <h2 className="profile-display mt-2 text-3xl italic sm:text-4xl">My Orders</h2>
+            </div>
+            {orders.length > 0 ? (
+              <p className="text-xs text-foreground/50">
+                {orders.length} order{orders.length === 1 ? "" : "s"} · tap a row for details
+              </p>
+            ) : null}
+          </div>
+
           {ordersLoading ? (
             <p className="mt-8 eyebrow text-[10px]">Loading orders…</p>
           ) : orders.length === 0 ? (
@@ -150,9 +160,9 @@ function ProfilePage() {
               </Button>
             </div>
           ) : (
-            <div className="mt-8 space-y-6">
-              {orders.map((order) => (
-                <ProfileOrderCard key={order.id} order={order} />
+            <div className="mt-8 divide-y divide-foreground/10 overflow-hidden rounded-2xl bg-white shadow-[0_10px_32px_rgba(40,16,10,0.06)]">
+              {orders.map((order, i) => (
+                <ProfileOrderCard key={order.id} order={order} defaultOpen={orders.length === 1 && i === 0} />
               ))}
             </div>
           )}

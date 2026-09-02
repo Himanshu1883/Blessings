@@ -130,7 +130,11 @@ Edit details → PATCH /api/auth/profile
 Cancel → POST /api/orders/:id/cancel (instant if < ~30 min and still confirmed)
 Return → POST /api/orders/:id/return (delivered, within 7 days)
 Reorder → POST /api/cart/items then /checkout (address prefill)
-Invoice → /orders/$id/invoice
+Invoice preview → /orders/$id/invoice
+Invoice PDF → authenticated GET /api/orders/:id/invoice.pdf
+  → invoiceService verifies the order owner (admins may fetch any order)
+  → server-rendered PDF buffer from the canonical Order record
+  → application/pdf attachment, private no-store cache
 ```
 
 ## Fulfilment
