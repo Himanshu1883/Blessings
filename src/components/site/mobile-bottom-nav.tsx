@@ -2,8 +2,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { CalendarIcon, ChatIcon, HomeIcon, SearchIcon } from "@/components/icons/site-icons";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { WHATSAPP_MESSAGES, whatsappUrl } from "@/lib/whatsapp";
 import { useShop } from "@/lib/shop-store";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import { cn } from "@/lib/utils";
 
 const WHATSAPP_GREEN = "#25D366";
@@ -12,6 +12,7 @@ const NAV_BG = "#f3f3f3";
 export function MobileBottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { openPanel } = useShop();
+  const { whatsappUrl, messages } = useStoreSettings();
 
   const isHome = pathname === "/";
   const isBook = pathname === "/contact" || pathname === "/bespoke";
@@ -41,7 +42,7 @@ export function MobileBottomNav() {
           </NavLink>
 
           <a
-            href={whatsappUrl(WHATSAPP_MESSAGES.chat)}
+            href={whatsappUrl(messages.chat)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-medium tracking-[0.1em] uppercase text-foreground/45 transition-colors hover:text-foreground/70 active:scale-95 [@media(max-height:420px)]:gap-0"
@@ -53,7 +54,7 @@ export function MobileBottomNav() {
 
         {/* Elevated WhatsApp FAB — the bar's one primary action, raised half above the bar edge */}
         <a
-          href={whatsappUrl(WHATSAPP_MESSAGES.general)}
+          href={whatsappUrl(messages.general)}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Chat with us on WhatsApp"

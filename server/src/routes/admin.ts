@@ -30,6 +30,8 @@ import {
   getHomepageSection,
   setHomepageSection,
 } from "../services/homepageService.js";
+import { getStoreSettings, updateStoreSettings } from "../services/settingsService.js";
+import { getAdminUser, listAdminUsers } from "../services/userAdminService.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import { requireAuth, requireAdmin, attachRefreshedCookie, type AuthRequest } from "../middleware/auth.js";
 import { validateBody, validateParams } from "../middleware/validate.js";
@@ -452,6 +454,22 @@ router.patch(
   },
 );
 
+router.get("/users", async (_req, res, next) => {
+  try {
+    sendSuccess(res, await listAdminUsers());
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/users/:id", validateParams(z.object({ id: z.string().min(1) })), async (req, res, next) => {
+  try {
+    sendSuccess(res, await getAdminUser(String(req.params.id)));
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.get("/notifications", async (_req, res, next) => {
   try {
     sendSuccess(res, await listNotifications());
@@ -510,5 +528,43 @@ router.patch(
     }
   },
 );
+
+const settingsPatchSchema = z.object({
+  storeName: z.string().min(2).max(120).optional(),
+  brandName: z.string().min(2).max(80).optional(),
+  tagline: z.string().max(160).optional(),
+  email: z.string().email().optional(),
+  landline: z.string().max(20).optional(),
+  landlineDisplay: z.string().max(40).optional(),
+  hours: z.string().max(120).optional(),
+  addressLine1: z.string().max(160).optional(),
+  addressLine2: z.string().max(160).optional(),
+  city: z.string().max(80).optional(),
+  state: z.string().max(80).optional(),
+  pincode: z.string().max(12).optional(),
+  country: z.string().max(80).optional(),
+  whatsappNumber: z.string().min(10).max(20).optional(),
+  whatsappDisplay: z.string().max(40).optional(),
+  instagramHandle: z.string().max(80).optional(),
+  shippingFee: z.number().min(0).max(100000).optional(),
+  shippingNote: z.string().max(400).optional(),
+  returnsEnabled: z.boolean().optional(),
+});
+
+router.get("/settings", async (_req, res, next) => {
+  try {
+    sendSuccess(res, await getStoreSettings());
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.patch("/settings", validateBody(settingsPatchSchema), async (req, res, next) => {
+  try {
+    sendSuccess(res, await updateStoreSettings(req.body));
+  } catch (e) {
+    next(e);
+  }
+});
 
 export default router;

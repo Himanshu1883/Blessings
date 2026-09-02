@@ -14,7 +14,8 @@ import { useCurrency } from "@/lib/currency";
 import type { StoreCustomField, StoreProduct } from "@/lib/catalog-api";
 import { isSizeInStock } from "@/lib/catalog-api";
 import { cn } from "@/lib/utils";
-import { buildCustomOrderMessage, whatsappUrl } from "@/lib/whatsapp";
+import { buildCustomOrderMessage } from "@/lib/whatsapp";
+import { useStoreSettings } from "@/lib/store-settings-context";
 
 const COMMON_FABRICS = [
   "Silk",
@@ -98,6 +99,7 @@ export function ProductCustomizeSheet({
   outOfStock?: boolean;
 }) {
   const { format } = useCurrency();
+  const { whatsappUrl } = useStoreSettings();
   const extraFields = useMemo(() => customisableFields(product), [product]);
   const fabricOptions = useMemo(
     () => unique([product.fabric, ...COMMON_FABRICS]),

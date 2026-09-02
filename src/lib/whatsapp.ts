@@ -1,8 +1,8 @@
 export const WHATSAPP_NUMBER = "918860306034";
 export const WHATSAPP_DISPLAY = "+91 88603 06034";
 
-export function whatsappUrl(message?: string) {
-  const base = `https://wa.me/${WHATSAPP_NUMBER}`;
+export function whatsappUrl(message?: string, number = WHATSAPP_NUMBER) {
+  const base = `https://wa.me/${number.replace(/\D/g, "")}`;
   if (!message) return base;
   return `${base}?text=${encodeURIComponent(message)}`;
 }

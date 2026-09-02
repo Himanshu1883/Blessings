@@ -22,6 +22,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { CurrencyProvider } from "@/lib/currency";
 import { CouponsProvider } from "@/lib/coupons-context";
 import { ShopProvider } from "@/lib/shop-store";
+import { StoreSettingsProvider } from "@/lib/store-settings-context";
 import { cn } from "@/lib/utils";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import appCss from "../styles.css?url";
@@ -157,10 +158,12 @@ function RootComponent() {
     return (
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <CurrencyProvider>
-            <Outlet />
-            <Toaster position="bottom-right" />
-          </CurrencyProvider>
+          <StoreSettingsProvider>
+            <CurrencyProvider>
+              <Outlet />
+              <Toaster position="bottom-right" />
+            </CurrencyProvider>
+          </StoreSettingsProvider>
         </AuthProvider>
       </QueryClientProvider>
     );
@@ -169,6 +172,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <StoreSettingsProvider>
         <CurrencyProvider>
           <CouponsProvider>
           <ShopProvider>
@@ -206,6 +210,7 @@ function RootComponent() {
           </ShopProvider>
           </CouponsProvider>
         </CurrencyProvider>
+        </StoreSettingsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

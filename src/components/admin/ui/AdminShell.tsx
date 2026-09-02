@@ -11,8 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
-import { ADMIN_NAV, tabLabel, type AdminTabId } from "@/components/admin/adminNav";
+import { getAdminNav, tabLabel, type AdminTabId } from "@/components/admin/adminNav";
 import { BRAND_LOGO, BRAND_NAME } from "@/lib/seo";
+import { useStoreSettings } from "@/lib/store-settings-context";
 
 type Badges = {
   pendingOrders?: number;
@@ -33,6 +34,8 @@ export function AdminShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { returnsEnabled } = useStoreSettings();
+  const nav = getAdminNav(returnsEnabled);
 
   const initials = user?.name
     ?.split(" ")
@@ -71,7 +74,7 @@ export function AdminShell({
       </div>
 
       <nav className="flex-1 overflow-y-auto admin-scrollbar py-3 px-2 space-y-0.5">
-        {ADMIN_NAV.map((item) => {
+        {nav.map((item) => {
           const Icon = item.icon;
           const active = item.id === activeTab;
           const badge =

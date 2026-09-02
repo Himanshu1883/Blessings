@@ -25,7 +25,7 @@ import {
 } from "@/lib/razorpay-checkout";
 import { writeCheckoutAddress } from "@/lib/checkout-address";
 import { useCurrency } from "@/lib/currency";
-import { RETURNS_ENABLED } from "@/lib/store-contact";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import type { ApiOrder } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
 import {
@@ -158,6 +158,7 @@ export function ProfileOrderCard({
 }) {
   const { formatInr } = useCurrency();
   const { user } = useAuth();
+  const { returnsEnabled } = useStoreSettings();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const cancelOrder = useCancelOrder();
@@ -468,7 +469,7 @@ export function ProfileOrderCard({
                 Cancel
               </Button>
             ) : null}
-            {RETURNS_ENABLED && order.canReturn ? (
+            {returnsEnabled && order.canReturn ? (
               <Button
                 type="button"
                 variant="outline"
@@ -529,7 +530,7 @@ export function ProfileOrderCard({
         </DialogContent>
       </Dialog>
 
-      {RETURNS_ENABLED ? (
+      {returnsEnabled ? (
         <Dialog open={returnOpen} onOpenChange={setReturnOpen}>
           <DialogContent className="rounded-none sm:max-w-md">
             <DialogHeader>

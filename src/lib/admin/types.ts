@@ -86,6 +86,38 @@ export type DashboardMetrics = {
   pendingReturns: number;
 };
 
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  role: "user" | "admin";
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  hasPassword: boolean;
+  hasGoogle: boolean;
+  addressCount: number;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminUserDetail = AdminUser & {
+  addresses: Array<{
+    name: string;
+    line1: string;
+    city: string;
+    state: string;
+    pincode: string;
+    phone: string;
+    isDefault: boolean;
+  }>;
+  orders: AdminOrder[];
+};
+
 export type AdminData = {
   products: ApiProduct[];
   categories: ApiCategory[];

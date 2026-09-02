@@ -1,6 +1,6 @@
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { cn } from "@/lib/utils";
-import { whatsappUrl } from "@/lib/whatsapp";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import type { ReactNode } from "react";
 
 type WhatsAppLinkProps = {
@@ -20,6 +20,7 @@ export function WhatsAppLink({
   children,
   "aria-label": ariaLabel = "Chat on WhatsApp",
 }: WhatsAppLinkProps) {
+  const { whatsappUrl } = useStoreSettings();
   return (
     <a
       href={whatsappUrl(message)}

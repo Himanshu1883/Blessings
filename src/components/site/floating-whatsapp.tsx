@@ -1,10 +1,11 @@
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { WHATSAPP_MESSAGES, whatsappUrl } from "@/lib/whatsapp";
+import { useStoreSettings } from "@/lib/store-settings-context";
 
 export function FloatingWhatsApp() {
+  const { whatsappUrl, messages } = useStoreSettings();
   return (
     <a
-      href={whatsappUrl(WHATSAPP_MESSAGES.general)}
+      href={whatsappUrl(messages.general)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"

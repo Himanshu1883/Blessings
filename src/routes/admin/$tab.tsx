@@ -1,8 +1,8 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { AdminProtected } from "@/components/admin/AdminProtected";
 import { AdminShell } from "@/components/admin/ui/AdminShell";
-import { isValidAdminTab, type AdminTabId } from "@/components/admin/adminNav";
-import { RETURNS_ENABLED } from "@/lib/store-contact";
+import { isValidAdminTab, ADMIN_HOMEPAGE_ENABLED, ADMIN_MARKETING_ENABLED, type AdminTabId } from "@/components/admin/adminNav";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { DashboardTab } from "@/components/admin/DashboardTab";
 import { ProductsTab } from "@/components/admin/ProductsTab";
@@ -14,6 +14,7 @@ import { ReturnsTab } from "@/components/admin/ReturnsTab";
 import { MarketingTab } from "@/components/admin/MarketingTab";
 import { HomepageTab } from "@/components/admin/HomepageTab";
 import { SettingsTab } from "@/components/admin/SettingsTab";
+import { UsersTab } from "@/components/admin/UsersTab";
 
 export const Route = createFileRoute("/admin/$tab")({
   component: AdminPage,
@@ -21,9 +22,14 @@ export const Route = createFileRoute("/admin/$tab")({
 
 function AdminPage() {
   const { tab } = Route.useParams();
+  const { returnsEnabled } = useStoreSettings();
   const activeTab: AdminTabId = isValidAdminTab(tab) ? tab : "dashboard";
 
-  if (tab === "returns" && !RETURNS_ENABLED) {
+  if (tab === "returns" && !returnsEnabled) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  if ((tab === "homepage" && !ADMIN_HOMEPAGE_ENABLED) || (tab === "marketing" && !ADMIN_MARKETING_ENABLED)) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
@@ -68,6 +74,8 @@ function AdminPageContent({ activeTab }: { activeTab: AdminTabId }) {
         return <HomepageTab />;
       case "settings":
         return <SettingsTab />;
+      case "users":
+        return <UsersTab />;
       default:
         return null;
     }

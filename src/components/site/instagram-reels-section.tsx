@@ -4,7 +4,8 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { InstagramIcon } from "@/components/icons/instagram-icon";
 import { InstagramLink } from "@/components/site/instagram-link";
 import { InstagramReel } from "@/components/site/instagram-reel";
-import { INSTAGRAM_HANDLE, INSTAGRAM_REELS } from "@/lib/social";
+import { INSTAGRAM_REELS } from "@/lib/social";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import { cn } from "@/lib/utils";
 
 function ReelTile({ src, index }: { src: string; index: number }) {
@@ -161,6 +162,7 @@ function ReelsGrid() {
 
 export function InstagramReelsSection() {
   const compact = useCompactReelsLayout();
+  const { instagramHandle } = useStoreSettings();
 
   return (
     <section data-reveal-direction="alternate" className="py-16 sm:py-24 md:py-28 bg-background">
@@ -168,7 +170,7 @@ export function InstagramReelsSection() {
         <div>
           <p className="eyebrow text-[color:var(--gold)] mb-4">(03) The Journal</p>
           <h2 className="font-serif italic text-3xl sm:text-4xl md:text-5xl">
-            @{INSTAGRAM_HANDLE}
+            @{instagramHandle}
           </h2>
         </div>
         <InstagramLink

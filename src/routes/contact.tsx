@@ -19,14 +19,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { WHATSAPP_DISPLAY, WHATSAPP_MESSAGES, whatsappUrl } from "@/lib/whatsapp";
-import {
-  STORE_EMAIL,
-  STORE_HOURS,
-  STORE_LANDLINE,
-  STORE_LANDLINE_DISPLAY,
-} from "@/lib/store-contact";
+import { WHATSAPP_MESSAGES } from "@/lib/whatsapp";
 import { seoHead } from "@/lib/seo";
+import { formatStoreAddress } from "@/lib/store-settings";
+import { useStoreSettings } from "@/lib/store-settings-context";
 
 export const Route = createFileRoute("/contact")({
   head: () =>
@@ -74,6 +70,7 @@ const FAQS = [
 function Contact() {
   const hash = useRouterState({ select: (s) => s.location.hash });
   const { lenis } = useScrollExperience();
+  const settings = useStoreSettings();
   const [name, setName] = useState("");
   const [reach, setReach] = useState("");
   const [topic, setTopic] = useState<(typeof TOPICS)[number]>("Bespoke consultation");
@@ -109,7 +106,7 @@ function Contact() {
     ]
       .filter(Boolean)
       .join(" ");
-    window.open(whatsappUrl(body), "_blank", "noopener,noreferrer");
+    window.open(settings.whatsappUrl(body), "_blank", "noopener,noreferrer");
     toast.success("Opening WhatsApp with your message.");
   };
 
@@ -163,7 +160,7 @@ function Contact() {
                 <div>
                   <p className="eyebrow text-[9px]">WhatsApp</p>
                   <WhatsAppLink message={WHATSAPP_MESSAGES.general} className="mt-1 text-sm hover:text-[#25D366]">
-                    {WHATSAPP_DISPLAY}
+                    {settings.whatsappDisplay}
                   </WhatsAppLink>
                 </div>
               </div>
@@ -173,8 +170,8 @@ function Contact() {
                 </span>
                 <div>
                   <p className="eyebrow text-[9px]">Email</p>
-                  <a href={`mailto:${STORE_EMAIL}`} className="mt-1 block text-sm hover:text-[color:var(--maroon)]">
-                    {STORE_EMAIL}
+                  <a href={`mailto:${settings.email}`} className="mt-1 block text-sm hover:text-[color:var(--maroon)]">
+                    {settings.email}
                   </a>
                 </div>
               </div>
@@ -184,8 +181,8 @@ function Contact() {
                 </span>
                 <div>
                   <p className="eyebrow text-[9px]">Phone</p>
-                  <a href={`tel:${STORE_LANDLINE}`} className="mt-1 block text-sm hover:text-[color:var(--maroon)]">
-                    {STORE_LANDLINE_DISPLAY}
+                  <a href={`tel:${settings.landline}`} className="mt-1 block text-sm hover:text-[color:var(--maroon)]">
+                    {settings.landlineDisplay}
                   </a>
                 </div>
               </div>
@@ -195,7 +192,7 @@ function Contact() {
                 </span>
                 <div>
                   <p className="eyebrow text-[9px]">Hours</p>
-                  <p className="mt-1 text-sm text-foreground/70">{STORE_HOURS}</p>
+                  <p className="mt-1 text-sm text-foreground/70">{settings.hours}</p>
                 </div>
               </div>
             </div>
@@ -261,6 +258,9 @@ function Contact() {
               Private viewings by walk-in or appointment. Bring a reference, a date, or simply come to feel the silks.
               Virtual fittings are available for the UK, USA, UAE, Canada and beyond.
             </p>
+            {formatStoreAddress(settings) ? (
+              <p className="mt-4 whitespace-pre-line text-sm text-foreground/70">{formatStoreAddress(settings)}</p>
+            ) : null}
             <div className="mt-8 flex flex-wrap gap-2">
               <WhatsAppLink
                 message={WHATSAPP_MESSAGES.book}
@@ -281,7 +281,7 @@ function Contact() {
               ["In person", "Try silhouettes, fabrics and embroidery in the fitting rooms. Alterations on the house for Blessings pieces."],
               ["Virtual", "WhatsApp or Zoom with a house stylist. We ship trial muslins for bespoke clients abroad when needed."],
               ["Weddings", "Groom, groomsmen and family edits. Share the function list and we will map a wardrobe."],
-              ["Press & events", `For editorials and trunk shows, write to ${STORE_EMAIL} with dates and city.`],
+              ["Press & events", `For editorials and trunk shows, write to ${settings.email} with dates and city.`],
             ].map(([title, copy]) => (
               <div key={title} className="rounded-2xl border border-foreground/10 p-5">
                 <h3 className="font-medium">{title}</h3>
@@ -305,8 +305,8 @@ function Contact() {
               <p className="eyebrow mb-3 text-[color:var(--gold)]">Shipping</p>
               <h2 className="font-serif text-3xl italic sm:text-4xl">To your door, worldwide.</h2>
               <p className="mt-4 text-sm leading-relaxed text-foreground/65">
-                Complimentary worldwide shipping on every Blessings order. Duties and taxes for your country are shown
-                at checkout where we can calculate them; otherwise they may be collected by local customs.
+                {settings.shippingNote ||
+                  "Complimentary worldwide shipping on every Blessings order. Duties and taxes for your country are shown at checkout where we can calculate them; otherwise they may be collected by local customs."}
               </p>
             </div>
           </div>

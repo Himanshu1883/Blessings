@@ -26,13 +26,7 @@ import { useCurrency } from "@/lib/currency";
 import { RequireAuth } from "@/lib/require-auth";
 import { markOrderSuccess } from "@/lib/checkout-success";
 import { seoHead } from "@/lib/seo";
-import { WHATSAPP_DISPLAY } from "@/lib/whatsapp";
-import {
-  STORE_EMAIL,
-  STORE_LANDLINE,
-  STORE_LANDLINE_DISPLAY,
-  RETURNS_ENABLED,
-} from "@/lib/store-contact";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import { cn } from "@/lib/utils";
 import {
   CheckoutDismissedError,
@@ -75,8 +69,6 @@ const INDIAN_STATES = [
   "Uttarakhand",
   "West Bengal",
 ];
-
-const SUPPORT_EMAIL = STORE_EMAIL;
 
 const fieldClass =
   "h-11 rounded-lg border-foreground/12 bg-[color:var(--ivory)]/70 shadow-none focus-visible:ring-[color:var(--gold)]";
@@ -135,6 +127,7 @@ function CheckoutPage() {
   const { data: cart } = useCart();
   const { data: orders = [] } = useOrders();
   const { format, currency, info } = useCurrency();
+  const settings = useStoreSettings();
   const createOrder = useCreateOrder();
   const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "cod">("cod");
   const [submitting, setSubmitting] = useState(false);
@@ -230,7 +223,7 @@ function CheckoutPage() {
 
   const quote = quoteQuery.data;
   const discount = quote?.ok ? quote.discount : 0;
-  const payable = Math.max(0, cart.subtotal - discount);
+  const payable = Math.max(0, cart.subtotal - discount) + settings.shippingFee;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -520,7 +513,11 @@ function CheckoutPage() {
                   ) : null}
                   <div className="flex justify-between text-foreground/60">
                     <span>Shipping</span>
-                    <span className="text-emerald-800">Free</span>
+                    {settings.shippingFee > 0 ? (
+                      <span className="tabular-nums">{format(settings.shippingFee)}</span>
+                    ) : (
+                      <span className="text-emerald-800">Free</span>
+                    )}
                   </div>
                   <div className="flex justify-between pt-1 font-medium">
                     <span className="profile-display text-xl italic">Total</span>
@@ -538,7 +535,7 @@ function CheckoutPage() {
                   <Lock className="size-3.5 text-[color:var(--gold)]" strokeWidth={1.6} />
                   100% Secure Payments
                 </p>
-                {RETURNS_ENABLED ? (
+                {settings.returnsEnabled ? (
                   <p className="flex flex-col items-center gap-1 px-1">
                     <RotateCcw className="size-3.5 text-[color:var(--gold)]" strokeWidth={1.6} />
                     Easy Returns
@@ -565,14 +562,14 @@ function CheckoutPage() {
                   <h3 className="profile-display text-xl italic">Need help?</h3>
                   <p className="mt-1 text-xs text-foreground/50">Our support team is here to help you.</p>
                   <p className="mt-3 text-right text-sm">
-                    <a href={`tel:${WHATSAPP_DISPLAY.replace(/\s/g, "")}`} className="block hover:text-[color:var(--maroon)]">
-                      {WHATSAPP_DISPLAY}
+                    <a href={`tel:${settings.whatsappDisplay.replace(/\s/g, "")}`} className="block hover:text-[color:var(--maroon)]">
+                      {settings.whatsappDisplay}
                     </a>
-                    <a href={`tel:${STORE_LANDLINE}`} className="mt-0.5 block hover:text-[color:var(--maroon)]">
-                      {STORE_LANDLINE_DISPLAY}
+                    <a href={`tel:${settings.landline}`} className="mt-0.5 block hover:text-[color:var(--maroon)]">
+                      {settings.landlineDisplay}
                     </a>
-                    <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-0.5 block text-foreground/60 hover:text-[color:var(--maroon)]">
-                      {SUPPORT_EMAIL}
+                    <a href={`mailto:${settings.email}`} className="mt-0.5 block text-foreground/60 hover:text-[color:var(--maroon)]">
+                      {settings.email}
                     </a>
                   </p>
                 </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api-client";
-import { RETURNS_ENABLED } from "@/lib/store-contact";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import type { ApiCategory, ApiProduct } from "@/lib/api-types";
 import type {
   AdminCoupon,
@@ -49,6 +49,7 @@ export function useAdminApi(): AdminApiState {
   const [data, setData] = useState<AdminData>(emptyData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { returnsEnabled } = useStoreSettings();
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -61,7 +62,7 @@ export function useAdminApi(): AdminApiState {
           api.get<ApiCategory[]>("/api/admin/categories"),
           api.get<AdminOrder[]>("/api/admin/orders"),
           api.get<AdminCoupon[]>("/api/admin/coupons"),
-          RETURNS_ENABLED ? api.get<AdminReturn[]>("/api/admin/returns") : Promise.resolve([]),
+          returnsEnabled ? api.get<AdminReturn[]>("/api/admin/returns") : Promise.resolve([]),
           api.get<AdminNotification[]>("/api/admin/notifications"),
         ]);
       setData({ dashboard, products, categories, orders, coupons, returns, notifications });
@@ -70,7 +71,7 @@ export function useAdminApi(): AdminApiState {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [returnsEnabled]);
 
   useEffect(() => {
     void reload();

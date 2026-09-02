@@ -14,8 +14,12 @@ import { noticeTypeForStatus, notifyUser } from "./userNotificationService.js";
 import { mailKindForStatus, sendOrderEmail } from "./emailService.js";
 import { hmacSha256Hex, inrPaise, timingSafeEqualHex } from "../utils/razorpayCrypto.js";
 import { getReturnsByOrderIds, returnStateForOrder } from "./returnService.js";
+import { getStoreSettings } from "./settingsService.js";
 
-const SHIPPING_FEE = 0;
+async function shippingFeeFromSettings() {
+  const settings = await getStoreSettings();
+  return Math.max(0, Number(settings.shippingFee) || 0);
+}
 
 async function customerEmail(userId: string) {
   const user = await User.findById(userId);
@@ -310,7 +314,8 @@ export async function createOrder(
 
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const discount = quote.ok ? quote.discount : 0;
-  const total = Math.max(0, subtotal - discount) + SHIPPING_FEE;
+  const shippingFee = await shippingFeeFromSettings();
+  const total = Math.max(0, subtotal - discount) + shippingFee;
 
   const sanitizedAddress: IAddress = {
     name: sanitizeText(data.shippingAddress.name),
@@ -335,7 +340,7 @@ export async function createOrder(
     items,
     shippingAddress: sanitizedAddress,
     subtotal,
-    shippingFee: SHIPPING_FEE,
+    shippingFee,
     discount,
     total,
     couponCode: quote.ok ? quote.coupon?.code ?? null : null,

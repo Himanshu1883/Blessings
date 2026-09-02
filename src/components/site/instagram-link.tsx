@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { InstagramIcon } from "@/components/icons/instagram-icon";
-import { INSTAGRAM_URL } from "@/lib/social";
+import { useStoreSettings } from "@/lib/store-settings-context";
 import { cn } from "@/lib/utils";
 
 type InstagramLinkProps = {
@@ -18,9 +18,10 @@ export function InstagramLink({
   children,
   "aria-label": ariaLabel = "Follow on Instagram",
 }: InstagramLinkProps) {
+  const { instagramUrl } = useStoreSettings();
   return (
     <a
-      href={INSTAGRAM_URL}
+      href={instagramUrl}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={ariaLabel}

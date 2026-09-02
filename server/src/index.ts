@@ -16,6 +16,7 @@ import orderRoutes from "./routes/orders.js";
 import adminRoutes from "./routes/admin.js";
 import couponRoutes from "./routes/coupons.js";
 import homepageRoutes from "./routes/homepage.js";
+import settingsRoutes from "./routes/settings.js";
 import accountRoutes from "./routes/account.js";
 import { razorpayWebhookHandler } from "./routes/webhooks.js";
 
@@ -65,6 +66,7 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/homepage", homepageRoutes);
+app.use("/api/settings", settingsRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use(notFoundHandler);

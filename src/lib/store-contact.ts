@@ -1,10 +1,10 @@
-/** Storefront contact details — single source for site + checkout. */
-export const STORE_EMAIL = "Blessingsthemensboutique@gmail.com";
+import { DEFAULT_STORE_SETTINGS } from "@/lib/store-settings";
 
-export const STORE_LANDLINE = "01144461432";
-export const STORE_LANDLINE_DISPLAY = "011 4446 1432";
+/** Fallback storefront contact details. Live values come from admin Settings. */
+export const STORE_EMAIL = DEFAULT_STORE_SETTINGS.email;
+export const STORE_LANDLINE = DEFAULT_STORE_SETTINGS.landline;
+export const STORE_LANDLINE_DISPLAY = DEFAULT_STORE_SETTINGS.landlineDisplay;
+export const STORE_HOURS = DEFAULT_STORE_SETTINGS.hours;
 
-export const STORE_HOURS = "11:30 AM — 9:30 PM, Monday — Saturday";
-
-/** Hide customer + admin returns UI while keeping API in place. */
-export const RETURNS_ENABLED = false;
+/** Fallback until live settings load. Prefer `useStoreSettings().returnsEnabled`. */
+export const RETURNS_ENABLED = DEFAULT_STORE_SETTINGS.returnsEnabled;
