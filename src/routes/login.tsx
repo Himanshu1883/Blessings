@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AuthPageLayout, authInputClass } from "@/components/site/auth-page-layout";
+import { ForgotPasswordModal } from "@/components/site/forgot-password-modal";
 import { GoogleAuthButton } from "@/components/site/google-auth-button";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api-client";
@@ -40,6 +41,7 @@ function LoginPage() {
   const [loginId, setLoginId] = useState(prefill ?? "");
   const [loginPassword, setLoginPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   useEffect(() => {
     if (prefill) setLoginId(prefill);
@@ -113,9 +115,13 @@ function LoginPage() {
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
-        <Link to="/contact" hash="help" className="inline-block text-sm font-medium hover:text-primary transition-colors">
+        <button
+          type="button"
+          onClick={() => setForgotOpen(true)}
+          className="inline-block text-sm font-medium hover:text-primary transition-colors"
+        >
           Forgot your password?
-        </Link>
+        </button>
         <Button
           type="submit"
           disabled={submitting}
@@ -137,6 +143,12 @@ function LoginPage() {
           Create an account
         </Link>
       </p>
+
+      <ForgotPasswordModal
+        open={forgotOpen}
+        onOpenChange={setForgotOpen}
+        initialIdentifier={loginId}
+      />
     </AuthPageLayout>
   );
 }

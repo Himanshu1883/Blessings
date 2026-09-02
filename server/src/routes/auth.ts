@@ -12,6 +12,8 @@ import {
   googleTokenLogin,
   updateAccount,
   changePassword,
+  verifyPasswordReset,
+  resetPasswordWithToken,
   isGoogleConfigured,
 } from "../services/authService.js";
 import { sendSuccess } from "../utils/apiResponse.js";
@@ -247,6 +249,42 @@ router.patch(
   async (req: AuthRequest, res, next) => {
     try {
       const result = await changePassword(req.userId!, req.body);
+      sendSuccess(res, result);
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+router.post(
+  "/password/verify",
+  validateBody(
+    z.object({
+      identifier: z.string().min(3),
+      name: z.string().min(2).max(100),
+    }),
+  ),
+  async (req, res, next) => {
+    try {
+      const result = await verifyPasswordReset(req.body);
+      sendSuccess(res, result);
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+router.post(
+  "/password/reset",
+  validateBody(
+    z.object({
+      resetToken: z.string().min(10),
+      newPassword: z.string().min(8).max(128),
+    }),
+  ),
+  async (req, res, next) => {
+    try {
+      const result = await resetPasswordWithToken(req.body);
       sendSuccess(res, result);
     } catch (e) {
       next(e);

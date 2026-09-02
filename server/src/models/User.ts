@@ -28,6 +28,8 @@ export interface IUser extends Document {
   refreshTokenExpiry?: Date;
   oauthExchangeHash?: string;
   oauthExchangeExpiry?: Date;
+  passwordResetHash?: string;
+  passwordResetExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -61,6 +63,8 @@ const userSchema = new Schema<IUser>(
     refreshTokenExpiry: { type: Date, select: false },
     oauthExchangeHash: { type: String, select: false },
     oauthExchangeExpiry: { type: Date, select: false },
+    passwordResetHash: { type: String, select: false },
+    passwordResetExpiry: { type: Date, select: false },
   },
   { timestamps: true },
 );

@@ -63,9 +63,9 @@ function Index() {
       />
       <CategoryEditorial />
       <NewArrivals />
+      <InstagramReelsSection />
       <ExploreMenswear />
       <ShopByOccasion />
-      <InstagramReelsSection />
       <StyleSeekersMarquee />
       <BespokeStory />
       <GroomsEdit />

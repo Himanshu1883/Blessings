@@ -43,6 +43,20 @@ function isDuplicateKeyError(e: unknown) {
   return Boolean(e && typeof e === "object" && "code" in e && (e as { code?: number }).code === 11000);
 }
 
+function normalizeNameForCompare(name: string) {
+  return sanitizeText(name).toLowerCase().replace(/\s+/g, " ");
+}
+
+const RESET_VERIFY_MESSAGE = "Those details don't match our records.";
+
+function findUserByIdentifier(identifier: string) {
+  const cleaned = sanitizeText(identifier);
+  const query = isEmail(cleaned)
+    ? { email: cleaned.toLowerCase() }
+    : { phone: normalizePhone(cleaned) };
+  return User.findOne(query).select("+passwordHash +passwordResetHash +passwordResetExpiry +googleId");
+}
+
 async function findUserByEmailOrPhone(email?: string, phone?: string) {
   const clauses = [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])];
   if (clauses.length === 0) return null;
@@ -404,6 +418,52 @@ export async function updateAccount(
   }
 
   return { user: toPublicUser(user), requiresRelogin };
+}
+
+export async function verifyPasswordReset(data: { identifier: string; name: string }) {
+  const user = await findUserByIdentifier(data.identifier);
+  if (!user) {
+    throw new AppError(401, RESET_VERIFY_MESSAGE, "RESET_VERIFY_FAILED");
+  }
+
+  if (normalizeNameForCompare(user.name) !== normalizeNameForCompare(data.name)) {
+    throw new AppError(401, RESET_VERIFY_MESSAGE, "RESET_VERIFY_FAILED");
+  }
+
+  const resetToken = generateRefreshToken();
+  await User.findByIdAndUpdate(user._id, {
+    passwordResetHash: hashToken(resetToken),
+    passwordResetExpiry: new Date(Date.now() + 15 * 60 * 1000),
+  });
+
+  return { resetToken };
+}
+
+export async function resetPasswordWithToken(data: { resetToken: string; newPassword: string }) {
+  if (data.newPassword.length < 8) {
+    throw new AppError(400, "Password must be at least 8 characters");
+  }
+
+  const user = await User.findOneAndUpdate(
+    {
+      passwordResetHash: hashToken(data.resetToken),
+      passwordResetExpiry: { $gt: new Date() },
+    },
+    { $unset: { passwordResetHash: 1, passwordResetExpiry: 1 } },
+    { new: true },
+  ).select("+passwordHash");
+
+  if (!user) {
+    throw new AppError(401, "Reset session expired. Please start again.", "RESET_EXPIRED");
+  }
+
+  user.passwordHash = await bcrypt.hash(data.newPassword, BCRYPT_ROUNDS);
+  await user.save();
+  await User.findByIdAndUpdate(user._id, {
+    $unset: { refreshTokenHash: 1, refreshTokenExpiry: 1 },
+  });
+
+  return { reset: true };
 }
 
 export async function changePassword(

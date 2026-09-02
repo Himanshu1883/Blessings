@@ -51,6 +51,8 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/password/verify", authLimiter);
+app.use("/api/auth/password/reset", authLimiter);
 app.use("/api/auth/google/token", authLimiter);
 app.use("/api/auth/google/exchange", authLimiter);
 app.use("/api/auth", authRoutes);
