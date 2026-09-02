@@ -141,11 +141,11 @@ export function ProductCard({
 
         <div className="mt-2 h-px bg-[color:var(--gold)]/25 lg:hidden" />
 
-        <div className="mt-2 grid grid-cols-[1.15fr_1fr] gap-1.5 lg:mt-auto lg:grid-cols-[1.4fr_1fr] lg:gap-2">
+        <div className="mt-2 grid grid-cols-[1.15fr_1fr] gap-1 lg:mt-auto lg:grid-cols-[1.4fr_1fr] lg:gap-2">
           <button
             type="button"
             onClick={handleAdd}
-            className="inline-flex min-h-8 items-center justify-center gap-1 rounded-md bg-[color:var(--charcoal)] px-1.5 text-[8px] font-medium uppercase tracking-[0.08em] text-white lg:min-h-11 lg:gap-2 lg:rounded-full lg:px-3 lg:eyebrow lg:text-[9px] lg:tracking-[0.16em] lg:text-[color:var(--ivory)] lg:shadow-sm lg:hover:bg-[color:var(--maroon)]"
+            className="inline-flex min-h-8 min-w-0 items-center justify-center gap-1 rounded-md bg-[color:var(--charcoal)] px-1 text-[8px] font-medium uppercase tracking-[0.02em] text-white sm:px-1.5 sm:tracking-[0.08em] lg:min-h-11 lg:gap-2 lg:rounded-full lg:px-3 lg:eyebrow lg:text-[9px] lg:tracking-[0.16em] lg:text-[color:var(--ivory)] lg:shadow-sm lg:hover:bg-[color:var(--maroon)]"
           >
             <ShoppingBag className="size-3 shrink-0 lg:size-3.5" strokeWidth={1.6} />
             <span className="truncate">Add to bag</span>
@@ -153,7 +153,7 @@ export function ProductCard({
           <Link
             to="/product/$id"
             params={{ id: product.id }}
-            className="inline-flex min-h-8 items-center justify-center gap-0.5 rounded-md border border-[color:var(--gold)]/40 bg-transparent px-1.5 text-[8px] font-medium uppercase tracking-[0.08em] text-[color:var(--charcoal)]/80 lg:min-h-11 lg:rounded-full lg:border-foreground/15 lg:bg-[color:var(--ivory)] lg:px-3 lg:eyebrow lg:text-[9px] lg:tracking-[0.16em] lg:text-[color:var(--charcoal)] lg:hover:border-[color:var(--gold)] lg:hover:text-[color:var(--maroon)]"
+            className="inline-flex min-h-8 min-w-0 items-center justify-center gap-0.5 rounded-md border border-[color:var(--gold)]/40 bg-transparent px-1 text-[8px] font-medium uppercase tracking-[0.02em] text-[color:var(--charcoal)]/80 sm:px-1.5 sm:tracking-[0.08em] lg:min-h-11 lg:rounded-full lg:border-foreground/15 lg:bg-[color:var(--ivory)] lg:px-3 lg:eyebrow lg:text-[9px] lg:tracking-[0.16em] lg:text-[color:var(--charcoal)] lg:hover:border-[color:var(--gold)] lg:hover:text-[color:var(--maroon)]"
           >
             <span className="truncate">View details</span>
             <ArrowRight className="size-2.5 shrink-0 lg:hidden" strokeWidth={1.75} />
